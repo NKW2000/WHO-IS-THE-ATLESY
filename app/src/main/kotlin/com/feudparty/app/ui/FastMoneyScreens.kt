@@ -68,10 +68,12 @@ fun FastMoneyHostScreen(
     val teamName = state.teams[fastMoney.teamId]?.name ?: ""
     val accent = fastMoney.teamId.color()
 
-    StageBackground(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
+    StageBackground(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)) {
+        Row(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .weight(1f)
+                .fillMaxHeight()
                 .verticalScroll(rememberScrollState())
         ) {
             FastMoneyHeader(fastMoney, teamName, accent, revealTotal = true)
@@ -171,14 +173,15 @@ fun FastMoneyHostScreen(
             )
             Spacer(Modifier.height(12.dp))
         }
+        }
     }
 }
 
-/** شاشة الفريق أثناء الجولة السريعة — بتتفرّج بس. */
+/** شاشة اللاعب أثناء الجولة السريعة — بتتفرّج بس (أو دورك تجاوب). */
 @Composable
-fun FastMoneyTeamScreen(state: GameState, myTeam: TeamId?) {
+fun FastMoneyPlayerScreen(state: GameState, playerId: String?) {
     val fastMoney = state.fastMoney ?: return
-    val mine = fastMoney.teamId == myTeam
+    val mine = playerId != null && playerId == fastMoney.currentPlayerId
     val teamName = state.teams[fastMoney.teamId]?.name ?: ""
     val accent = fastMoney.teamId.color()
 
@@ -193,7 +196,7 @@ fun FastMoneyTeamScreen(state: GameState, myTeam: TeamId?) {
             Spacer(Modifier.height(16.dp))
 
             Pill(
-                text = if (mine) "دوركم — جاوبوا بصوت عالي للمضيف" else "الفريق التاني بيلعب",
+                text = if (mine) "دورك — جاوب بصوت عالي للمضيف" else "لاعب تاني عم يجاوب",
                 color = accent
             )
             Spacer(Modifier.height(20.dp))

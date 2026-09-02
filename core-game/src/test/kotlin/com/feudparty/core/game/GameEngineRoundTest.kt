@@ -122,7 +122,7 @@ class GameEngineRoundTest {
     fun `a single-answer board ends the round straight from the face-off`() {
         val single = Question("solo", "سؤال", listOf(Answer("وحيد", 55)), "عام")
         val engine = GameEngine(freshState(questions = listOf(single), multipliers = listOf(1)))
-        engine.buzz(TeamId.TEAM_1)
+        engine.buzzPodium(TeamId.TEAM_1)
         val result = engine.correct(0)
 
         assertEquals(RoundPhase.ROUND_END, result.phase)

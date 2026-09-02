@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.theme.FeudBrushes
 import com.feudparty.app.ui.theme.FeudColors
@@ -46,19 +47,61 @@ fun AnswerBoard(
     modifier: Modifier = Modifier,
     revealHiddenText: Boolean = false,
     enabledSlots: Boolean = false,
+    startIndex: Int = 0,
+    slotHeight: Dp = 62.dp,
     onSlotClick: ((Int) -> Unit)? = null
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        answers.forEachIndexed { index, answer ->
+        answers.forEachIndexed { offset, answer ->
+            val index = startIndex + offset
             AnswerSlot(
                 position = index + 1,
                 answer = answer,
                 revealHiddenText = revealHiddenText,
                 enabled = enabledSlots && !answer.revealed && onSlotClick != null,
+                height = slotHeight,
                 onClick = { onSlotClick?.invoke(index) }
+            )
+        }
+    }
+}
+
+/** نفس اللوح بس بعمودين — شكل شاشة البرنامج بالوضع الأفقي. */
+@Composable
+fun AnswerBoardColumns(
+    answers: List<Answer>,
+    modifier: Modifier = Modifier,
+    revealHiddenText: Boolean = false,
+    enabledSlots: Boolean = false,
+    slotHeight: Dp = 56.dp,
+    onSlotClick: ((Int) -> Unit)? = null
+) {
+    val half = (answers.size + 1) / 2
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        AnswerBoard(
+            answers = answers.take(half),
+            modifier = Modifier.weight(1f),
+            revealHiddenText = revealHiddenText,
+            enabledSlots = enabledSlots,
+            startIndex = 0,
+            slotHeight = slotHeight,
+            onSlotClick = onSlotClick
+        )
+        if (answers.size > half) {
+            AnswerBoard(
+                answers = answers.drop(half),
+                modifier = Modifier.weight(1f),
+                revealHiddenText = revealHiddenText,
+                enabledSlots = enabledSlots,
+                startIndex = half,
+                slotHeight = slotHeight,
+                onSlotClick = onSlotClick
             )
         }
     }
@@ -70,6 +113,7 @@ private fun AnswerSlot(
     answer: Answer,
     revealHiddenText: Boolean,
     enabled: Boolean,
+    height: Dp,
     onClick: () -> Unit
 ) {
     val flip by animateFloatAsState(
@@ -83,7 +127,7 @@ private fun AnswerSlot(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(62.dp)
+            .height(height)
             .graphicsLayer {
                 rotationX = flip
                 cameraDistance = 14f * density

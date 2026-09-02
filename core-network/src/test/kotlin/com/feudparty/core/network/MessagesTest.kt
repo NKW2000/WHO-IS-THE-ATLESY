@@ -12,7 +12,7 @@ import org.junit.Test
 class MessagesTest {
     @Test
     fun `buzz message round-trips through encode and decode`() {
-        val original = ClientMessage.Buzz(teamId = TeamId.TEAM_1, atMillis = 12345L)
+        val original = ClientMessage.Buzz(playerId = "p-1", atMillis = 12345L)
         val encoded = encodeClientMessage(original)
         val decoded = decodeClientMessage(encoded)
         assertEquals(original, decoded)
@@ -20,7 +20,7 @@ class MessagesTest {
 
     @Test
     fun `join message round-trips`() {
-        val original = ClientMessage.Join(teamName = "فريق النجوم")
+        val original = ClientMessage.Join(playerName = "سامر")
         val encoded = encodeClientMessage(original)
         val decoded = decodeClientMessage(encoded)
         assertEquals(original, decoded)
@@ -28,7 +28,7 @@ class MessagesTest {
 
     @Test
     fun `assigned message round-trips`() {
-        val original = HostMessage.Assigned(teamId = TeamId.TEAM_2)
+        val original = HostMessage.Assigned(playerId = "p-2", teamId = TeamId.TEAM_2)
         val decoded = decodeHostMessage(encodeHostMessage(original))
         assertEquals(original, decoded)
     }
@@ -53,6 +53,6 @@ class MessagesTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun `decoding a host message as a client message is rejected`() {
-        decodeClientMessage(encodeHostMessage(HostMessage.Assigned(TeamId.TEAM_1)))
+        decodeClientMessage(encodeHostMessage(HostMessage.Assigned("p-1", TeamId.TEAM_1)))
     }
 }

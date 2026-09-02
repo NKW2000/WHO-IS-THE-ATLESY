@@ -2,9 +2,9 @@ package com.feudparty.app.navigation
 
 import android.content.Context
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,16 +22,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.feudparty.app.ui.FastMoneyHostScreen
-import com.feudparty.app.ui.FastMoneyTeamScreen
+import com.feudparty.app.ui.FastMoneyPlayerScreen
 import com.feudparty.app.ui.GameOverScreen
 import com.feudparty.app.ui.HomeScreen
 import com.feudparty.app.ui.HostGameBoardScreen
 import com.feudparty.app.ui.HostSetupScreen
-import com.feudparty.app.ui.TeamBuzzScreen
-import com.feudparty.app.ui.TeamJoinScreen
-import com.feudparty.app.viewmodel.HostViewModel
-import com.feudparty.app.viewmodel.TeamViewModel
+import com.feudparty.app.ui.PlayerJoinScreen
+import com.feudparty.app.ui.PlayerScreen
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.viewmodel.HostViewModel
+import com.feudparty.app.viewmodel.PlayerViewModel
 import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.network.NearbyConnectionsManagerImpl
 import com.feudparty.data.questions.QuestionBank
@@ -41,8 +41,8 @@ object Routes {
     const val HOST_SETUP = "host_setup"
     const val HOST_BOARD = "host_board"
     const val HOST_RESULT = "host_result"
-    const val TEAM_JOIN = "team_join"
-    const val TEAM_BUZZ = "team_buzz"
+    const val PLAYER_JOIN = "player_join"
+    const val PLAYER_BUZZER = "player_buzzer"
 }
 
 /** عدد جولات اللوح قبل الجولة السريعة — نفس عددها بالبرنامج. */
@@ -70,7 +70,7 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
             composable(Routes.HOME) {
                 HomeScreen(
                     onHostClick = { navController.navigate(Routes.HOST_SETUP) },
-                    onJoinClick = { navController.navigate(Routes.TEAM_JOIN) }
+                    onJoinClick = { navController.navigate(Routes.PLAYER_JOIN) }
                 )
             }
 
@@ -78,11 +78,17 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                 val vm = hostViewModel(activityOwner, context)
                 val state by vm.uiState.collectAsStateWithLifecycle()
                 val advertising by vm.advertising.collectAsStateWithLifecycle()
-                ErrorSnackbar(vm.lastError.collectAsStateWithLifecycle().value, snackbarHostState, vm::dismissError)
+                ErrorSnackbar(
+                    vm.lastError.collectAsStateWithLifecycle().value,
+                    snackbarHostState,
+                    vm::dismissError
+                )
 
                 HostSetupScreen(
-                    teams = state.teams.values.sortedBy { it.id },
+                    teams = state.teams,
+                    players = state.players,
                     advertising = advertising,
+                    minPerTeam = HostViewModel.MIN_PLAYERS_PER_TEAM,
                     onStartHosting = vm::startHosting,
                     onBeginGame = { navController.navigate(Routes.HOST_BOARD) }
                 )
@@ -91,7 +97,11 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
             composable(Routes.HOST_BOARD) {
                 val vm = hostViewModel(activityOwner, context)
                 val state by vm.uiState.collectAsStateWithLifecycle()
-                ErrorSnackbar(vm.lastError.collectAsStateWithLifecycle().value, snackbarHostState, vm::dismissError)
+                ErrorSnackbar(
+                    vm.lastError.collectAsStateWithLifecycle().value,
+                    snackbarHostState,
+                    vm::dismissError
+                )
 
                 LaunchedEffect(state.gameOver) {
                     if (state.gameOver) {
@@ -132,34 +142,44 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                 )
             }
 
-            composable(Routes.TEAM_JOIN) {
-                val vm = teamViewModel(activityOwner, context)
-                ErrorSnackbar(vm.lastError.collectAsStateWithLifecycle().value, snackbarHostState, vm::dismissError)
+            composable(Routes.PLAYER_JOIN) {
+                val vm = playerViewModel(activityOwner, context)
+                ErrorSnackbar(
+                    vm.lastError.collectAsStateWithLifecycle().value,
+                    snackbarHostState,
+                    vm::dismissError
+                )
 
-                TeamJoinScreen(onJoinConfirmed = { name ->
+                PlayerJoinScreen(onJoinConfirmed = { name ->
                     vm.join(name)
-                    navController.navigate(Routes.TEAM_BUZZ)
+                    navController.navigate(Routes.PLAYER_BUZZER)
                 })
             }
 
-            composable(Routes.TEAM_BUZZ) {
-                val vm = teamViewModel(activityOwner, context)
+            composable(Routes.PLAYER_BUZZER) {
+                val vm = playerViewModel(activityOwner, context)
                 val state by vm.gameState.collectAsStateWithLifecycle()
-                val myTeam by vm.assignedTeam.collectAsStateWithLifecycle()
+                val playerId by vm.playerId.collectAsStateWithLifecycle()
+                val teamId by vm.teamId.collectAsStateWithLifecycle()
                 val status by vm.status.collectAsStateWithLifecycle()
-                ErrorSnackbar(vm.lastError.collectAsStateWithLifecycle().value, snackbarHostState, vm::dismissError)
+                ErrorSnackbar(
+                    vm.lastError.collectAsStateWithLifecycle().value,
+                    snackbarHostState,
+                    vm::dismissError
+                )
 
                 val live = state
                 when {
                     live != null && live.gameOver -> GameOverScreen(state = live)
                     live != null && live.phase == RoundPhase.FAST_MONEY ->
-                        FastMoneyTeamScreen(state = live, myTeam = myTeam)
+                        FastMoneyPlayerScreen(state = live, playerId = playerId)
 
-                    else -> TeamBuzzScreen(
-                        state = state,
-                        myTeam = myTeam,
+                    else -> PlayerScreen(
+                        state = live,
+                        playerId = playerId,
+                        teamId = teamId,
+                        mark = vm.mark(),
                         status = status,
-                        canBuzz = vm.canBuzz(),
                         onBuzz = vm::onBuzzTapped
                     )
                 }
@@ -196,9 +216,9 @@ private fun hostViewModel(owner: ViewModelStoreOwner, context: Context): HostVie
     })
 
 @Composable
-private fun teamViewModel(owner: ViewModelStoreOwner, context: Context): TeamViewModel =
+private fun playerViewModel(owner: ViewModelStoreOwner, context: Context): PlayerViewModel =
     viewModel(viewModelStoreOwner = owner, factory = viewModelFactory {
         initializer {
-            TeamViewModel(NearbyConnectionsManagerImpl(context.applicationContext, "فريق"))
+            PlayerViewModel(NearbyConnectionsManagerImpl(context.applicationContext, "لاعب"))
         }
     })

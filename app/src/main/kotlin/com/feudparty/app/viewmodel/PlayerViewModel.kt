@@ -2,9 +2,8 @@ package com.feudparty.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.feudparty.core.game.BuzzState
 import com.feudparty.core.game.GameState
-import com.feudparty.core.game.RoundPhase
+import com.feudparty.core.game.PlayerMark
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.network.ClientMessage
 import com.feudparty.core.network.ConnectionEvent
@@ -16,10 +15,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * جهاز الفريق — عميل "غبي": بيبعت أحداث للمضيف وبيعرض الحالة اللي بتوصله،
- * وما بيحسب نقاط ولا بيقرر مين بزّ أول.
+ * جهاز اللاعب — عميل "غبي": بيبعت ضغطة الزر وبيعرض الحالة اللي بتوصله.
+ * ما بيحسب نقاط، ما بيقرر مين ضغط أول، وما بيوصله نص السؤال أصلاً.
  */
-class TeamViewModel(
+class PlayerViewModel(
     private val connections: NearbyConnectionsManager,
     private val serviceName: String = HostViewModel.SERVICE_NAME,
     private val clock: () -> Long = System::currentTimeMillis
@@ -30,9 +29,12 @@ class TeamViewModel(
     private val _gameState = MutableStateFlow<GameState?>(null)
     val gameState: StateFlow<GameState?> = _gameState.asStateFlow()
 
-    /** الفريق اللي خصصه المضيف لهاد الجهاز — بيوصل بـ [HostMessage.Assigned]. */
-    private val _assignedTeam = MutableStateFlow<TeamId?>(null)
-    val assignedTeam: StateFlow<TeamId?> = _assignedTeam.asStateFlow()
+    /** المعرّف اللي خصصه المضيف لهاد الجهاز — بيوصل بـ [HostMessage.Assigned]. */
+    private val _playerId = MutableStateFlow<String?>(null)
+    val playerId: StateFlow<String?> = _playerId.asStateFlow()
+
+    private val _teamId = MutableStateFlow<TeamId?>(null)
+    val teamId: StateFlow<TeamId?> = _teamId.asStateFlow()
 
     private val _status = MutableStateFlow(ConnectionStatus.IDLE)
     val status: StateFlow<ConnectionStatus> = _status.asStateFlow()
@@ -43,7 +45,7 @@ class TeamViewModel(
     private var hostEndpointId: String? = null
 
     /** الاسم بينحفظ لحد ما يصير في اتصال، لأن اللاعب بيكتبه قبل ما نلاقي المضيف. */
-    private var pendingTeamName: String? = null
+    private var pendingName: String? = null
 
     init {
         viewModelScope.launch {
@@ -59,9 +61,9 @@ class TeamViewModel(
         }
     }
 
-    /** بيبلّش البحث عن المضيف وبيسجّل اسم الفريق لبعتو أول ما نتصل. */
-    fun join(teamName: String) {
-        pendingTeamName = teamName
+    /** بيبلّش البحث عن المضيف وبيسجّل الاسم لبعتو أول ما نتصل. */
+    fun join(name: String) {
+        pendingName = name
         if (_status.value != ConnectionStatus.SEARCHING) {
             _status.value = ConnectionStatus.SEARCHING
             connections.startDiscovery(serviceName)
@@ -71,22 +73,20 @@ class TeamViewModel(
 
     fun onBuzzTapped() {
         val endpointId = hostEndpointId ?: return
-        val teamId = _assignedTeam.value ?: return
+        val id = _playerId.value ?: return
         if (!canBuzz()) return
-        connections.sendToEndpoint(endpointId, ClientMessage.Buzz(teamId, clock()))
+        connections.sendToEndpoint(endpointId, ClientMessage.Buzz(id, clock()))
     }
 
-    /**
-     * الزر بيشتغل بس بمرحلة المواجهة، والزر مفتوح، وما حدا سبقنا.
-     * بمراحل اللعب والسرقة الجواب بينحكى للمضيف مباشرة — ما في بزّ.
-     */
+    /** الزر بيشتغل بس لما المضيف يفتحه لهاد اللاعب بالذات. */
     fun canBuzz(): Boolean {
         val state = _gameState.value ?: return false
-        return _status.value == ConnectionStatus.CONNECTED &&
-            _assignedTeam.value != null &&
-            state.phase == RoundPhase.FACE_OFF &&
-            state.buzzState == BuzzState.OPEN
+        val id = _playerId.value ?: return false
+        return _status.value == ConnectionStatus.CONNECTED && id in state.armedPlayerIds()
     }
+
+    /** لون شاشة اللاعب: وميض / أزرق / أخضر / أحمر. */
+    fun mark(): PlayerMark = _gameState.value?.markFor(_playerId.value) ?: PlayerMark.IDLE
 
     fun dismissError() {
         _lastError.value = null
@@ -106,14 +106,17 @@ class TeamViewModel(
 
     private fun flushPendingName() {
         val endpointId = hostEndpointId ?: return
-        val name = pendingTeamName ?: return
+        val name = pendingName ?: return
         connections.sendToEndpoint(endpointId, ClientMessage.Join(name))
     }
 
     private fun handleHostMessage(message: HostMessage) {
         when (message) {
             is HostMessage.StateUpdate -> _gameState.value = message.state
-            is HostMessage.Assigned -> _assignedTeam.value = message.teamId
+            is HostMessage.Assigned -> {
+                _playerId.value = message.playerId
+                _teamId.value = message.teamId
+            }
         }
     }
 

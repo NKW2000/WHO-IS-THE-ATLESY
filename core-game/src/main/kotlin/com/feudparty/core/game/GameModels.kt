@@ -33,30 +33,39 @@ data class TeamState(
     val connected: Boolean = false
 )
 
+/** لاعب واحد = جهاز واحد. الترتيب باللستة هو ترتيب الدور بالفريق. */
+@Serializable
+data class Player(
+    val id: String,
+    val name: String,
+    val teamId: TeamId,
+    val connected: Boolean = true
+)
+
 /**
- * مراحل الجولة — نفس تسلسل البرنامج:
- * المواجهة ← اللعب ← (٣ أخطاء) السرقة ← نهاية الجولة.
+ * حالة شاشة اللاعب — منها بيتحدد لون الجهاز كله:
+ * وميض أبيض/أسود لما يكون دوره، أزرق لما يضغط، أخضر إذا صحّ، أحمر إذا غلط
+ * (وبيضل أحمر لحد ما يرجع دوره).
  */
 @Serializable
+enum class PlayerMark { IDLE, ARMED, BUZZED, CORRECT, WRONG }
+
+@Serializable
 enum class RoundPhase {
-    /** الزر مفتوح للفريقين، أول واحد بيبزّ بيجاوب. */
+    /** الزر مفتوح للاعبَي المنصة (واحد من كل فريق). */
     FACE_OFF,
 
-    /** الفريق التاني بياخد فرصته بالمواجهة (بدون بزّ). */
+    /** لاعب المنصة من الفريق التاني بياخد فرصته. */
     FACE_OFF_SECOND,
 
-    /** الفريق اللي فاز بالمواجهة بيلعب اللوح لحاله. */
+    /** الفريق اللي فاز بالمواجهة بيلعب اللوح، لاعب ورا لاعب بالدور. */
     PLAY,
 
-    /** الفريق المقابل عنده محاولة وحدة يسرق فيها كل نقاط الجولة. */
+    /** محاولة وحدة للفريق المقابل يسرق فيها نقاط الجولة. */
     STEAL,
 
-    /** انتهت الجولة وانوزعت النقاط — بستنى «الجولة التالية». */
     ROUND_END,
-
-    /** الجولة السريعة (Fast Money) للفريق الفايز. */
     FAST_MONEY,
-
     GAME_OVER
 }
 
@@ -68,7 +77,6 @@ enum class BuzzState {
     CLOSED
 }
 
-/** آخر توزيع نقاط — بينعرض كبانر على كل الأجهزة. */
 @Serializable
 data class Award(
     val teamId: TeamId,
@@ -76,7 +84,6 @@ data class Award(
     val stolen: Boolean = false
 )
 
-/** جواب واحد باللعبة السريعة. */
 @Serializable
 data class FastMoneyEntry(
     val answerIndex: Int?,
@@ -86,15 +93,11 @@ data class FastMoneyEntry(
     val passed: Boolean get() = answerIndex == null
 }
 
-/**
- * الجولة السريعة: لاعبين من الفريق الفايز، ٥ أسئلة لكل واحد.
- * الأول عنده [FIRST_PLAYER_SECONDS] ثانية والتاني [SECOND_PLAYER_SECONDS]،
- * والهدف [TARGET] نقطة مجموع.
- */
 @Serializable
 data class FastMoneyState(
     val questions: List<Question>,
     val teamId: TeamId,
+    val playerIds: List<String> = emptyList(),
     val playerIndex: Int = 0,
     val questionIndex: Int = 0,
     val playerOne: List<FastMoneyEntry> = emptyList(),
@@ -107,12 +110,11 @@ data class FastMoneyState(
 ) {
     val currentQuestion: Question? get() = questions.getOrNull(questionIndex)
     val currentEntries: List<FastMoneyEntry> get() = if (playerIndex == 0) playerOne else playerTwo
+    val currentPlayerId: String? get() = playerIds.getOrNull(playerIndex)
     val total: Int get() = playerOne.sumOf { it.points } + playerTwo.sumOf { it.points }
     val won: Boolean get() = total >= TARGET
     val playerOneTotal: Int get() = playerOne.sumOf { it.points }
     val playerTwoTotal: Int get() = playerTwo.sumOf { it.points }
-
-    /** الأجوبة اللي استعملها اللاعب الأول — التاني ما بينفع يكررها. */
     val usedByPlayerOne: Set<Int> get() = playerOne.mapNotNull { it.answerIndex }.toSet()
 
     companion object {
@@ -128,20 +130,29 @@ data class GameState(
     val questions: List<Question>,
     val currentQuestionIndex: Int = 0,
     val teams: Map<TeamId, TeamState>,
+    val players: List<Player> = emptyList(),
     val phase: RoundPhase = RoundPhase.FACE_OFF,
     val buzzState: BuzzState = BuzzState.OPEN,
-    /** نقاط الجولة المتجمّعة — بتروح كلها لفريق واحد بنهاية الجولة. */
     val pot: Int = 0,
     val strikes: Int = 0,
     val controllingTeam: TeamId? = null,
-    /** مين دوره يجاوب حالياً بالمواجهة. */
     val faceOffTeam: TeamId? = null,
-    /** صاحب أعلى جواب بالمواجهة لحد الآن. */
     val faceOffLeader: TeamId? = null,
     val faceOffLeaderPoints: Int = 0,
+    /** اللاعب اللي ضاغط حالياً (أزرق عند الكل). */
+    val buzzedPlayerId: String? = null,
+    /** اللاعب اللي دوره يجاوب بمرحلة اللعب أو السرقة. */
+    val turnPlayerId: String? = null,
+    /** لاعب المنصة الحالي لكل فريق — بيتغير كل جولة. */
+    val podiumIndex: Map<TeamId, Int> = emptyMap(),
+    /** مؤشر الدور داخل الفريق بمرحلة اللعب. */
+    val turnIndex: Map<TeamId, Int> = emptyMap(),
+    /** لاعبين جاوبوا غلط — بيضلوا حمر لحد ما يرجع دورهم. */
+    val wrongPlayers: Set<String> = emptySet(),
+    /** لاعبين جاوبوا صح — بيضلوا خضر لحد ما يرجع دورهم. */
+    val correctPlayers: Set<String> = emptySet(),
     val roundWinner: TeamId? = null,
     val lastAward: Award? = null,
-    /** مضاعف نقاط كل جولة — الجولة رقم i بتاخد multipliers[i]. */
     val multipliers: List<Int> = listOf(1, 1, 2, 3),
     val fastMoneyQuestions: List<Question> = emptyList(),
     val fastMoney: FastMoneyState? = null,
@@ -159,7 +170,6 @@ data class GameState(
     val stealingTeam: TeamId?
         get() = if (phase == RoundPhase.STEAL) controllingTeam?.other() else null
 
-    /** الفريق اللي دوره يجاوب حالياً — لتلوين الواجهة عند الكل. */
     val activeTeam: TeamId?
         get() = when (phase) {
             RoundPhase.FACE_OFF, RoundPhase.FACE_OFF_SECOND -> faceOffTeam
@@ -179,6 +189,43 @@ data class GameState(
                 else -> null
             }
         }
+
+    fun playersOf(teamId: TeamId): List<Player> = players.filter { it.teamId == teamId }
+
+    fun player(playerId: String?): Player? = players.firstOrNull { it.id == playerId }
+
+    /** لاعب المنصة الحالي للفريق — هو الوحيد اللي بيبزّ بالمواجهة. */
+    fun podiumPlayer(teamId: TeamId): Player? {
+        val list = playersOf(teamId)
+        if (list.isEmpty()) return null
+        return list[(podiumIndex[teamId] ?: 0) % list.size]
+    }
+
+    /** مين مسموح له يضغط هلق — عليهم بيومض الزر. */
+    fun armedPlayerIds(): Set<String> = when (phase) {
+        RoundPhase.FACE_OFF -> when (buzzState) {
+            BuzzState.OPEN -> setOfNotNull(
+                podiumPlayer(TeamId.TEAM_1)?.id,
+                podiumPlayer(TeamId.TEAM_2)?.id
+            )
+
+            else -> emptySet()
+        }
+
+        RoundPhase.FACE_OFF_SECOND -> setOfNotNull(faceOffTeam?.let { podiumPlayer(it)?.id })
+        RoundPhase.PLAY, RoundPhase.STEAL -> setOfNotNull(turnPlayerId)
+        else -> emptySet()
+    }
+
+    /** حالة شاشة لاعب معيّن. */
+    fun markFor(playerId: String?): PlayerMark = when {
+        playerId == null -> PlayerMark.IDLE
+        playerId == buzzedPlayerId -> PlayerMark.BUZZED
+        playerId in wrongPlayers -> PlayerMark.WRONG
+        playerId in correctPlayers -> PlayerMark.CORRECT
+        playerId in armedPlayerIds() -> PlayerMark.ARMED
+        else -> PlayerMark.IDLE
+    }
 }
 
 fun GameState.buzzedTeam(): TeamId? = when (buzzState) {
@@ -188,10 +235,10 @@ fun GameState.buzzedTeam(): TeamId? = when (buzzState) {
 }
 
 /**
- * نسخة الحالة اللي بتنبعت لأجهزة الفرق: نصوص الأجوبة المخفية بتنشال حتى
- * ما يقدر حدا يقرأها من الشبكة قبل ما المضيف يكشفها.
+ * نسخة الحالة اللي بتنبعت لأجهزة اللاعبين: لا نص السؤال ولا نصوص الأجوبة
+ * المخفية بتطلع من جهاز المضيف — اللاعب بيسمع السؤال من المضيف بس.
  */
-fun GameState.maskedForTeams(): GameState = copy(
+fun GameState.maskedForPlayers(): GameState = copy(
     questions = questions.map { it.masked() },
     fastMoneyQuestions = emptyList(),
     fastMoney = fastMoney?.let { fm ->
@@ -199,5 +246,7 @@ fun GameState.maskedForTeams(): GameState = copy(
     }
 )
 
-private fun Question.masked(): Question =
-    copy(answers = answers.map { if (it.revealed) it else it.copy(text = "") })
+private fun Question.masked(): Question = copy(
+    text = "",
+    answers = answers.map { if (it.revealed) it else it.copy(text = "") }
+)

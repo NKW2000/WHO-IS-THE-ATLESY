@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -55,160 +56,186 @@ class HostViewModelTest {
         multipliers = listOf(1, 1)
     )
 
+    private fun join(vararg endpoints: String) {
+        endpoints.forEach { endpointId ->
+            connections.emit(
+                ConnectionEvent.ClientMessageReceived(endpointId, ClientMessage.Join(endpointId))
+            )
+        }
+    }
+
+    private fun buzz(endpointId: String, atMillis: Long = 1L) {
+        connections.emit(
+            ConnectionEvent.ClientMessageReceived(
+                endpointId,
+                ClientMessage.Buzz(endpointId, atMillis)
+            )
+        )
+    }
+
     @Test
     fun `startHosting advertises once under the shared service name`() = runTest(dispatcher) {
         val vm = viewModel()
         testScheduler.advanceUntilIdle()
         vm.startHosting()
         vm.startHosting()
+
         assertEquals(HostViewModel.SERVICE_NAME, connections.advertisingAs)
         assertTrue(vm.advertising.value)
     }
 
     @Test
-    fun `first team to join is assigned team one and the second team two`() = runTest(dispatcher) {
+    fun `players are handed out to keep the teams balanced`() = runTest(dispatcher) {
         val vm = viewModel()
         testScheduler.advanceUntilIdle()
-        connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("النجوم")))
-        connections.emit(ConnectionEvent.ClientMessageReceived("ep-b", ClientMessage.Join("الصقور")))
+        join("ep-a", "ep-b", "ep-c", "ep-d")
         testScheduler.advanceUntilIdle()
 
+        val state = vm.uiState.value
+        assertEquals(listOf("ep-a", "ep-c"), state.playersOf(TeamId.TEAM_1).map { it.id })
+        assertEquals(listOf("ep-b", "ep-d"), state.playersOf(TeamId.TEAM_2).map { it.id })
         assertEquals(
             listOf(
-                "ep-a" to HostMessage.Assigned(TeamId.TEAM_1),
-                "ep-b" to HostMessage.Assigned(TeamId.TEAM_2)
+                "ep-a" to HostMessage.Assigned("ep-a", TeamId.TEAM_1),
+                "ep-b" to HostMessage.Assigned("ep-b", TeamId.TEAM_2),
+                "ep-c" to HostMessage.Assigned("ep-c", TeamId.TEAM_1),
+                "ep-d" to HostMessage.Assigned("ep-d", TeamId.TEAM_2)
             ),
             connections.directHostMessages
         )
-        val teams = vm.uiState.value.teams
-        assertEquals("النجوم", teams.getValue(TeamId.TEAM_1).name)
-        assertEquals("الصقور", teams.getValue(TeamId.TEAM_2).name)
-        assertTrue(teams.values.all { it.connected })
     }
 
     @Test
-    fun `a third device is refused instead of stealing a team`() = runTest(dispatcher) {
+    fun `only the podium player of a team can buzz`() = runTest(dispatcher) {
         val vm = viewModel()
         testScheduler.advanceUntilIdle()
-        connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("أ")))
-        connections.emit(ConnectionEvent.ClientMessageReceived("ep-b", ClientMessage.Join("ب")))
-        connections.emit(ConnectionEvent.ClientMessageReceived("ep-c", ClientMessage.Join("ج")))
+        join("ep-a", "ep-b", "ep-c")
         testScheduler.advanceUntilIdle()
 
-        assertEquals(2, connections.directHostMessages.size)
-        assertEquals("اللعبة ممتلئة — بس فريقين بيقدروا ينضموا", vm.lastError.value)
+        buzz("ep-c") // نفس فريق ep-a بس مش لاعب المنصة
+        testScheduler.advanceUntilIdle()
+        assertEquals(BuzzState.OPEN, vm.uiState.value.buzzState)
+
+        buzz("ep-b")
+        testScheduler.advanceUntilIdle()
+        assertEquals(BuzzState.LOCKED_TEAM_2, vm.uiState.value.buzzState)
+        assertEquals("ep-b", vm.uiState.value.buzzedPlayerId)
     }
-
-    @Test
-    fun `buzz is attributed to the endpoint's assigned team not to the claimed one`() =
-        runTest(dispatcher) {
-            val vm = viewModel()
-            testScheduler.advanceUntilIdle()
-        testScheduler.advanceUntilIdle()
-            connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("أ")))
-            connections.emit(ConnectionEvent.ClientMessageReceived("ep-b", ClientMessage.Join("ب")))
-            testScheduler.advanceUntilIdle()
-
-            // جهاز الفريق الثاني بيدّعي إنو فريق ١ — المضيف لازم يتجاهل الادعاء.
-            connections.emit(
-                ConnectionEvent.ClientMessageReceived("ep-b", ClientMessage.Buzz(TeamId.TEAM_1, 5L))
-            )
-            testScheduler.advanceUntilIdle()
-
-            assertEquals(BuzzState.LOCKED_TEAM_2, vm.uiState.value.buzzState)
-        }
 
     @Test
     fun `buzz from an unknown endpoint is ignored`() = runTest(dispatcher) {
         val vm = viewModel()
         testScheduler.advanceUntilIdle()
-        connections.emit(
-            ConnectionEvent.ClientMessageReceived("stranger", ClientMessage.Buzz(TeamId.TEAM_1, 1L))
-        )
+        join("ep-a", "ep-b")
+        buzz("stranger")
         testScheduler.advanceUntilIdle()
+
         assertEquals(BuzzState.OPEN, vm.uiState.value.buzzState)
+        assertNull(vm.uiState.value.buzzedPlayerId)
     }
 
     @Test
-    fun `judging correct fills the round pot and broadcasts the new state`() = runTest(dispatcher) {
-        val vm = viewModel()
-        testScheduler.advanceUntilIdle()
-        connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("أ")))
-        testScheduler.advanceUntilIdle()
-        connections.emit(
-            ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Buzz(TeamId.TEAM_1, 1L))
-        )
-        testScheduler.advanceUntilIdle()
+    fun `judging correct fills the round pot and passes the turn down the line`() =
+        runTest(dispatcher) {
+            val vm = viewModel()
+            testScheduler.advanceUntilIdle()
+            join("ep-a", "ep-b", "ep-c")
+            buzz("ep-a")
+            testScheduler.advanceUntilIdle()
 
-        vm.judgeCorrect(0) // الجواب رقم ١ بياخد اللوح
+            vm.judgeCorrect(0) // الجواب رقم ١ بياخد اللوح
 
-        val state = vm.uiState.value
-        assertEquals(RoundPhase.PLAY, state.phase)
-        assertEquals(TeamId.TEAM_1, state.controllingTeam)
-        assertEquals(60, state.pot)
-        assertEquals(0, state.teams.getValue(TeamId.TEAM_1).score)
-
-        val last = connections.broadcasts.last() as HostMessage.StateUpdate
-        assertEquals(60, last.state.pot)
-    }
+            val state = vm.uiState.value
+            assertEquals(RoundPhase.PLAY, state.phase)
+            assertEquals(TeamId.TEAM_1, state.controllingTeam)
+            assertEquals(60, state.pot)
+            assertEquals(0, state.teams.getValue(TeamId.TEAM_1).score)
+            assertEquals("ep-c", state.turnPlayerId) // مش نفس اللاعب اللي جاوب
+        }
 
     @Test
-    fun `the state sent to teams hides the text of unrevealed answers`() = runTest(dispatcher) {
-        val vm = viewModel()
-        testScheduler.advanceUntilIdle()
-        connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("أ")))
-        connections.emit(
-            ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Buzz(TeamId.TEAM_1, 1L))
-        )
-        testScheduler.advanceUntilIdle()
-        vm.judgeCorrect(0)
+    fun `the state sent to players hides the question and the hidden answers`() =
+        runTest(dispatcher) {
+            val vm = viewModel()
+            testScheduler.advanceUntilIdle()
+            join("ep-a", "ep-b")
+            buzz("ep-a")
+            testScheduler.advanceUntilIdle()
+            vm.judgeCorrect(0)
 
-        val sent = (connections.broadcasts.last() as HostMessage.StateUpdate).state
-        val answers = sent.currentQuestion!!.answers
-        assertEquals("أ", answers[0].text)
-        assertEquals("", answers[1].text)
-        // نسخة المضيف بتضل كاملة.
-        assertEquals("ب", vm.uiState.value.currentQuestion!!.answers[1].text)
-    }
+            val sent = (connections.broadcasts.last() as HostMessage.StateUpdate).state
+            val question = sent.currentQuestion!!
+            assertEquals("", question.text)
+            assertEquals("أ", question.answers[0].text)
+            assertEquals("", question.answers[1].text)
+            // نسخة المضيف بتضل كاملة.
+            assertEquals("سؤال١", vm.uiState.value.currentQuestion!!.text)
+        }
 
     @Test
-    fun `three strikes on the host open the steal for the other team`() = runTest(dispatcher) {
+    fun `three strikes hand the steal to the other team's podium player`() = runTest(dispatcher) {
         val vm = viewModel()
         testScheduler.advanceUntilIdle()
-        connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("أ")))
-        connections.emit(ConnectionEvent.ClientMessageReceived("ep-b", ClientMessage.Join("ب")))
-        connections.emit(
-            ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Buzz(TeamId.TEAM_1, 1L))
-        )
+        join("ep-a", "ep-b")
+        buzz("ep-a")
         testScheduler.advanceUntilIdle()
         vm.judgeCorrect(0)
         repeat(3) { vm.judgeWrong() }
 
-        assertEquals(RoundPhase.STEAL, vm.uiState.value.phase)
-        assertEquals(TeamId.TEAM_2, vm.uiState.value.stealingTeam)
+        val state = vm.uiState.value
+        assertEquals(RoundPhase.STEAL, state.phase)
+        assertEquals(TeamId.TEAM_2, state.stealingTeam)
+        assertEquals("ep-b", state.turnPlayerId)
     }
 
     @Test
-    fun `the fast money clock ticks once a second and stops with the round`() = runTest(dispatcher) {
+    fun `a disconnected device is marked offline and keeps its place`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        join("ep-a", "ep-b")
+        testScheduler.advanceUntilIdle()
+        connections.emit(ConnectionEvent.EndpointDisconnected("ep-a"))
+        testScheduler.advanceUntilIdle()
+
+        assertFalse(vm.uiState.value.player("ep-a")!!.connected)
+        assertFalse(vm.uiState.value.teams.getValue(TeamId.TEAM_1).connected)
+
+        join("ep-a")
+        testScheduler.advanceUntilIdle()
+        assertTrue(vm.uiState.value.player("ep-a")!!.connected)
+        assertEquals(1, vm.uiState.value.playersOf(TeamId.TEAM_1).size)
+    }
+
+    @Test
+    fun `connection errors surface to the host and can be dismissed`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        connections.emit(ConnectionEvent.Error("تعذّر بدء البث"))
+        testScheduler.advanceUntilIdle()
+
+        assertEquals("تعذّر بدء البث", vm.lastError.value)
+        vm.dismissError()
+        assertNull(vm.lastError.value)
+    }
+
+    @Test
+    fun `the fast money clock ticks once a second and stops with the game`() = runTest(dispatcher) {
         val vm = viewModel(fastMoney = fastMoneyQuestions)
         testScheduler.advanceUntilIdle()
-        connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("أ")))
-        connections.emit(
-            ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Buzz(TeamId.TEAM_1, 1L))
-        )
+        join("ep-a", "ep-b")
+        buzz("ep-a")
         testScheduler.advanceUntilIdle()
 
         vm.judgeCorrect(0)
         vm.judgeCorrect(1) // انكشف اللوح كله فانتهت الجولة الأولى
         vm.nextRound()
-        connections.emit(
-            ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Buzz(TeamId.TEAM_1, 2L))
-        )
+        buzz("ep-a", atMillis = 2L)
         testScheduler.advanceUntilIdle()
         vm.judgeCorrect(0)
         vm.nextRound()
 
         assertEquals(RoundPhase.FAST_MONEY, vm.uiState.value.phase)
+        assertEquals(listOf("ep-a"), vm.uiState.value.fastMoney!!.playerIds)
 
         vm.startFastMoneyTimer()
         testScheduler.advanceTimeBy(3_100)
@@ -220,37 +247,5 @@ class HostViewModelTest {
         vm.endGame()
         testScheduler.advanceTimeBy(5_000)
         assertTrue(vm.uiState.value.gameOver)
-    }
-
-    @Test
-    fun `disconnecting a team marks it offline and frees its slot`() = runTest(dispatcher) {
-        val vm = viewModel()
-        testScheduler.advanceUntilIdle()
-        connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("أ")))
-        testScheduler.advanceUntilIdle()
-        connections.emit(ConnectionEvent.EndpointDisconnected("ep-a"))
-        testScheduler.advanceUntilIdle()
-
-        assertEquals(false, vm.uiState.value.teams.getValue(TeamId.TEAM_1).connected)
-
-        // نفس الجهاز يرجع يتصل → يرجع ياخد نفس الفريق (الخانة صارت فاضية).
-        connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("أ")))
-        testScheduler.advanceUntilIdle()
-        assertEquals(
-            HostMessage.Assigned(TeamId.TEAM_1),
-            connections.directHostMessages.last().second
-        )
-        assertTrue(vm.uiState.value.teams.getValue(TeamId.TEAM_1).connected)
-    }
-
-    @Test
-    fun `connection errors surface to the host and can be dismissed`() = runTest(dispatcher) {
-        val vm = viewModel()
-        testScheduler.advanceUntilIdle()
-        connections.emit(ConnectionEvent.Error("تعذّر بدء البث"))
-        testScheduler.advanceUntilIdle()
-        assertEquals("تعذّر بدء البث", vm.lastError.value)
-        vm.dismissError()
-        assertNull(vm.lastError.value)
     }
 }

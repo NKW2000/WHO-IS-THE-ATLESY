@@ -8,19 +8,19 @@ import kotlinx.serialization.json.Json
 
 private val json = Json { ignoreUnknownKeys = true }
 
-/** رسائل من جهاز الفريق ← للمضيف. */
+/** رسائل من جهاز اللاعب ← للمضيف. */
 @Serializable
 sealed class ClientMessage {
     @Serializable
     @SerialName("join")
-    data class Join(val teamName: String) : ClientMessage()
+    data class Join(val playerName: String) : ClientMessage()
 
     @Serializable
     @SerialName("buzz")
-    data class Buzz(val teamId: TeamId, val atMillis: Long) : ClientMessage()
+    data class Buzz(val playerId: String, val atMillis: Long) : ClientMessage()
 }
 
-/** رسائل من المضيف ← لأجهزة الفرق. المضيف هو مصدر الحقيقة الوحيد. */
+/** رسائل من المضيف ← لأجهزة اللاعبين. المضيف هو مصدر الحقيقة الوحيد. */
 @Serializable
 sealed class HostMessage {
     @Serializable
@@ -29,7 +29,7 @@ sealed class HostMessage {
 
     @Serializable
     @SerialName("assigned")
-    data class Assigned(val teamId: TeamId) : HostMessage()
+    data class Assigned(val playerId: String, val teamId: TeamId) : HostMessage()
 }
 
 fun encodeClientMessage(message: ClientMessage): ByteArray =

@@ -44,16 +44,18 @@ class GameModelsTest {
     }
 
     @Test
-    fun `masked state hides unrevealed answer text from team devices`() {
+    fun `masked state hides the question and the unrevealed answers from players`() {
         val engine = GameEngine(freshState())
-        engine.buzz(TeamId.TEAM_1)
-        val masked = engine.correct(0).maskedForTeams()
-        val answers = masked.currentQuestion!!.answers
+        engine.buzzPodium(TeamId.TEAM_1)
+        val masked = engine.correct(0).maskedForPlayers()
+        val question = masked.currentQuestion!!
 
-        assertEquals("الأول", answers[0].text)
-        assertTrue(answers.drop(1).all { it.text.isEmpty() })
+        // اللاعب ما بيشوف السؤال أصلاً — بيسمعه من المضيف.
+        assertEquals("", question.text)
+        assertEquals("الأول", question.answers[0].text)
+        assertTrue(question.answers.drop(1).all { it.text.isEmpty() })
         // النقاط بتضل ظاهرة — اللوح بيعرض قيمة كل خانة مخفية.
-        assertEquals(30, answers[1].points)
+        assertEquals(30, question.answers[1].points)
     }
 
     @Test
@@ -67,11 +69,11 @@ class GameModelsTest {
             fastMoney = fastMoney
         )
 
-        val masked = state.maskedForTeams()
+        val masked = state.maskedForPlayers()
         assertTrue(masked.fastMoneyQuestions.isEmpty())
         assertTrue(masked.fastMoney!!.questions[0].answers.all { it.text.isEmpty() })
 
-        val revealed = state.copy(fastMoney = fastMoney.copy(revealed = true)).maskedForTeams()
+        val revealed = state.copy(fastMoney = fastMoney.copy(revealed = true)).maskedForPlayers()
         assertEquals("الأول", revealed.fastMoney!!.questions[0].answers[0].text)
     }
 }

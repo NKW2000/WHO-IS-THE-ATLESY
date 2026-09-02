@@ -1,8 +1,8 @@
 package com.feudparty.core.game
 
 sealed class GameEvent {
-    /** بزّة من جهاز فريق — بتنقبل بس بمرحلة المواجهة والزر مفتوح. */
-    data class Buzz(val teamId: TeamId, val atMillis: Long) : GameEvent()
+    /** بزّة من جهاز لاعب — بتنقبل بس إذا هو المسموح له يضغط هلق. */
+    data class Buzz(val playerId: String, val atMillis: Long) : GameEvent()
 
     /** المضيف حكم إنه الجواب صح وكشف الخانة رقم [answerIndex]. */
     data class JudgeCorrect(val answerIndex: Int) : GameEvent()
@@ -13,17 +13,17 @@ sealed class GameEvent {
     /** الانتقال للجولة التالية (أو للجولة السريعة أو نهاية اللعبة). */
     object NextRound : GameEvent()
 
-    data class TeamJoined(val teamId: TeamId, val teamName: String) : GameEvent()
-    data class TeamLeft(val teamId: TeamId) : GameEvent()
+    data class PlayerJoined(
+        val playerId: String,
+        val name: String,
+        val teamId: TeamId
+    ) : GameEvent()
 
-    /** الجولة السريعة. */
+    data class PlayerLeft(val playerId: String) : GameEvent()
+
     object FastMoneyStartTimer : GameEvent()
     object FastMoneyTick : GameEvent()
-
-    /** المضيف بيسجّل جواب اللاعب: [answerIndex] = null يعني ما جاوب. */
     data class FastMoneySubmit(val answerIndex: Int?) : GameEvent()
-
-    /** كشف كل أجوبة الجولة السريعة بعد ما يخلص اللاعبين. */
     object FastMoneyReveal : GameEvent()
 
     object EndGame : GameEvent()

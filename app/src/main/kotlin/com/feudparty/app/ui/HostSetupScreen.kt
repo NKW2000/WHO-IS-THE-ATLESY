@@ -8,137 +8,217 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.feudparty.app.ui.components.GoldDivider
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.components.color
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
+import com.feudparty.core.game.Player
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.game.TeamState
 
+/**
+ * شاشة إعداد المضيف — كل جهاز بينضم بيصير لاعب، والمضيف بيشوف الفرق وهي
+ * بتتعبّى. ترتيب اللاعبين بالقائمة هو ترتيب الدور بالجولة.
+ */
 @Composable
 fun HostSetupScreen(
-    teams: List<TeamState>,
+    teams: Map<TeamId, TeamState>,
+    players: List<Player>,
     advertising: Boolean,
+    minPerTeam: Int,
     onStartHosting: () -> Unit,
     onBeginGame: () -> Unit
 ) {
-    val connectedCount = teams.count { it.connected }
+    val readyTeams = TeamId.entries.count { team ->
+        players.count { it.teamId == team && it.connected } >= minPerTeam
+    }
 
-    StageBackground(contentPadding = PaddingValues(20.dp)) {
+    StageBackground(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Text("إعداد الاستضافة", color = FeudColors.gold, style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "افتح التطبيق على جهاز كل فريق واختار «انضمام كفريق».",
-                color = FeudColors.textMuted,
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Spacer(Modifier.height(24.dp))
-
-            SecondaryButton(
-                text = if (advertising) "جاري البث..." else "بدء البث للفرق",
-                onClick = onStartHosting,
-                enabled = !advertising,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            if (advertising && connectedCount < 2) {
-                Spacer(Modifier.height(16.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = FeudColors.gold
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "إعداد اللعبة",
+                        color = FeudColors.gold,
+                        style = MaterialTheme.typography.headlineSmall
                     )
-                    Spacer(Modifier.width(12.dp))
-                    Text("بانتظار الفرق...", color = FeudColors.textMuted)
+                    Text(
+                        "كل لاعب بيفتح التطبيق على جهازه ويختار «انضمام كلاعب».",
+                        color = FeudColors.textMuted,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                if (advertising && readyTeams < 2) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = FeudColors.gold
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text("بانتظار اللاعبين...", color = FeudColors.textMuted)
+                    }
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
-            Text(
-                "الفرق المتصلة: $connectedCount / 2",
-                color = FeudColors.text,
-                style = MaterialTheme.typography.titleLarge
-            )
             Spacer(Modifier.height(10.dp))
-            teams.forEach { team ->
-                TeamStatusRow(team)
-                Spacer(Modifier.height(8.dp))
+            GoldDivider(Modifier.fillMaxWidth())
+            Spacer(Modifier.height(12.dp))
+
+            Row(modifier = Modifier.weight(1f)) {
+                TeamId.entries.forEachIndexed { index, teamId ->
+                    if (index > 0) Spacer(Modifier.width(14.dp))
+                    TeamColumn(
+                        team = teams[teamId],
+                        teamId = teamId,
+                        players = players.filter { it.teamId == teamId },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
 
-            Spacer(Modifier.weight(1f))
-            PrimaryButton(
-                text = "بدء اللعبة",
-                onClick = onBeginGame,
-                enabled = connectedCount == 2,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Spacer(Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                SecondaryButton(
+                    text = if (advertising) "البث شغّال" else "بدء البث للاعبين",
+                    onClick = onStartHosting,
+                    enabled = !advertising,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(12.dp))
+                PrimaryButton(
+                    text = "بدء اللعبة",
+                    onClick = onBeginGame,
+                    enabled = readyTeams == 2,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun TeamStatusRow(team: TeamState) {
-    val color = team.id.color()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(FeudColors.panelDark, RoundedCornerShape(12.dp))
-            .border(
-                2.dp,
-                if (team.connected) color else FeudColors.panel,
-                RoundedCornerShape(12.dp)
-            )
-            .padding(horizontal = 14.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+private fun TeamColumn(
+    team: TeamState?,
+    teamId: TeamId,
+    players: List<Player>,
+    modifier: Modifier = Modifier
+) {
+    val color = teamId.color()
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .background(color.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+            .border(2.dp, color.copy(alpha = 0.7f), RoundedCornerShape(14.dp))
+            .padding(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .background(if (team.connected) color else FeudColors.textMuted, CircleShape)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                team?.name ?: "فريق",
+                color = color,
+                style = MaterialTheme.typography.titleLarge
             )
-            Spacer(Modifier.width(12.dp))
-            Text(team.name, color = FeudColors.text, style = MaterialTheme.typography.titleMedium)
+            Text(
+                "${players.count { it.connected }} لاعب",
+                color = FeudColors.textMuted,
+                style = MaterialTheme.typography.labelLarge
+            )
         }
-        Text(
-            if (team.connected) "متصل" else "غير متصل",
-            color = if (team.connected) color else FeudColors.textMuted,
-            style = MaterialTheme.typography.labelLarge
-        )
+        Spacer(Modifier.height(8.dp))
+
+        if (players.isEmpty()) {
+            Text(
+                "ما في حدا لسا",
+                color = FeudColors.textMuted,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            return@Column
+        }
+
+        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            players.forEachIndexed { index, player ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(
+                                if (player.connected) color else FeudColors.textMuted,
+                                CircleShape
+                            )
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        "${index + 1}. ${player.name}",
+                        color = if (player.connected) FeudColors.text else FeudColors.textMuted,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (index == 0) {
+                        Text(
+                            "المنصة",
+                            color = FeudColors.gold,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
-@Preview(showBackground = true, heightDp = 720)
+@Preview(showBackground = true, widthDp = 880, heightDp = 420)
 @Composable
 private fun HostSetupScreenPreview() {
     FeudPartyTheme {
         HostSetupScreen(
-            teams = listOf(
-                TeamState(TeamId.TEAM_1, "النجوم", connected = true),
-                TeamState(TeamId.TEAM_2, "فريق ٢")
+            teams = mapOf(
+                TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأحمر", connected = true),
+                TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "الفريق الأزرق", connected = true)
+            ),
+            players = listOf(
+                Player("a1", "سامر", TeamId.TEAM_1),
+                Player("a2", "هناء", TeamId.TEAM_1),
+                Player("b1", "ليلى", TeamId.TEAM_2)
             ),
             advertising = true,
+            minPerTeam = 1,
             onStartHosting = {},
             onBeginGame = {}
         )

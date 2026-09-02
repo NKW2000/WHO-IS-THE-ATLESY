@@ -6,11 +6,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,17 +34,17 @@ fun HomeScreen(
     onHostClick: () -> Unit,
     onJoinClick: () -> Unit
 ) {
-    StageBackground(contentPadding = PaddingValues(24.dp)) {
-        Column(
+    StageBackground(contentPadding = PaddingValues(horizontal = 28.dp, vertical = 18.dp)) {
+        Row(
             modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .background(FeudColors.gold.copy(alpha = 0.10f), RoundedCornerShape(22.dp))
-                    .border(3.dp, FeudColors.gold, RoundedCornerShape(22.dp))
-                    .padding(horizontal = 28.dp, vertical = 22.dp)
+                    .weight(1f)
+                    .background(FeudColors.gold.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+                    .border(3.dp, FeudColors.gold, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 24.dp, vertical = 20.dp)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
@@ -61,31 +63,37 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
-            Text(
-                "جهاز واحد للمضيف، وجهاز لكل فريق — بدون إنترنت.",
-                color = FeudColors.textMuted,
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
+            Spacer(Modifier.width(28.dp))
 
-            Spacer(Modifier.height(48.dp))
-            PrimaryButton(
-                text = "استضافة لعبة",
-                onClick = onHostClick,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(14.dp))
-            SecondaryButton(
-                text = "انضمام كفريق",
-                onClick = onJoinClick,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column(
+                modifier = Modifier.width(300.dp),
+                verticalArrangement = Arrangement.Center
+            ) {
+                PrimaryButton(
+                    text = "استضافة لعبة",
+                    onClick = onHostClick,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(14.dp))
+                SecondaryButton(
+                    text = "انضمام كلاعب",
+                    onClick = onJoinClick,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "جهاز للمضيف وجهاز لكل لاعب — بدون إنترنت.",
+                    color = FeudColors.textMuted,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
 
-@Preview(showBackground = true, heightDp = 720)
+@Preview(showBackground = true, widthDp = 880, heightDp = 420)
 @Composable
 private fun HomeScreenPreview() {
     FeudPartyTheme { HomeScreen(onHostClick = {}, onJoinClick = {}) }
