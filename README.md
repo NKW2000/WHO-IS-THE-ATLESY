@@ -54,6 +54,23 @@ sdk.dir=/path/to/Android/sdk
 ./gradlew assembleDebug   # ينتج app/build/outputs/apk/debug/app-debug.apk
 ```
 
+## نسخة الإصدار (release)
+
+```bash
+./gradlew assembleRelease   # app/build/outputs/apk/release/app-release.apk
+```
+
+بدون مفتاح إصدار، الـ APK بينوقّع بمفتاح الـ debug حتى يضل قابل للتركيب
+للتجربة — **مش صالح للنشر على المتجر**. للتوقيع بمفتاح حقيقي، ضيف
+لـ `local.properties` (مش محفوظ بالريبو):
+
+```properties
+RELEASE_STORE_FILE=/path/to/keystore.jks
+RELEASE_STORE_PASSWORD=...
+RELEASE_KEY_ALIAS=...
+RELEASE_KEY_PASSWORD=...
+```
+
 ## التشغيل
 
 ```bash
