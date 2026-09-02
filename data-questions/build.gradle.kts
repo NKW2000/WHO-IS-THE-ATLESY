@@ -10,6 +10,12 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
 }
 
-kotlin {
-    jvmToolchain(17)
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+// بننتج bytecode ١٧ بس منخلي أي JDK ١٧+ يقدر يبني المشروع.
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions.jvmTarget = "17"
 }

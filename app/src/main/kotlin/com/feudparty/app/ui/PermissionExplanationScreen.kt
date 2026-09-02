@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,6 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.feudparty.app.ui.components.PrimaryButton
+import com.feudparty.app.ui.components.StageBackground
+import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
 
 @Composable
@@ -24,18 +27,22 @@ fun PermissionExplanationScreen(
     onRequestClick: () -> Unit,
     onOpenSettings: () -> Unit = {}
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("بدنا صلاحية قبل ما نبلّش", style = MaterialTheme.typography.headlineSmall)
+    StageBackground(contentPadding = PaddingValues(24.dp)) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+        Text(
+            "بدنا صلاحية قبل ما نبلّش",
+            color = FeudColors.gold,
+            style = MaterialTheme.typography.headlineSmall
+        )
         Spacer(Modifier.height(16.dp))
         Text(
             "التطبيق بيربط أجهزتكم مع بعض مباشرة عبر البلوتوث والواي فاي — " +
                 "بدون إنترنت وبدون سيرفر خارجي، وما منجمع ولا منبعت أي بيانات لبرا.",
+            color = FeudColors.textMuted,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center
         )
@@ -43,17 +50,23 @@ fun PermissionExplanationScreen(
         if (permanentlyDenied) {
             Text(
                 "الصلاحية مرفوضة نهائياً — لازم تفعّلها من إعدادات التطبيق.",
-                style = MaterialTheme.typography.bodyMedium,
+                color = FeudColors.strike,
+                style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(16.dp))
-            Button(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
-                Text("فتح إعدادات التطبيق")
-            }
+            PrimaryButton(
+                text = "فتح إعدادات التطبيق",
+                onClick = onOpenSettings,
+                modifier = Modifier.fillMaxWidth()
+            )
         } else {
-            Button(onClick = onRequestClick, modifier = Modifier.fillMaxWidth()) {
-                Text("منح الصلاحيات")
-            }
+            PrimaryButton(
+                text = "منح الصلاحيات",
+                onClick = onRequestClick,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
         }
     }
 }

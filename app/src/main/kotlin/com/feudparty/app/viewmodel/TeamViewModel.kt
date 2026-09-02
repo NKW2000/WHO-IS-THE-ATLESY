@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.feudparty.core.game.BuzzState
 import com.feudparty.core.game.GameState
+import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.network.ClientMessage
 import com.feudparty.core.network.ConnectionEvent
@@ -71,15 +72,21 @@ class TeamViewModel(
     fun onBuzzTapped() {
         val endpointId = hostEndpointId ?: return
         val teamId = _assignedTeam.value ?: return
-        if (_gameState.value?.buzzState != BuzzState.OPEN) return
+        if (!canBuzz()) return
         connections.sendToEndpoint(endpointId, ClientMessage.Buzz(teamId, clock()))
     }
 
-    /** الزر بيشتغل بس إذا اللعبة فاتحة وما حدا سبقنا. */
-    fun canBuzz(): Boolean =
-        _status.value == ConnectionStatus.CONNECTED &&
+    /**
+     * الزر بيشتغل بس بمرحلة المواجهة، والزر مفتوح، وما حدا سبقنا.
+     * بمراحل اللعب والسرقة الجواب بينحكى للمضيف مباشرة — ما في بزّ.
+     */
+    fun canBuzz(): Boolean {
+        val state = _gameState.value ?: return false
+        return _status.value == ConnectionStatus.CONNECTED &&
             _assignedTeam.value != null &&
-            _gameState.value?.buzzState == BuzzState.OPEN
+            state.phase == RoundPhase.FACE_OFF &&
+            state.buzzState == BuzzState.OPEN
+    }
 
     fun dismissError() {
         _lastError.value = null

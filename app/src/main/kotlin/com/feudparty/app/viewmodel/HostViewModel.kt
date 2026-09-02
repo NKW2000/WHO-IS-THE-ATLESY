@@ -6,12 +6,16 @@ import com.feudparty.core.game.GameEngine
 import com.feudparty.core.game.GameEvent
 import com.feudparty.core.game.GameState
 import com.feudparty.core.game.Question
+import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.game.TeamState
+import com.feudparty.core.game.maskedForTeams
 import com.feudparty.core.network.ClientMessage
 import com.feudparty.core.network.ConnectionEvent
 import com.feudparty.core.network.HostMessage
 import com.feudparty.core.network.NearbyConnectionsManager
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,17 +23,23 @@ import kotlinx.coroutines.launch
 
 /**
  * جهاز المضيف — مصدر الحقيقة الوحيد. بيشغّل [GameEngine] وبيبثّ كل حالة
- * جديدة لأجهزة الفرق. أجهزة الفرق ما بتحسب ولا بتقرر إشي.
+ * جديدة لأجهزة الفرق. أجهزة الفرق ما بتحسب ولا بتقرر إشي، وبتوصلها نسخة
+ * مقنّعة من الحالة (بدون نصوص الأجوبة المخفية).
  */
 class HostViewModel(
     private val connections: NearbyConnectionsManager,
     questions: List<Question>,
-    private val serviceName: String = SERVICE_NAME
+    fastMoneyQuestions: List<Question> = emptyList(),
+    multipliers: List<Int> = DEFAULT_MULTIPLIERS,
+    private val serviceName: String = SERVICE_NAME,
+    private val tickMillis: Long = 1_000L
 ) : ViewModel() {
 
     private val engine = GameEngine(
         GameState(
             questions = questions,
+            multipliers = multipliers,
+            fastMoneyQuestions = fastMoneyQuestions,
             teams = mapOf(
                 TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "فريق ١"),
                 TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "فريق ٢")
@@ -48,6 +58,8 @@ class HostViewModel(
 
     /** أي جهاز (endpoint) مربوط بأي فريق — أول ينضم بياخد فريق ١. */
     private val endpointToTeam = mutableMapOf<String, TeamId>()
+
+    private var timerJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -74,10 +86,44 @@ class HostViewModel(
 
     fun judgeWrong() = applyAndBroadcast(GameEvent.JudgeWrong)
 
-    fun nextQuestion() = applyAndBroadcast(GameEvent.NextQuestion)
+    fun nextRound() = applyAndBroadcast(GameEvent.NextRound)
+
+    // -------------------------------------------------------- الجولة السريعة
+
+    fun startFastMoneyTimer() {
+        applyAndBroadcast(GameEvent.FastMoneyStartTimer)
+        if (timerJob?.isActive == true) return
+        timerJob = viewModelScope.launch {
+            while (engine.state.fastMoney?.timerRunning == true) {
+                delay(tickMillis)
+                applyAndBroadcast(GameEvent.FastMoneyTick)
+            }
+        }
+    }
+
+    fun submitFastMoneyAnswer(answerIndex: Int?) {
+        applyAndBroadcast(GameEvent.FastMoneySubmit(answerIndex))
+        // بين لاعب ولاعب بيوقف الوقت لحد ما المضيف يشغّله من جديد.
+        if (engine.state.fastMoney?.timerRunning != true) stopTimer()
+    }
+
+    fun revealFastMoney() {
+        stopTimer()
+        applyAndBroadcast(GameEvent.FastMoneyReveal)
+    }
+
+    fun endGame() {
+        stopTimer()
+        applyAndBroadcast(GameEvent.EndGame)
+    }
 
     fun dismissError() {
         _lastError.value = null
+    }
+
+    private fun stopTimer() {
+        timerJob?.cancel()
+        timerJob = null
     }
 
     private fun handleClientMessage(endpointId: String, message: ClientMessage) {
@@ -112,15 +158,20 @@ class HostViewModel(
     private fun applyAndBroadcast(event: GameEvent) {
         val newState = engine.apply(event)
         _uiState.value = newState
-        connections.broadcastToAll(HostMessage.StateUpdate(newState))
+        connections.broadcastToAll(HostMessage.StateUpdate(newState.maskedForTeams()))
+        if (newState.phase == RoundPhase.GAME_OVER) stopTimer()
     }
 
     override fun onCleared() {
         super.onCleared()
+        stopTimer()
         connections.stop()
     }
 
     companion object {
         const val SERVICE_NAME = "feud-party"
+
+        /** مضاعفات جولات البرنامج: عادي، عادي، ×٢، ×٣ وبعدها بتضل ×٣. */
+        val DEFAULT_MULTIPLIERS = listOf(1, 1, 2, 3)
     }
 }

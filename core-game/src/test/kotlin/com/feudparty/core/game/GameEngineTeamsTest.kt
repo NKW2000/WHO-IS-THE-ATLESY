@@ -6,17 +6,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GameEngineTeamsTest {
-    private fun freshState() = GameState(
+    private fun soloBoard() = freshState(
         questions = listOf(Question("q1", "سؤال", listOf(Answer("جواب", 50)), "عام")),
-        teams = mapOf(
-            TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "فريق ١"),
-            TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "فريق ٢")
-        )
+        multipliers = listOf(1)
     )
 
     @Test
     fun `team joined marks team connected and renames it`() {
-        val engine = GameEngine(freshState())
+        val engine = GameEngine(soloBoard())
         val result = engine.apply(GameEvent.TeamJoined(TeamId.TEAM_2, "فريق النجوم"))
         val team = result.teams.getValue(TeamId.TEAM_2)
         assertTrue(team.connected)
@@ -25,45 +22,39 @@ class GameEngineTeamsTest {
 
     @Test
     fun `team joined with blank name keeps the default name`() {
-        val engine = GameEngine(freshState())
+        val engine = GameEngine(soloBoard())
         val result = engine.apply(GameEvent.TeamJoined(TeamId.TEAM_1, "   "))
         assertEquals("فريق ١", result.teams.getValue(TeamId.TEAM_1).name)
     }
 
     @Test
     fun `team left marks team disconnected but keeps its score`() {
-        val engine = GameEngine(freshState())
-        engine.apply(GameEvent.TeamJoined(TeamId.TEAM_1, "فريق النجوم"))
-        engine.apply(GameEvent.Buzz(TeamId.TEAM_1, atMillis = 1L))
-        engine.apply(GameEvent.JudgeCorrect(0))
+        val engine = GameEngine(soloBoard())
+        engine.giveControlTo(TeamId.TEAM_1) // لوح من جواب واحد فبتنتهي الجولة فوراً
         val result = engine.apply(GameEvent.TeamLeft(TeamId.TEAM_1))
         val team = result.teams.getValue(TeamId.TEAM_1)
+
         assertFalse(team.connected)
         assertEquals(50, team.score)
     }
 
     @Test
-    fun `revealing an already revealed answer does not award points twice`() {
-        val engine = GameEngine(freshState())
-        engine.apply(GameEvent.Buzz(TeamId.TEAM_1, atMillis = 1L))
-        engine.apply(GameEvent.JudgeCorrect(0))
-        engine.apply(GameEvent.Buzz(TeamId.TEAM_2, atMillis = 2L))
-        val result = engine.apply(GameEvent.JudgeCorrect(0))
-        assertEquals(50, result.teams.getValue(TeamId.TEAM_1).score)
-        assertEquals(0, result.teams.getValue(TeamId.TEAM_2).score)
+    fun `judging after the round ended changes nothing`() {
+        val engine = GameEngine(soloBoard())
+        engine.giveControlTo(TeamId.TEAM_1)
+        val result = engine.correct(0)
+
+        assertEquals(50, result.score(TeamId.TEAM_1))
+        assertEquals(0, result.score(TeamId.TEAM_2))
+        assertEquals(RoundPhase.ROUND_END, result.phase)
     }
 
     @Test
-    fun `round is over once every answer is revealed`() {
-        val state = freshState().copy(
-            questions = listOf(
-                Question("q1", "سؤال", listOf(Answer("أ", 50), Answer("ب", 30)), "عام")
-            )
-        )
-        val engine = GameEngine(state)
-        engine.apply(GameEvent.Buzz(TeamId.TEAM_1, atMillis = 1L))
-        assertFalse(engine.apply(GameEvent.JudgeCorrect(0)).roundOver)
-        engine.apply(GameEvent.Buzz(TeamId.TEAM_1, atMillis = 2L))
-        assertTrue(engine.apply(GameEvent.JudgeCorrect(1)).roundOver)
+    fun `buzzing while the buzzer is closed is ignored`() {
+        val engine = GameEngine(soloBoard())
+        engine.giveControlTo(TeamId.TEAM_1)
+        val result = engine.buzz(TeamId.TEAM_2)
+
+        assertEquals(BuzzState.CLOSED, result.buzzState)
     }
 }

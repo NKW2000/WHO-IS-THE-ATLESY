@@ -1,33 +1,77 @@
 package com.feudparty.core.game
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GameModelsTest {
     @Test
     fun `currentQuestion returns question at currentQuestionIndex`() {
-        val q1 = Question("q1", "سؤال واحد", listOf(Answer("جواب", 50)), "عام")
-        val q2 = Question("q2", "سؤال اثنين", listOf(Answer("جواب٢", 30)), "عام")
-        val state = GameState(
-            questions = listOf(q1, q2),
-            currentQuestionIndex = 1,
-            teams = mapOf(
-                TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "فريق ١"),
-                TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "فريق ٢")
-            )
-        )
-        assertEquals(q2, state.currentQuestion)
+        val state = freshState().copy(currentQuestionIndex = 1)
+        assertEquals("q2", state.currentQuestion!!.id)
     }
 
     @Test
     fun `currentQuestion returns null when index out of range`() {
-        val state = GameState(
-            questions = emptyList(),
-            teams = mapOf(
-                TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "فريق ١"),
-                TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "فريق ٢")
-            )
+        assertNull(freshState(questions = emptyList()).currentQuestion)
+    }
+
+    @Test
+    fun `multiplier follows the round and sticks to the last value`() {
+        val state = freshState(multipliers = listOf(1, 2, 3))
+        assertEquals(1, state.multiplier)
+        assertEquals(2, state.copy(currentQuestionIndex = 1).multiplier)
+        assertEquals(3, state.copy(currentQuestionIndex = 9).multiplier)
+    }
+
+    @Test
+    fun `active team follows the phase`() {
+        val state = freshState()
+        assertEquals(
+            TeamId.TEAM_1,
+            state.copy(phase = RoundPhase.FACE_OFF, faceOffTeam = TeamId.TEAM_1).activeTeam
         )
-        assertEquals(null, state.currentQuestion)
+        assertEquals(
+            TeamId.TEAM_2,
+            state.copy(phase = RoundPhase.PLAY, controllingTeam = TeamId.TEAM_2).activeTeam
+        )
+        assertEquals(
+            TeamId.TEAM_1,
+            state.copy(phase = RoundPhase.STEAL, controllingTeam = TeamId.TEAM_2).activeTeam
+        )
+        assertNull(state.copy(phase = RoundPhase.ROUND_END).activeTeam)
+    }
+
+    @Test
+    fun `masked state hides unrevealed answer text from team devices`() {
+        val engine = GameEngine(freshState())
+        engine.buzz(TeamId.TEAM_1)
+        val masked = engine.correct(0).maskedForTeams()
+        val answers = masked.currentQuestion!!.answers
+
+        assertEquals("الأول", answers[0].text)
+        assertTrue(answers.drop(1).all { it.text.isEmpty() })
+        // النقاط بتضل ظاهرة — اللوح بيعرض قيمة كل خانة مخفية.
+        assertEquals(30, answers[1].points)
+    }
+
+    @Test
+    fun `masked state hides fast money questions until they are revealed`() {
+        val fastMoney = FastMoneyState(
+            questions = listOf(board("f1")),
+            teamId = TeamId.TEAM_1
+        )
+        val state = freshState().copy(
+            fastMoneyQuestions = listOf(board("f1")),
+            fastMoney = fastMoney
+        )
+
+        val masked = state.maskedForTeams()
+        assertTrue(masked.fastMoneyQuestions.isEmpty())
+        assertTrue(masked.fastMoney!!.questions[0].answers.all { it.text.isEmpty() })
+
+        val revealed = state.copy(fastMoney = fastMoney.copy(revealed = true)).maskedForTeams()
+        assertEquals("الأول", revealed.fastMoney!!.questions[0].answers[0].text)
     }
 }

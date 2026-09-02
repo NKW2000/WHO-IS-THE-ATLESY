@@ -4,6 +4,7 @@ import com.feudparty.core.game.Answer
 import com.feudparty.core.game.BuzzState
 import com.feudparty.core.game.GameState
 import com.feudparty.core.game.Question
+import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.game.TeamState
 import com.feudparty.core.network.ClientMessage
@@ -140,5 +141,29 @@ class TeamViewModelTest {
 
         assertEquals(TeamViewModel.ConnectionStatus.DISCONNECTED, vm.status.value)
         assertFalse(vm.canBuzz())
+    }
+
+    @Test
+    fun `buzzing is refused outside the face-off phase`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        vm.join("الصقور")
+        connections.emit(ConnectionEvent.EndpointConnected("host-1"))
+        connections.emit(ConnectionEvent.HostMessageReceived(HostMessage.Assigned(TeamId.TEAM_2)))
+        connections.emit(
+            ConnectionEvent.HostMessageReceived(
+                HostMessage.StateUpdate(
+                    stateWith(BuzzState.OPEN).copy(
+                        phase = RoundPhase.PLAY,
+                        controllingTeam = TeamId.TEAM_2
+                    )
+                )
+            )
+        )
+        testScheduler.advanceUntilIdle()
+
+        assertFalse(vm.canBuzz())
+        vm.onBuzzTapped()
+        assertTrue(connections.clientMessages.none { it.second is ClientMessage.Buzz })
     }
 }

@@ -21,6 +21,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.feudparty.app.ui.FastMoneyHostScreen
+import com.feudparty.app.ui.FastMoneyTeamScreen
 import com.feudparty.app.ui.GameOverScreen
 import com.feudparty.app.ui.HomeScreen
 import com.feudparty.app.ui.HostGameBoardScreen
@@ -29,6 +31,8 @@ import com.feudparty.app.ui.TeamBuzzScreen
 import com.feudparty.app.ui.TeamJoinScreen
 import com.feudparty.app.viewmodel.HostViewModel
 import com.feudparty.app.viewmodel.TeamViewModel
+import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.network.NearbyConnectionsManagerImpl
 import com.feudparty.data.questions.QuestionBank
 
@@ -41,8 +45,8 @@ object Routes {
     const val TEAM_BUZZ = "team_buzz"
 }
 
-/** عدد الأسئلة بالجولة الوحدة — بينتقى عشوائياً من بنك الأسئلة. */
-private const val QUESTIONS_PER_GAME = 10
+/** عدد جولات اللوح قبل الجولة السريعة — نفس عددها بالبرنامج. */
+private const val ROUNDS_PER_GAME = 4
 
 @Composable
 fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
@@ -54,7 +58,10 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
     }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = FeudColors.deepNavy
+    ) { padding ->
         NavHost(
             navController = navController,
             startDestination = Routes.HOME,
@@ -94,12 +101,22 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                     }
                 }
 
-                HostGameBoardScreen(
-                    state = state,
-                    onCorrect = vm::judgeCorrect,
-                    onWrong = vm::judgeWrong,
-                    onNext = vm::nextQuestion
-                )
+                if (state.phase == RoundPhase.FAST_MONEY) {
+                    FastMoneyHostScreen(
+                        state = state,
+                        onStartTimer = vm::startFastMoneyTimer,
+                        onSubmit = vm::submitFastMoneyAnswer,
+                        onReveal = vm::revealFastMoney,
+                        onEndGame = vm::endGame
+                    )
+                } else {
+                    HostGameBoardScreen(
+                        state = state,
+                        onCorrect = vm::judgeCorrect,
+                        onWrong = vm::judgeWrong,
+                        onNextRound = vm::nextRound
+                    )
+                }
             }
 
             composable(Routes.HOST_RESULT) {
@@ -132,11 +149,13 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                 val status by vm.status.collectAsStateWithLifecycle()
                 ErrorSnackbar(vm.lastError.collectAsStateWithLifecycle().value, snackbarHostState, vm::dismissError)
 
-                val finished = state
-                if (finished != null && finished.gameOver) {
-                    GameOverScreen(state = finished)
-                } else {
-                    TeamBuzzScreen(
+                val live = state
+                when {
+                    live != null && live.gameOver -> GameOverScreen(state = live)
+                    live != null && live.phase == RoundPhase.FAST_MONEY ->
+                        FastMoneyTeamScreen(state = live, myTeam = myTeam)
+
+                    else -> TeamBuzzScreen(
                         state = state,
                         myTeam = myTeam,
                         status = status,
@@ -167,9 +186,11 @@ private fun ErrorSnackbar(
 private fun hostViewModel(owner: ViewModelStoreOwner, context: Context): HostViewModel =
     viewModel(viewModelStoreOwner = owner, factory = viewModelFactory {
         initializer {
+            val game = QuestionBank.randomGame(rounds = ROUNDS_PER_GAME)
             HostViewModel(
                 connections = NearbyConnectionsManagerImpl(context.applicationContext, "مضيف"),
-                questions = QuestionBank.randomRound(QUESTIONS_PER_GAME)
+                questions = game.rounds,
+                fastMoneyQuestions = game.fastMoney
             )
         }
     })

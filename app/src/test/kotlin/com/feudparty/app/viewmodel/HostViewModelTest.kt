@@ -2,7 +2,9 @@ package com.feudparty.app.viewmodel
 
 import com.feudparty.core.game.Answer
 import com.feudparty.core.game.BuzzState
+import com.feudparty.core.game.FastMoneyState
 import com.feudparty.core.game.Question
+import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.network.ClientMessage
 import com.feudparty.core.network.ConnectionEvent
@@ -31,6 +33,10 @@ class HostViewModelTest {
         Question("q2", "سؤال٢", listOf(Answer("ج", 100)), "عام")
     )
 
+    private val fastMoneyQuestions = List(FastMoneyState.QUESTIONS_PER_PLAYER) { index ->
+        Question("f$index", "سؤال سريع $index", listOf(Answer("جواب", 50)), "عام")
+    }
+
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
@@ -40,7 +46,14 @@ class HostViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = HostViewModel(connections, questions)
+    private fun viewModel(
+        fastMoney: List<Question> = emptyList()
+    ) = HostViewModel(
+        connections = connections,
+        questions = questions,
+        fastMoneyQuestions = fastMoney,
+        multipliers = listOf(1, 1)
+    )
 
     @Test
     fun `startHosting advertises once under the shared service name`() = runTest(dispatcher) {
@@ -117,7 +130,7 @@ class HostViewModelTest {
     }
 
     @Test
-    fun `judging correct awards points and broadcasts the new state`() = runTest(dispatcher) {
+    fun `judging correct fills the round pot and broadcasts the new state`() = runTest(dispatcher) {
         val vm = viewModel()
         testScheduler.advanceUntilIdle()
         connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("أ")))
@@ -127,11 +140,86 @@ class HostViewModelTest {
         )
         testScheduler.advanceUntilIdle()
 
+        vm.judgeCorrect(0) // الجواب رقم ١ بياخد اللوح
+
+        val state = vm.uiState.value
+        assertEquals(RoundPhase.PLAY, state.phase)
+        assertEquals(TeamId.TEAM_1, state.controllingTeam)
+        assertEquals(60, state.pot)
+        assertEquals(0, state.teams.getValue(TeamId.TEAM_1).score)
+
+        val last = connections.broadcasts.last() as HostMessage.StateUpdate
+        assertEquals(60, last.state.pot)
+    }
+
+    @Test
+    fun `the state sent to teams hides the text of unrevealed answers`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("أ")))
+        connections.emit(
+            ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Buzz(TeamId.TEAM_1, 1L))
+        )
+        testScheduler.advanceUntilIdle()
         vm.judgeCorrect(0)
 
-        assertEquals(60, vm.uiState.value.teams.getValue(TeamId.TEAM_1).score)
-        val last = connections.broadcasts.last() as HostMessage.StateUpdate
-        assertEquals(60, last.state.teams.getValue(TeamId.TEAM_1).score)
+        val sent = (connections.broadcasts.last() as HostMessage.StateUpdate).state
+        val answers = sent.currentQuestion!!.answers
+        assertEquals("أ", answers[0].text)
+        assertEquals("", answers[1].text)
+        // نسخة المضيف بتضل كاملة.
+        assertEquals("ب", vm.uiState.value.currentQuestion!!.answers[1].text)
+    }
+
+    @Test
+    fun `three strikes on the host open the steal for the other team`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("أ")))
+        connections.emit(ConnectionEvent.ClientMessageReceived("ep-b", ClientMessage.Join("ب")))
+        connections.emit(
+            ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Buzz(TeamId.TEAM_1, 1L))
+        )
+        testScheduler.advanceUntilIdle()
+        vm.judgeCorrect(0)
+        repeat(3) { vm.judgeWrong() }
+
+        assertEquals(RoundPhase.STEAL, vm.uiState.value.phase)
+        assertEquals(TeamId.TEAM_2, vm.uiState.value.stealingTeam)
+    }
+
+    @Test
+    fun `the fast money clock ticks once a second and stops with the round`() = runTest(dispatcher) {
+        val vm = viewModel(fastMoney = fastMoneyQuestions)
+        testScheduler.advanceUntilIdle()
+        connections.emit(ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Join("أ")))
+        connections.emit(
+            ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Buzz(TeamId.TEAM_1, 1L))
+        )
+        testScheduler.advanceUntilIdle()
+
+        vm.judgeCorrect(0)
+        vm.judgeCorrect(1) // انكشف اللوح كله فانتهت الجولة الأولى
+        vm.nextRound()
+        connections.emit(
+            ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Buzz(TeamId.TEAM_1, 2L))
+        )
+        testScheduler.advanceUntilIdle()
+        vm.judgeCorrect(0)
+        vm.nextRound()
+
+        assertEquals(RoundPhase.FAST_MONEY, vm.uiState.value.phase)
+
+        vm.startFastMoneyTimer()
+        testScheduler.advanceTimeBy(3_100)
+        assertEquals(
+            FastMoneyState.FIRST_PLAYER_SECONDS - 3,
+            vm.uiState.value.fastMoney!!.secondsRemaining
+        )
+
+        vm.endGame()
+        testScheduler.advanceTimeBy(5_000)
+        assertTrue(vm.uiState.value.gameOver)
     }
 
     @Test

@@ -56,4 +56,21 @@ class QuestionBankTest {
         val all = QuestionBank.load()
         assertEquals(all.size, QuestionBank.randomRound(count = all.size + 100).size)
     }
+
+    @Test
+    fun `randomGame splits rounds and fast money without repeating a question`() {
+        val game = QuestionBank.randomGame(rounds = 6, fastMoneyCount = 5, random = Random(11))
+        assertEquals(6, game.rounds.size)
+        assertEquals(5, game.fastMoney.size)
+        val ids = (game.rounds + game.fastMoney).map { it.id }
+        assertEquals(11, ids.toSet().size)
+    }
+
+    @Test
+    fun `randomGame is deterministic for a given seed`() {
+        val first = QuestionBank.randomGame(rounds = 4, random = Random(3))
+        val second = QuestionBank.randomGame(rounds = 4, random = Random(3))
+        assertEquals(first.rounds.map { it.id }, second.rounds.map { it.id })
+        assertEquals(first.fastMoney.map { it.id }, second.fastMoney.map { it.id })
+    }
 }
