@@ -1,0 +1,93 @@
+package com.feudparty.app.feedback
+
+import android.content.Context
+import android.media.AudioAttributes
+import android.media.SoundPool
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.feudparty.app.R
+
+/** نوع التنبيه — كل واحد له صوت ونمط اهتزاز. */
+enum class Cue { REVEAL, STRIKE, WRONG, WIN, BUZZ }
+
+/**
+ * الصوت والاهتزاز مع بعض. لعبة بتنلعب بغرفة فيها ناس، فالتنبيه لازم
+ * يوصل بالأذن وبالإيد مش بس بالعين.
+ */
+class GameFeedback(context: Context) {
+
+    private val appContext = context.applicationContext
+
+    private val soundPool = SoundPool.Builder()
+        .setMaxStreams(4)
+        .setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+        )
+        .build()
+
+    private val sounds: Map<Cue, Int> = mapOf(
+        Cue.REVEAL to soundPool.load(appContext, R.raw.sfx_reveal, 1),
+        Cue.STRIKE to soundPool.load(appContext, R.raw.sfx_strike, 1),
+        Cue.WRONG to soundPool.load(appContext, R.raw.sfx_wrong, 1),
+        Cue.WIN to soundPool.load(appContext, R.raw.sfx_win, 1),
+        Cue.BUZZ to soundPool.load(appContext, R.raw.sfx_buzz, 1)
+    )
+
+    private val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val manager = appContext.getSystemService(VibratorManager::class.java)
+        manager?.defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        appContext.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    }
+
+    fun play(cue: Cue) {
+        sounds[cue]?.let { soundPool.play(it, 1f, 1f, 1, 0, 1f) }
+        vibrate(cue)
+    }
+
+    private fun vibrate(cue: Cue) {
+        val vibrator = vibrator?.takeIf { it.hasVibrator() } ?: return
+        // نمط مميّز لكل حدث — الغلط ضربتين، الفوز ثلاث نبضات.
+        val timings = when (cue) {
+            Cue.REVEAL -> longArrayOf(0, 28)
+            Cue.BUZZ -> longArrayOf(0, 18)
+            Cue.STRIKE -> longArrayOf(0, 60, 70, 60)
+            Cue.WRONG -> longArrayOf(0, 130)
+            Cue.WIN -> longArrayOf(0, 45, 60, 45, 60, 110)
+        }
+        val amplitudes = timings.mapIndexed { index, _ ->
+            if (index % 2 == 0) 0 else VibrationEffect.DEFAULT_AMPLITUDE
+        }.toIntArray()
+
+        vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+    }
+
+    fun release() {
+        soundPool.release()
+    }
+}
+
+val LocalGameFeedback = compositionLocalOf<GameFeedback?> { null }
+
+/** بيوفّر نسخة وحدة للتطبيق كله وبيسكّرها لما تنتهي الشاشة. */
+@Composable
+fun ProvideGameFeedback(content: @Composable () -> Unit) {
+    val context = LocalContext.current
+    val feedback = remember(context) { GameFeedback(context) }
+    DisposableEffect(feedback) { onDispose { feedback.release() } }
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalGameFeedback provides feedback,
+        content = content
+    )
+}

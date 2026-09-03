@@ -13,9 +13,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.feudparty.app.feedback.ProvideGameFeedback
 import com.feudparty.app.navigation.FeudNavGraph
 import com.feudparty.app.permissions.NearbyPermissions
 import com.feudparty.app.ui.PermissionExplanationScreen
@@ -55,12 +57,14 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         goFullScreen()
         permissionsGranted = NearbyPermissions.allGranted(this)
 
         setContent {
             FeudPartyTheme {
+                ProvideGameFeedback {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     if (permissionsGranted) {
                         FeudNavGraph()
@@ -71,6 +75,7 @@ class MainActivity : ComponentActivity() {
                             onOpenSettings = ::openAppSettings
                         )
                     }
+                }
                 }
             }
         }

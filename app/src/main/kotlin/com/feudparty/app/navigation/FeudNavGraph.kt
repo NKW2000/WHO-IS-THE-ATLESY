@@ -1,6 +1,11 @@
 package com.feudparty.app.navigation
 
 import android.content.Context
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -12,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
@@ -22,6 +28,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.feudparty.app.feedback.GameStateCues
+import com.feudparty.app.feedback.PlayerMarkCues
 import com.feudparty.app.ui.FastMoneyHostScreen
 import com.feudparty.app.ui.FastMoneyPlayerScreen
 import com.feudparty.app.ui.GameOverScreen
@@ -65,10 +73,19 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
         // اللعبة بتاخد كل الشاشة — ما في أشرطة نظام نحجزلها مكان.
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
+        // كل انتقال شريحة سريعة بنفس اتجاه التصميم: للأمام بيدخل من الجنب،
+        // وللورا بيرجع بالعكس.
+        val slide = tween<IntOffset>(340)
+        val fade = tween<Float>(240)
+
         NavHost(
             navController = navController,
             startDestination = Routes.HOME,
-            modifier = Modifier.padding(padding)
+            modifier = Modifier.padding(padding),
+            enterTransition = { slideInHorizontally(slide) { it } + fadeIn(fade) },
+            exitTransition = { slideOutHorizontally(slide) { -it / 4 } + fadeOut(fade) },
+            popEnterTransition = { slideInHorizontally(slide) { -it / 4 } + fadeIn(fade) },
+            popExitTransition = { slideOutHorizontally(slide) { it } + fadeOut(fade) }
         ) {
             composable(Routes.HOME) {
                 HomeScreen(
@@ -100,6 +117,7 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
             composable(Routes.HOST_BOARD) {
                 val vm = hostViewModel(activityOwner, context)
                 val state by vm.uiState.collectAsStateWithLifecycle()
+                GameStateCues(state)
                 ErrorSnackbar(
                     vm.lastError.collectAsStateWithLifecycle().value,
                     snackbarHostState,
@@ -172,6 +190,9 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                 )
 
                 val live = state
+                val mark = vm.mark()
+                GameStateCues(live)
+                PlayerMarkCues(mark)
                 when {
                     live != null && live.gameOver -> GameOverScreen(state = live)
                     live != null && live.phase == RoundPhase.FAST_MONEY ->
@@ -181,7 +202,7 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                         state = live,
                         playerId = playerId,
                         teamId = teamId,
-                        mark = vm.mark(),
+                        mark = mark,
                         status = status,
                         onBuzz = vm::onBuzzTapped
                     )
