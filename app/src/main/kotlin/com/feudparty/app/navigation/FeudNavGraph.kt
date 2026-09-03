@@ -1,6 +1,7 @@
 package com.feudparty.app.navigation
 
 import android.content.Context
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -60,7 +61,9 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = FeudColors.deepNavy
+        containerColor = FeudColors.deepNavy,
+        // اللعبة بتاخد كل الشاشة — ما في أشرطة نظام نحجزلها مكان.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         NavHost(
             navController = navController,

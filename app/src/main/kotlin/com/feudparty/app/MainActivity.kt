@@ -13,12 +13,34 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.feudparty.app.navigation.FeudNavGraph
 import com.feudparty.app.permissions.NearbyPermissions
 import com.feudparty.app.ui.PermissionExplanationScreen
 import com.feudparty.app.ui.theme.FeudPartyTheme
 
 class MainActivity : ComponentActivity() {
+
+    /**
+     * لعبة على تلفزيون الصالون: بدون شريط حالة ولا شريط تنقّل. الأشرطة
+     * بترجع مؤقتاً بسحبة من الحافة وبتختفي لحالها.
+     */
+    private fun goFullScreen() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // بعد ما يرجع التركيز (إشعار، تبديل تطبيق) لازم نخفيهم من جديد.
+        if (hasFocus) goFullScreen()
+    }
 
     private var permissionsGranted by mutableStateOf(false)
     private var permanentlyDenied by mutableStateOf(false)
@@ -34,6 +56,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        goFullScreen()
         permissionsGranted = NearbyPermissions.allGranted(this)
 
         setContent {
