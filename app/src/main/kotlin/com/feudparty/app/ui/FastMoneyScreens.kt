@@ -290,7 +290,7 @@ private fun FastMoneyHeader(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(10.dp)
-                    .background(FeudColors.panel, RoundedCornerShape(5.dp))
+                    .background(FeudColors.panelDark, RoundedCornerShape(5.dp))
             ) {
                 Box(
                     modifier = Modifier
@@ -345,7 +345,7 @@ private fun FastMoneyAnswerRow(answer: Answer, used: Boolean, onClick: () -> Uni
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                if (used) FeudColors.panel.copy(alpha = 0.5f) else FeudColors.panel,
+                if (used) FeudColors.panelDark.copy(alpha = 0.5f) else FeudColors.panelDark,
                 RoundedCornerShape(10.dp)
             )
             .border(

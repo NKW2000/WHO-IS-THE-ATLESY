@@ -28,11 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.feudparty.app.ui.ar
+import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.GoldDivider
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.components.color
+import com.feudparty.app.ui.components.inkColor
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
 import com.feudparty.core.game.Player
@@ -132,12 +135,18 @@ private fun TeamColumn(
     modifier: Modifier = Modifier
 ) {
     val color = teamId.color()
+    val filled = players.any { it.connected }
+    CartoonSurface(
+        modifier = modifier.fillMaxHeight(),
+        color = if (filled) color else FeudColors.ink.copy(alpha = 0.35f),
+        corner = 22.dp,
+        shadow = 8.dp
+    ) {
     Column(
-        modifier = modifier
+        modifier = Modifier
+            .fillMaxWidth()
             .fillMaxHeight()
-            .background(color.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
-            .border(2.dp, color.copy(alpha = 0.7f), RoundedCornerShape(14.dp))
-            .padding(12.dp)
+            .padding(14.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -145,12 +154,12 @@ private fun TeamColumn(
         ) {
             Text(
                 team?.name ?: "فريق",
-                color = color,
+                color = if (filled) teamId.inkColor() else color,
                 style = MaterialTheme.typography.titleLarge
             )
             Text(
-                "${players.count { it.connected }} لاعب",
-                color = FeudColors.textMuted,
+                "${players.count { it.connected }.ar()} لاعب",
+                color = if (filled) teamId.inkColor().copy(alpha = 0.8f) else FeudColors.textMuted,
                 style = MaterialTheme.typography.labelLarge
             )
         }
@@ -158,7 +167,7 @@ private fun TeamColumn(
 
         if (players.isEmpty()) {
             Text(
-                "ما في حدا لسا",
+                "بانتظار الاتصال...",
                 color = FeudColors.textMuted,
                 style = MaterialTheme.typography.bodyLarge
             )
@@ -177,14 +186,19 @@ private fun TeamColumn(
                         modifier = Modifier
                             .size(10.dp)
                             .background(
-                                if (player.connected) color else FeudColors.textMuted,
+                                if (player.connected) FeudColors.cream else FeudColors.textMuted,
                                 CircleShape
                             )
+                            .border(2.dp, FeudColors.ink, CircleShape)
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        "${index + 1}. ${player.name}",
-                        color = if (player.connected) FeudColors.text else FeudColors.textMuted,
+                        "${(index + 1).ar()}. ${player.name}",
+                        color = when {
+                            !player.connected -> FeudColors.textMuted
+                            filled -> teamId.inkColor()
+                            else -> FeudColors.text
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -193,13 +207,14 @@ private fun TeamColumn(
                     if (index == 0) {
                         Text(
                             "المنصة",
-                            color = FeudColors.gold,
+                            color = if (filled) teamId.inkColor() else FeudColors.gold,
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
                 }
             }
         }
+    }
     }
 }
 

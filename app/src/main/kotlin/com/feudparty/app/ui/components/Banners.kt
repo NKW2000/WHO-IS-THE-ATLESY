@@ -1,13 +1,11 @@
 package com.feudparty.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,7 +13,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,12 +21,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.feudparty.app.ui.ar
 import com.feudparty.app.ui.theme.FeudColors
-import com.feudparty.core.game.Award
 import com.feudparty.core.game.GameState
 import com.feudparty.core.game.TeamId
 
-/** بطاقة السؤال — العنوان الأكبر بالشاشة. */
+/** بطاقة السؤال — لوح كريمي عريض زي شاشة البرنامج. */
 @Composable
 fun QuestionCard(
     round: Int,
@@ -38,103 +35,100 @@ fun QuestionCard(
     question: String,
     modifier: Modifier = Modifier
 ) {
-    GoldPanel(modifier = modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "الجولة $round من $totalRounds",
-                    color = FeudColors.goldDim,
-                    style = MaterialTheme.typography.labelLarge
-                )
-                if (!category.isNullOrBlank()) {
-                    Text(category, color = FeudColors.goldDim, style = MaterialTheme.typography.labelLarge)
+    AnimatedVisibility(
+        visible = true,
+        enter = slideInHorizontally(tween(320)) { it / 4 } + fadeIn(tween(260))
+    ) {
+        GoldPanel(modifier = modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
+                if (category != null) {
+                    Text(
+                        "$category · جولة ${round.ar()}/${totalRounds.ar()}",
+                        color = FeudColors.ink.copy(alpha = 0.55f),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Spacer(Modifier.height(4.dp))
                 }
+                Text(
+                    question,
+                    color = FeudColors.ink,
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-            Spacer(Modifier.height(8.dp))
-            GoldDivider(Modifier.fillMaxWidth())
-            Spacer(Modifier.height(10.dp))
-            Text(
-                question,
-                color = FeudColors.text,
-                style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
 
-/** شريط الحالة: مين دوره وشو المطلوب — بيتلوّن بلون الفريق النشط. */
+/** شريط الحالة تحت السؤال — بياخد لون الفريق اللي عليه الدور. */
 @Composable
 fun StatusBanner(
     text: String,
     accent: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    filled: Boolean = true
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(accent.copy(alpha = 0.16f), RoundedCornerShape(12.dp))
-            .border(2.dp, accent, RoundedCornerShape(12.dp))
-            .padding(vertical = 12.dp, horizontal = 14.dp),
-        contentAlignment = Alignment.Center
+    CartoonSurface(
+        modifier = modifier.fillMaxWidth(),
+        color = if (filled) accent else FeudColors.ink.copy(alpha = 0.45f),
+        borderWidth = 4.dp,
+        corner = 16.dp,
+        shadow = 5.dp
     ) {
         Text(
             text,
-            color = accent,
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center
+            color = if (filled) FeudColors.ink else FeudColors.textMuted,
+            style = MaterialTheme.typography.titleSmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 11.dp)
         )
     }
 }
 
-/** بانر نتيجة الجولة — «الفريق الفلاني خد ١٢٠ نقطة» (أو «سرقها»). */
+/** إعلان نقاط نهاية الجولة — بينط بضربة. */
 @Composable
-fun AwardBanner(
-    state: GameState,
-    modifier: Modifier = Modifier
-) {
-    val award: Award? = state.lastAward.takeIf { state.roundOver }
+fun AwardBanner(state: GameState, modifier: Modifier = Modifier) {
+    val award = state.lastAward
     AnimatedVisibility(
-        visible = award != null,
-        enter = fadeIn() + expandVertically(),
-        exit = fadeOut() + shrinkVertically(),
+        visible = award != null && state.roundOver,
+        enter = scaleIn(initialScale = 1.6f, animationSpec = tween(280)) + fadeIn(tween(180)),
+        exit = fadeOut(tween(160)),
         modifier = modifier
     ) {
-        val shown = award ?: return@AnimatedVisibility
-        val color = shown.teamId.color()
-        val name = state.teams[shown.teamId]?.name ?: ""
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(color.copy(alpha = 0.2f), RoundedCornerShape(14.dp))
-                .border(2.dp, color, RoundedCornerShape(14.dp))
-                .padding(vertical = 14.dp),
-            contentAlignment = Alignment.Center
+        if (award == null) return@AnimatedVisibility
+        val teamName = state.teams[award.teamId]?.name ?: ""
+        CartoonSurface(
+            modifier = Modifier.fillMaxWidth(),
+            color = if (award.stolen) FeudColors.pink else FeudColors.gold,
+            borderWidth = 4.dp,
+            corner = 16.dp,
+            shadow = 5.dp
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    if (shown.stolen) "سرقة ناجحة!" else "الجولة لـ $name",
-                    color = color,
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    if (shown.stolen) "$name خد ${shown.points} نقطة" else "+${shown.points} نقطة",
-                    color = FeudColors.text,
-                    style = MaterialTheme.typography.headlineMedium
+                    if (award.stolen) "سرقة! $teamName +${award.points.ar()}"
+                    else "$teamName +${award.points.ar()}",
+                    color = if (award.stolen) Color.White else FeudColors.ink,
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
     }
 }
 
-/** لون الفريق أو الذهبي إذا ما في فريق نشط. */
+@Composable
 fun accentFor(teamId: TeamId?): Color = teamId?.color() ?: FeudColors.gold
+
+/** فراغ صغير بين عناصر الشاشة. */
+@Composable
+fun BannerSpacer() = Box(modifier = Modifier.height(10.dp))

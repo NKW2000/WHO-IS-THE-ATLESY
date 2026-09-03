@@ -9,26 +9,44 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
+import com.feudparty.app.R
 
 /**
- * ألوان المسرح — اللعبة كلها بخلفية غامقة وذهبي، زي استوديو البرنامج.
- * ما في وضع فاتح: اللوح لازم يبان على شاشة بغرفة معتمة.
+ * ألوان التصميم الكرتوني: حدود سودا سميكة، ظلال صلبة، وألوان مشبعة على
+ * خلفية بنفسجية. [ink] هو لون الحد والظل بكل مكان.
  */
 object FeudColors {
-    val deepNavy = Color(0xFF060C1D)
-    val navy = Color(0xFF0C1A38)
-    val panel = Color(0xFF122a57)
-    val panelDark = Color(0xFF0A1B3C)
-    val gold = Color(0xFFF6C445)
-    val goldDim = Color(0xFFB4862A)
-    val strike = Color(0xFFE23A3A)
-    val text = Color(0xFFF3F6FF)
-    val textMuted = Color(0xFF93A7CE)
-    val team1 = Color(0xFF35D6A0)
-    val team2 = Color(0xFF5AA9FF)
+    val ink = Color(0xFF140626)
+    val canvas = Color(0xFF170A31)
+    val stage = Color(0xFF2A1258)
+    val stageAlt = Color(0xFF3A1C6E)
+    val panelDark = Color(0xFF241048)
+    val gold = Color(0xFFFFD23F)
+    val pink = Color(0xFFFF5470)
+    val teal = Color(0xFF2BE0D6)
+    val lime = Color(0xFF9BE564)
+    val cream = Color(0xFFFFF6E5)
+
+    val team1 = Color(0xFF37C46B)
+    val team1Ink = Color(0xFF0B2E18)
+    val team2 = Color(0xFF2D9CFF)
+    val team2Ink = Color(0xFF08213D)
+
+    val text = cream
+    val textSoft = Color(0xFFDCCEFB)
+    val textMuted = Color(0xFFC9B6EE)
+    val textFaint = Color(0xFF8B76C4)
+    val outlineSoft = Color(0xFF6E5A9C)
+
+    // أسماء قديمة بيستعملها باقي الكود.
+    val deepNavy = canvas
+    val strike = pink
+    val goldDim = Color(0xFFA78FD8)
 }
 
 /** ألوان الفرق — نفس اللون بكل الشاشات حتى يميّز اللاعب فريقه بسرعة. */
@@ -38,49 +56,70 @@ object TeamColors {
 }
 
 object FeudBrushes {
-    /** خلفية المسرح: ضوء كشّاف من فوق وعتمة عالأطراف. */
     val stage = Brush.verticalGradient(
-        0f to Color(0xFF16305F),
-        0.45f to FeudColors.navy,
-        1f to FeudColors.deepNavy
+        listOf(FeudColors.stageAlt, FeudColors.stage, FeudColors.canvas)
     )
 
-    val tile = Brush.verticalGradient(
-        listOf(Color(0xFF1B3F7F), Color(0xFF0D2050))
-    )
-
-    val tileRevealed = Brush.verticalGradient(
-        listOf(Color(0xFF2559A8), Color(0xFF12356F))
-    )
-
-    val goldBar = Brush.horizontalGradient(
-        listOf(FeudColors.goldDim, FeudColors.gold, FeudColors.goldDim)
-    )
+    /** الشريط المخطط اللي فوق الشاشات — ذهبي/وردي/فيروزي. */
+    val stripes = listOf(FeudColors.gold, FeudColors.pink, FeudColors.teal)
 }
 
+/** خط العناوين — Baloo Bhaijaan 2. */
+val DisplayFont = FontFamily(
+    Font(R.font.baloo_bhaijaan2_medium, FontWeight.Medium),
+    Font(R.font.baloo_bhaijaan2_bold, FontWeight.Bold),
+    Font(R.font.baloo_bhaijaan2_extrabold, FontWeight.ExtraBold)
+)
+
+/** خط النصوص — Tajawal. */
+val BodyFont = FontFamily(
+    Font(R.font.tajawal_medium, FontWeight.Medium),
+    Font(R.font.tajawal_bold, FontWeight.Bold),
+    Font(R.font.tajawal_extrabold, FontWeight.ExtraBold)
+)
+
+private fun display(size: Int, lineHeight: Int = (size * 1.2).toInt()) = TextStyle(
+    fontFamily = DisplayFont,
+    fontWeight = FontWeight.ExtraBold,
+    fontSize = size.sp,
+    lineHeight = lineHeight.sp
+)
+
+private fun body(size: Int, weight: FontWeight = FontWeight.Medium) = TextStyle(
+    fontFamily = BodyFont,
+    fontWeight = weight,
+    fontSize = size.sp,
+    lineHeight = (size * 1.7).toInt().sp
+)
+
 private val FeudTypography = Typography(
-    displayMedium = TextStyle(fontWeight = FontWeight.Black, fontSize = 44.sp, letterSpacing = 0.sp),
-    displaySmall = TextStyle(fontWeight = FontWeight.Black, fontSize = 34.sp),
-    headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 27.sp),
-    headlineSmall = TextStyle(fontWeight = FontWeight.Bold, fontSize = 22.sp),
-    titleLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp),
-    titleMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 17.sp),
-    bodyLarge = TextStyle(fontWeight = FontWeight.Normal, fontSize = 16.sp),
-    labelLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp, letterSpacing = 0.6.sp),
-    labelSmall = TextStyle(fontWeight = FontWeight.Medium, fontSize = 11.sp, letterSpacing = 0.4.sp)
+    displayLarge = display(58),
+    displayMedium = display(46),
+    displaySmall = display(38),
+    headlineLarge = display(34),
+    headlineMedium = display(30),
+    headlineSmall = display(26),
+    titleLarge = display(24),
+    titleMedium = display(20),
+    titleSmall = display(17),
+    bodyLarge = body(16),
+    bodyMedium = body(14),
+    labelLarge = body(14, FontWeight.ExtraBold),
+    labelMedium = body(13, FontWeight.Bold),
+    labelSmall = body(12, FontWeight.Bold)
 )
 
 private val FeudColorScheme = darkColorScheme(
     primary = FeudColors.gold,
-    onPrimary = FeudColors.deepNavy,
-    secondary = FeudColors.team2,
-    background = FeudColors.deepNavy,
+    onPrimary = FeudColors.ink,
+    secondary = FeudColors.teal,
+    onSecondary = FeudColors.ink,
+    tertiary = FeudColors.pink,
+    background = FeudColors.canvas,
     onBackground = FeudColors.text,
-    surface = FeudColors.panel,
+    surface = FeudColors.stage,
     onSurface = FeudColors.text,
-    surfaceVariant = FeudColors.panelDark,
-    onSurfaceVariant = FeudColors.textMuted,
-    error = FeudColors.strike
+    error = FeudColors.pink
 )
 
 /**

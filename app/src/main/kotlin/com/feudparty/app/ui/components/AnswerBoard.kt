@@ -2,10 +2,8 @@ package com.feudparty.app.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,20 +23,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.feudparty.app.ui.theme.FeudBrushes
+import com.feudparty.app.ui.ar
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudPartyTheme
 import com.feudparty.core.game.Answer
 
 /**
- * لوح الأجوبة — كل خانة بتنقلب لما تنكشف، تماماً زي لوح البرنامج.
- *
- * @param revealHiddenText المضيف بس بيشوف نص الجواب المخفي (لأنه بيحكم عليه).
- * @param onSlotClick لما ينضغط على خانة مخفية — بيستعملها المضيف كـ«صح».
+ * لوح الأجوبة. الخانة المخفية كريمية بعلامة «؟ ؟ ؟» للاعبين، ولما تنكشف
+ * بتنقلب لخضرا بحركة flip زي البرنامج.
  */
 @Composable
 fun AnswerBoard(
@@ -48,12 +44,12 @@ fun AnswerBoard(
     revealHiddenText: Boolean = false,
     enabledSlots: Boolean = false,
     startIndex: Int = 0,
-    slotHeight: Dp = 62.dp,
+    slotHeight: Dp = 58.dp,
     onSlotClick: ((Int) -> Unit)? = null
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         answers.forEachIndexed { offset, answer ->
             val index = startIndex + offset
@@ -76,13 +72,13 @@ fun AnswerBoardColumns(
     modifier: Modifier = Modifier,
     revealHiddenText: Boolean = false,
     enabledSlots: Boolean = false,
-    slotHeight: Dp = 56.dp,
+    slotHeight: Dp = 54.dp,
     onSlotClick: ((Int) -> Unit)? = null
 ) {
     val half = (answers.size + 1) / 2
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         AnswerBoard(
             answers = answers.take(half),
@@ -116,153 +112,125 @@ private fun AnswerSlot(
     height: Dp,
     onClick: () -> Unit
 ) {
+    // الانقلاب: الخانة بتلف على محورها الأفقي أول ما تنكشف.
     val flip by animateFloatAsState(
-        targetValue = if (answer.revealed) 180f else 0f,
-        animationSpec = tween(durationMillis = 520),
-        label = "flip"
+        targetValue = if (answer.revealed) 0f else -90f,
+        animationSpec = tween(durationMillis = 380),
+        label = "flip$position"
     )
-    val density = LocalDensity.current.density
-    val showBack = flip > 90f
+    val revealed = answer.revealed
 
-    Box(
+    CartoonSurface(
         modifier = Modifier
             .fillMaxWidth()
             .height(height)
             .graphicsLayer {
-                rotationX = flip
-                cameraDistance = 14f * density
-            }
-            .background(
-                brush = if (showBack) FeudBrushes.tileRevealed else FeudBrushes.tile,
-                shape = RoundedCornerShape(12.dp)
-            )
-            .border(
-                BorderStroke(
-                    2.dp,
-                    when {
-                        showBack -> FeudColors.gold
-                        enabled -> FeudColors.gold.copy(alpha = 0.55f)
-                        else -> FeudColors.goldDim.copy(alpha = 0.35f)
-                    }
-                ),
-                RoundedCornerShape(12.dp)
-            )
-            .let { if (enabled) it.clickable(onClick = onClick) else it }
+                // بس المكشوفة بتتحرك؛ المخفية ثابتة.
+                if (revealed) {
+                    rotationX = flip
+                    cameraDistance = 14f * density
+                }
+            },
+        color = if (revealed) FeudColors.team1 else FeudColors.cream,
+        borderWidth = 4.dp,
+        corner = 16.dp,
+        shadow = 5.dp,
+        onClick = if (enabled) onClick else null,
+        enabled = enabled
     ) {
-        // الوجه الخلفي بينقلب مرة تانية حتى يضل النص معتدل بعد الدوران.
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp)
-                .graphicsLayer { if (showBack) rotationX = 180f },
-            contentAlignment = Alignment.CenterStart
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            if (showBack) {
-                RevealedFace(position, answer)
-            } else {
-                HiddenFace(position, answer, revealHiddenText, enabled)
+            SlotNumber(position = position, revealed = revealed)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = when {
+                    revealed -> answer.text
+                    revealHiddenText -> answer.text
+                    else -> "؟ ؟ ؟"
+                },
+                color = when {
+                    revealed -> Color.White
+                    revealHiddenText -> FeudColors.ink
+                    else -> FeudColors.ink.copy(alpha = 0.45f)
+                },
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                answer.points.ar(),
+                color = if (revealed) FeudColors.cream else FeudColors.pink,
+                style = MaterialTheme.typography.titleLarge
+            )
+            if (enabled || revealed) {
+                Spacer(Modifier.width(10.dp))
+                JudgeChip(revealed = revealed)
             }
         }
     }
 }
 
 @Composable
-private fun RevealedFace(position: Int, answer: Answer) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        SlotNumber(position, active = true)
-        Spacer(Modifier.width(12.dp))
-        Text(
-            answer.text,
-            color = FeudColors.text,
-            style = MaterialTheme.typography.titleLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
-        Spacer(Modifier.width(8.dp))
-        PointsChip(answer.points)
-    }
-}
-
-@Composable
-private fun HiddenFace(
-    position: Int,
-    answer: Answer,
-    revealHiddenText: Boolean,
-    enabled: Boolean
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        SlotNumber(position, active = false)
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            if (revealHiddenText) {
-                Text(
-                    answer.text,
-                    color = FeudColors.textMuted,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    if (enabled) "اضغط للكشف" else "مخفي عن الفرق",
-                    color = FeudColors.goldDim,
-                    style = MaterialTheme.typography.labelSmall
-                )
-            } else {
-                Text(
-                    "• • • • • •",
-                    color = FeudColors.textMuted.copy(alpha = 0.55f),
-                    style = MaterialTheme.typography.titleLarge
-                )
-            }
-        }
-        if (revealHiddenText) {
-            Spacer(Modifier.width(8.dp))
-            PointsChip(answer.points, dim = true)
-        }
-    }
-}
-
-@Composable
-private fun SlotNumber(position: Int, active: Boolean) {
+private fun SlotNumber(position: Int, revealed: Boolean) {
     Box(
         modifier = Modifier
-            .size(34.dp)
+            .size(30.dp)
             .background(
-                if (active) FeudColors.gold else FeudColors.gold.copy(alpha = 0.18f),
-                CircleShape
+                if (revealed) FeudColors.team1Ink else FeudColors.gold,
+                RoundedCornerShape(9.dp)
             )
-            .border(1.dp, FeudColors.gold.copy(alpha = 0.7f), CircleShape),
+            .border(3.dp, FeudColors.ink, RoundedCornerShape(9.dp)),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            "$position",
-            color = if (active) FeudColors.deepNavy else FeudColors.gold,
-            style = MaterialTheme.typography.titleMedium
+            position.ar(),
+            color = if (revealed) FeudColors.lime else FeudColors.ink,
+            style = MaterialTheme.typography.labelMedium
         )
     }
 }
 
+/** زر «صح» عند المضيف — بيصير علامة ✓ بعد الكشف. */
 @Composable
-private fun PointsChip(points: Int, dim: Boolean = false) {
-    val color = if (dim) FeudColors.goldDim else FeudColors.gold
+private fun JudgeChip(revealed: Boolean) {
     Box(
         modifier = Modifier
-            .background(color.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-            .border(1.dp, color.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+            .background(
+                if (revealed) FeudColors.lime else FeudColors.pink,
+                RoundedCornerShape(10.dp)
+            )
+            .border(3.dp, FeudColors.ink, RoundedCornerShape(10.dp))
             .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
         Text(
-            "$points",
-            color = color,
-            style = MaterialTheme.typography.titleLarge,
+            if (revealed) "✓" else "صح",
+            color = if (revealed) FeudColors.team1Ink else Color.White,
+            style = MaterialTheme.typography.titleSmall,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Preview(widthDp = 460, heightDp = 300, showBackground = true)
+@Composable
+private fun AnswerBoardPreview() {
+    FeudPartyTheme {
+        Box(modifier = Modifier.background(FeudColors.stage).padding(12.dp)) {
+            AnswerBoard(
+                answers = listOf(
+                    Answer("يشيّكوا الموبايل", 40, revealed = true),
+                    Answer("يشربوا قهوة", 30),
+                    Answer("يغسلوا وجّهم", 20)
+                ),
+                revealHiddenText = true,
+                enabledSlots = true,
+                onSlotClick = {}
+            )
+        }
     }
 }
