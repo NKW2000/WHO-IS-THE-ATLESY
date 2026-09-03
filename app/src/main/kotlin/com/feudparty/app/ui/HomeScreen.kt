@@ -31,11 +31,11 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
+import com.feudparty.app.ui.components.Wordmark
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
 
@@ -90,52 +90,6 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-        }
-    }
-}
-
-/** الوردمارك: لوحة ذهبية مايلة بشوية، وعليها فقاعة «؟» بتطفو. */
-@Composable
-private fun Wordmark() {
-    val transition = rememberInfiniteTransition(label = "wordmark")
-    val wobble by transition.animateFloat(
-        initialValue = -2.5f,
-        targetValue = 2.5f,
-        animationSpec = infiniteRepeatable(tween(4_000), RepeatMode.Reverse),
-        label = "wobble"
-    )
-    val bob by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 9f,
-        animationSpec = infiniteRepeatable(tween(1_100), RepeatMode.Reverse),
-        label = "bob"
-    )
-
-    Box(contentAlignment = Alignment.Center) {
-        CartoonSurface(
-            modifier = Modifier.rotate(wobble),
-            color = FeudColors.gold,
-            corner = 24.dp,
-            shadow = 10.dp
-        ) {
-            Text(
-                "مين الأطليسي",
-                color = FeudColors.ink,
-                style = MaterialTheme.typography.displayMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 30.dp, vertical = 16.dp)
-            )
-        }
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .offset(x = (-14).dp, y = (-20).dp - bob.dp)
-                .size(52.dp)
-                .background(FeudColors.pink, CircleShape)
-                .border(4.dp, FeudColors.ink, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("؟", color = FeudColors.cream, style = MaterialTheme.typography.headlineSmall)
         }
     }
 }

@@ -3,14 +3,26 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- علامة الاستفهام — نفس شكل فقاعة «؟» بالوردمارك -->
+    <!-- الظل الصلب تحت العلامة -->
+    <group android:translateX="5" android:translateY="5">
+        <path
+            android:pathData="M36,40 A18,18 0 1 1 72,40 C72,53 54,53 54,66"
+            android:strokeColor="#140626"
+            android:strokeWidth="13"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="#140626"
+            android:pathData="M54,79m-7.5,0a7.5,7.5 0,1 1,15 0a7.5,7.5 0,1 1,-15 0" />
+    </group>
+    <!-- العلامة نفسها -->
     <path
         android:pathData="M36,40 A18,18 0 1 1 72,40 C72,53 54,53 54,66"
-        android:strokeColor="#140626"
-        android:strokeWidth="12"
+        android:strokeColor="#2BE0D6"
+        android:strokeWidth="13"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
     <path
-        android:fillColor="#140626"
-        android:pathData="M54,79m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
+        android:fillColor="#2BE0D6"
+        android:pathData="M54,79m-7.5,0a7.5,7.5 0,1 1,15 0a7.5,7.5 0,1 1,-15 0" />
 </vector>
