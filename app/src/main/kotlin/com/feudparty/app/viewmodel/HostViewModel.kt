@@ -2,6 +2,7 @@ package com.feudparty.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.feudparty.core.game.FastMoneyState
 import com.feudparty.core.game.GameEngine
 import com.feudparty.core.game.GameEvent
 import com.feudparty.core.game.GameState
@@ -31,6 +32,10 @@ class HostViewModel(
     questions: List<Question>,
     fastMoneyQuestions: List<Question> = emptyList(),
     multipliers: List<Int> = DEFAULT_MULTIPLIERS,
+    strikesToSteal: Int = GameEngine.DEFAULT_STRIKES_TO_STEAL,
+    fastMoneyTarget: Int = FastMoneyState.TARGET,
+    fastMoneyFirstSeconds: Int = FastMoneyState.FIRST_PLAYER_SECONDS,
+    fastMoneySecondSeconds: Int = FastMoneyState.SECOND_PLAYER_SECONDS,
     private val serviceName: String = SERVICE_NAME,
     private val tickMillis: Long = 1_000L
 ) : ViewModel() {
@@ -39,6 +44,10 @@ class HostViewModel(
         GameState(
             questions = questions,
             multipliers = multipliers,
+            strikesToSteal = strikesToSteal,
+            fastMoneyTarget = fastMoneyTarget,
+            fastMoneyFirstSeconds = fastMoneyFirstSeconds,
+            fastMoneySecondSeconds = fastMoneySecondSeconds,
             fastMoneyQuestions = fastMoneyQuestions,
             teams = mapOf(
                 TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأحمر"),

@@ -181,7 +181,7 @@ class GameEngine(initialState: GameState) {
                 val team = state.controllingTeam ?: return state
                 val strikes = state.strikes + 1
                 val marked = state.markWrong(answering).copy(strikes = strikes)
-                if (strikes >= STRIKES_TO_STEAL) marked.openSteal(team) else marked.advanceTurn(team)
+                if (strikes >= state.strikesToSteal) marked.openSteal(team) else marked.advanceTurn(team)
             }
 
             RoundPhase.STEAL -> {
@@ -230,6 +230,10 @@ class GameEngine(initialState: GameState) {
                 fastMoney = FastMoneyState(
                     questions = fastMoneyQuestions,
                     teamId = team,
+                    target = state.fastMoneyTarget,
+                    firstPlayerSeconds = state.fastMoneyFirstSeconds,
+                    secondPlayerSeconds = state.fastMoneySecondSeconds,
+                    secondsRemaining = state.fastMoneyFirstSeconds,
                     playerIds = state.playersOf(team).take(2).map { it.id }
                 )
             )
@@ -329,7 +333,7 @@ class GameEngine(initialState: GameState) {
     }
 
     companion object {
-        const val STRIKES_TO_STEAL = 3
+        const val DEFAULT_STRIKES_TO_STEAL = 3
     }
 }
 
@@ -458,7 +462,7 @@ private fun FastMoneyState.record(entry: FastMoneyEntry): FastMoneyState {
         updated.copy(
             playerIndex = 1,
             questionIndex = 0,
-            secondsRemaining = FastMoneyState.SECOND_PLAYER_SECONDS,
+            secondsRemaining = secondPlayerSeconds,
             timerRunning = false
         )
     } else {

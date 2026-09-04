@@ -35,12 +35,16 @@ import com.feudparty.app.ui.FastMoneyPlayerScreen
 import com.feudparty.app.ui.GameOverScreen
 import com.feudparty.app.ui.HomeScreen
 import com.feudparty.app.ui.HostGameBoardScreen
+import com.feudparty.app.ui.HostSettingsScreen
 import com.feudparty.app.ui.HostSetupScreen
 import com.feudparty.app.ui.PlayerJoinScreen
 import com.feudparty.app.ui.PlayerScreen
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.viewmodel.HostViewModel
 import com.feudparty.app.viewmodel.PlayerViewModel
+import com.feudparty.app.viewmodel.SettingsViewModel
+import com.feudparty.app.settings.SettingsRepository
+import com.feudparty.core.game.FastMoneyState
 import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.network.NearbyConnectionsManagerImpl
 import com.feudparty.data.questions.QuestionBank
@@ -52,10 +56,8 @@ object Routes {
     const val HOST_RESULT = "host_result"
     const val PLAYER_JOIN = "player_join"
     const val PLAYER_BUZZER = "player_buzzer"
+    const val HOST_SETTINGS = "host_settings"
 }
-
-/** عدد جولات اللوح قبل الجولة السريعة — نفس عددها بالبرنامج. */
-private const val ROUNDS_PER_GAME = 4
 
 @Composable
 fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
@@ -90,7 +92,25 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
             composable(Routes.HOME) {
                 HomeScreen(
                     onHostClick = { navController.navigate(Routes.HOST_SETUP) },
-                    onJoinClick = { navController.navigate(Routes.PLAYER_JOIN) }
+                    onJoinClick = { navController.navigate(Routes.PLAYER_JOIN) },
+                    onSettingsClick = { navController.navigate(Routes.HOST_SETTINGS) }
+                )
+            }
+
+            composable(Routes.HOST_SETTINGS) {
+                val vm = settingsViewModel(activityOwner, context)
+                val settings by vm.settings.collectAsStateWithLifecycle()
+                val message by vm.bankMessage.collectAsStateWithLifecycle()
+                val failed by vm.bankFailed.collectAsStateWithLifecycle()
+
+                HostSettingsScreen(
+                    settings = settings,
+                    bankMessage = message,
+                    bankMessageIsError = failed,
+                    onSettingsChange = vm::update,
+                    onImportBank = vm::importBank,
+                    onClearBank = vm::clearBank,
+                    onBack = { navController.popBackStack() }
                 )
             }
 
@@ -230,13 +250,34 @@ private fun ErrorSnackbar(
 private fun hostViewModel(owner: ViewModelStoreOwner, context: Context): HostViewModel =
     viewModel(viewModelStoreOwner = owner, factory = viewModelFactory {
         initializer {
-            val game = QuestionBank.randomGame(rounds = ROUNDS_PER_GAME)
+            val settings = SettingsRepository(context).load()
+            val bank = SettingsRepository(context).questions()
+            val game = QuestionBank.randomGame(
+                rounds = settings.rounds,
+                fastMoneyCount = if (settings.fastMoneyEnabled) {
+                    FastMoneyState.QUESTIONS_PER_PLAYER
+                } else {
+                    0
+                },
+                source = bank
+            )
             HostViewModel(
                 connections = NearbyConnectionsManagerImpl(context.applicationContext, "مضيف"),
                 questions = game.rounds,
-                fastMoneyQuestions = game.fastMoney
+                fastMoneyQuestions = game.fastMoney,
+                multipliers = settings.multipliersForRounds(),
+                strikesToSteal = settings.strikesToSteal,
+                fastMoneyTarget = settings.fastMoneyTarget,
+                fastMoneyFirstSeconds = settings.fastMoneyFirstSeconds,
+                fastMoneySecondSeconds = settings.fastMoneySecondSeconds
             )
         }
+    })
+
+@Composable
+private fun settingsViewModel(owner: ViewModelStoreOwner, context: Context): SettingsViewModel =
+    viewModel(viewModelStoreOwner = owner, factory = viewModelFactory {
+        initializer { SettingsViewModel(SettingsRepository(context)) }
     })
 
 @Composable

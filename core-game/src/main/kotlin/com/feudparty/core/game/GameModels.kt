@@ -97,6 +97,9 @@ data class FastMoneyEntry(
 data class FastMoneyState(
     val questions: List<Question>,
     val teamId: TeamId,
+    val target: Int = TARGET,
+    val firstPlayerSeconds: Int = FIRST_PLAYER_SECONDS,
+    val secondPlayerSeconds: Int = SECOND_PLAYER_SECONDS,
     val playerIds: List<String> = emptyList(),
     val playerIndex: Int = 0,
     val questionIndex: Int = 0,
@@ -112,7 +115,7 @@ data class FastMoneyState(
     val currentEntries: List<FastMoneyEntry> get() = if (playerIndex == 0) playerOne else playerTwo
     val currentPlayerId: String? get() = playerIds.getOrNull(playerIndex)
     val total: Int get() = playerOne.sumOf { it.points } + playerTwo.sumOf { it.points }
-    val won: Boolean get() = total >= TARGET
+    val won: Boolean get() = total >= target
     val playerOneTotal: Int get() = playerOne.sumOf { it.points }
     val playerTwoTotal: Int get() = playerTwo.sumOf { it.points }
     val usedByPlayerOne: Set<Int> get() = playerOne.mapNotNull { it.answerIndex }.toSet()
@@ -154,6 +157,12 @@ data class GameState(
     val roundWinner: TeamId? = null,
     val lastAward: Award? = null,
     val multipliers: List<Int> = listOf(1, 1, 2, 3),
+    /** عدد الأخطاء اللي بتفتح السرقة — ٣ زي البرنامج. */
+    val strikesToSteal: Int = 3,
+    /** إعدادات الجولة السريعة — الهدف ووقت كل لاعب. */
+    val fastMoneyTarget: Int = FastMoneyState.TARGET,
+    val fastMoneyFirstSeconds: Int = FastMoneyState.FIRST_PLAYER_SECONDS,
+    val fastMoneySecondSeconds: Int = FastMoneyState.SECOND_PLAYER_SECONDS,
     val fastMoneyQuestions: List<Question> = emptyList(),
     val fastMoney: FastMoneyState? = null,
     val gameOver: Boolean = false
