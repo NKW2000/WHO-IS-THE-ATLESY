@@ -244,18 +244,34 @@ fun GameState.buzzedTeam(): TeamId? = when (buzzState) {
 }
 
 /**
- * نسخة الحالة اللي بتنبعت لأجهزة اللاعبين: لا نص السؤال ولا نصوص الأجوبة
- * المخفية بتطلع من جهاز المضيف — اللاعب بيسمع السؤال من المضيف بس.
+ * نسخة الحالة اللي بتنبعت لأجهزة اللاعبين.
+ *
+ * نص السؤال بيضل مخفي **بس** والزر مفتوح بالمواجهة — هاي اللحظة اللي
+ * السرعة فيها بتفرق، وما بدنا حدا يقرا قبل ما يسمع. أول ما حدا يضغط
+ * بينكشف السؤال للكل حتى يقدروا يتابعوا اللوح. نصوص الأجوبة المخفية ما
+ * بتطلع من جهاز المضيف أبداً.
  */
-fun GameState.maskedForPlayers(): GameState = copy(
-    questions = questions.map { it.masked() },
-    fastMoneyQuestions = emptyList(),
-    fastMoney = fastMoney?.let { fm ->
-        fm.copy(questions = if (fm.revealed) fm.questions else fm.questions.map { it.masked() })
-    }
-)
+fun GameState.maskedForPlayers(): GameState {
+    val hideQuestion = phase == RoundPhase.FACE_OFF && buzzState == BuzzState.OPEN
+    return copy(
+        questions = questions.mapIndexed { index, question ->
+            question.masked(hideText = hideQuestion && index == currentQuestionIndex)
+        },
+        fastMoneyQuestions = emptyList(),
+        fastMoney = fastMoney?.let { fm ->
+            fm.copy(
+                questions = if (fm.revealed) {
+                    fm.questions
+                } else {
+                    fm.questions.map { it.masked(hideText = true) }
+                }
+            )
+        }
+    )
+}
 
-private fun Question.masked(): Question = copy(
-    text = "",
+private fun Question.masked(hideText: Boolean): Question = copy(
+    text = if (hideText) "" else text,
+    // الأجوبة المخفية ما بتنبعت أبداً — اللوح بيعرض خانات فاضية.
     answers = answers.map { if (it.revealed) it else it.copy(text = "") }
 )

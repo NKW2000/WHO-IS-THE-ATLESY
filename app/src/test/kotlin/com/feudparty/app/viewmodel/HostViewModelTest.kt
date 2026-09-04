@@ -154,23 +154,39 @@ class HostViewModelTest {
         }
 
     @Test
-    fun `the state sent to players hides the question and the hidden answers`() =
-        runTest(dispatcher) {
-            val vm = viewModel()
-            testScheduler.advanceUntilIdle()
-            join("ep-a", "ep-b")
-            buzz("ep-a")
-            testScheduler.advanceUntilIdle()
-            vm.judgeCorrect(0)
+    fun `players never receive the hidden answers`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        join("ep-a", "ep-b")
+        buzz("ep-a")
+        testScheduler.advanceUntilIdle()
+        vm.judgeCorrect(0)
 
-            val sent = (connections.broadcasts.last() as HostMessage.StateUpdate).state
-            val question = sent.currentQuestion!!
-            assertEquals("", question.text)
-            assertEquals("أ", question.answers[0].text)
-            assertEquals("", question.answers[1].text)
-            // نسخة المضيف بتضل كاملة.
-            assertEquals("سؤال١", vm.uiState.value.currentQuestion!!.text)
-        }
+        val sent = (connections.broadcasts.last() as HostMessage.StateUpdate).state
+        val question = sent.currentQuestion!!
+        // المكشوف بس بيوصل؛ الباقي خانات فاضية.
+        assertEquals("أ", question.answers[0].text)
+        assertEquals("", question.answers[1].text)
+        // نسخة المضيف بتضل كاملة.
+        assertEquals("سؤال١", vm.uiState.value.currentQuestion!!.text)
+    }
+
+    @Test
+    fun `the question reaches players only after somebody buzzes`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        join("ep-a", "ep-b")
+        testScheduler.advanceUntilIdle()
+
+        val beforeBuzz = (connections.broadcasts.last() as HostMessage.StateUpdate).state
+        assertEquals("", beforeBuzz.currentQuestion!!.text)
+
+        buzz("ep-a")
+        testScheduler.advanceUntilIdle()
+
+        val afterBuzz = (connections.broadcasts.last() as HostMessage.StateUpdate).state
+        assertEquals("سؤال١", afterBuzz.currentQuestion!!.text)
+    }
 
     @Test
     fun `three strikes hand the steal to the other team's podium player`() = runTest(dispatcher) {

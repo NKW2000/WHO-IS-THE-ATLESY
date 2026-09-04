@@ -8,6 +8,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,15 +23,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.feudparty.app.ui.components.BuzzerButton
+import com.feudparty.app.ui.components.AnswerBoardColumns
 import com.feudparty.app.ui.components.MiniScore
 import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.StrikeRow
@@ -48,14 +55,14 @@ import com.feudparty.core.game.TeamId
 import com.feudparty.core.game.TeamState
 
 /**
- * جهاز اللاعب — الشاشة كلها هي الزر، ولونها هو كل الرسالة:
+ * جهاز اللاعب. شاشتين بس:
  *
- * - **وميض كريمي/أسود**: دورك، اضغط.
- * - **أزرق**: ضغطت وصوتك وصل للمضيف.
- * - **أخضر**: جوابك صح.
- * - **أحمر**: جوابك غلط — وبيضل أحمر لحد ما يرجع دورك بعد ما يجاوبوا زمايلك.
+ * 1. **الزر** — لما يكون دورك بالمواجهة، الشاشة كلها زر واحد بيومض. ما في
+ *    ولا عنصر تاني، فما بتغلط بالضغط حتى لو ما بتتطلع عالجهاز.
+ * 2. **اللوح** — بعد ما تضغط (أو لما يجي دورك باللعب) بيبيّن السؤال
+ *    والخانات الفاضية، وبتنكشف وحدة وحدة مع حكم المضيف.
  *
- * السؤال ما بيوصل هالجهاز أصلاً؛ اللاعب بيسمعه من المضيف.
+ * اللون بيضل هو الرسالة: أزرق ضغطت، أخضر صح، أحمر غلط.
  */
 @Composable
 fun PlayerScreen(
@@ -66,8 +73,31 @@ fun PlayerScreen(
     status: ConnectionStatus,
     onBuzz: () -> Unit
 ) {
+    val connected = status == ConnectionStatus.CONNECTED
+    val faceOffBuzzer = connected &&
+        mark == PlayerMark.ARMED &&
+        state?.phase == RoundPhase.FACE_OFF
+
+    if (faceOffBuzzer) {
+        FullScreenBuzzer(onBuzz = onBuzz)
+    } else {
+        PlayerBoard(
+            state = state,
+            playerId = playerId,
+            teamId = teamId,
+            mark = mark,
+            status = status,
+            onBuzz = onBuzz
+        )
+    }
+}
+
+/** الشاشة كلها زر — وميض كريمي/أسود، وأي لمسة بأي مكان بتحتسب. */
+@Composable
+private fun FullScreenBuzzer(onBuzz: () -> Unit) {
+    val haptics = LocalHapticFeedback.current
     val blink = rememberInfiniteTransition(label = "blink")
-    val blinkPhase by blink.animateFloat(
+    val phase by blink.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -76,84 +106,136 @@ fun PlayerScreen(
         ),
         label = "blinkPhase"
     )
-
-    val target = when (mark) {
-        // الوميض بينط بين كريمي وأسود — أوضح إشي بغرفة فيها ٦ لاعبين.
-        PlayerMark.ARMED -> if (blinkPhase > 0.5f) FeudColors.cream else FeudColors.ink
-        PlayerMark.BUZZED -> FeudColors.team2
-        PlayerMark.CORRECT -> FeudColors.team1
-        PlayerMark.WRONG -> FeudColors.pink
-        PlayerMark.IDLE -> FeudColors.stage
-    }
-    val background by animateColorAsState(
-        targetValue = target,
-        animationSpec = tween(if (mark == PlayerMark.ARMED) 90 else 220),
-        label = "screenColor"
+    val pulse by blink.animateFloat(
+        initialValue = 0.94f,
+        targetValue = 1.06f,
+        animationSpec = infiniteRepeatable(tween(560), RepeatMode.Reverse),
+        label = "pulse"
     )
-    val onBackground = if (background.luminance() > 0.45f) FeudColors.ink else FeudColors.cream
+
+    val background = if (phase > 0.5f) FeudColors.cream else FeudColors.ink
+    val foreground = if (background.luminance() > 0.45f) FeudColors.ink else FeudColors.cream
+    val interaction = remember { MutableInteractionSource() }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(background)
-            .padding(18.dp)
-    ) {
-        PlayerTopBar(state, playerId, teamId, status, onBackground)
-
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            .clickable(
+                interactionSource = interaction,
+                indication = null
             ) {
-                Text(
-                    headline(mark, state, teamId, status),
-                    color = onBackground,
-                    style = MaterialTheme.typography.displaySmall,
-                    textAlign = TextAlign.Center
-                )
-                val sub = subLine(mark, state, playerId)
-                if (sub != null) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        sub,
-                        color = onBackground.copy(alpha = 0.85f),
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
-                    )
-                }
-                if (state != null &&
-                    (state.phase == RoundPhase.PLAY || state.phase == RoundPhase.STEAL)
-                ) {
-                    Spacer(Modifier.height(14.dp))
-                    StrikeRow(strikes = state.strikes, size = 32.dp)
-                }
-            }
-
-            BuzzerButton(
-                label = buzzLabel(mark, state, status),
-                subLabel = null,
-                enabled = mark == PlayerMark.ARMED,
-                accent = when (mark) {
-                    PlayerMark.ARMED -> FeudColors.pink
-                    PlayerMark.BUZZED -> FeudColors.gold
-                    PlayerMark.CORRECT -> FeudColors.lime
-                    PlayerMark.WRONG -> FeudColors.panelDark
-                    PlayerMark.IDLE -> FeudColors.panelDark
-                },
-                onClick = onBuzz,
-                size = 210.dp,
-                modifier = Modifier.padding(start = 12.dp)
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                onBuzz()
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "اضغط!",
+                color = foreground,
+                style = MaterialTheme.typography.displayLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.scale(pulse)
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "الشاشة كلها زر",
+                color = foreground.copy(alpha = 0.75f),
+                style = MaterialTheme.typography.titleMedium
             )
         }
     }
 }
 
+/** اللوح: السؤال والخانات، ولون الحالة على كل الخلفية. */
 @Composable
-private fun PlayerTopBar(
+private fun PlayerBoard(
+    state: GameState?,
+    playerId: String?,
+    teamId: TeamId?,
+    mark: PlayerMark,
+    status: ConnectionStatus,
+    onBuzz: () -> Unit
+) {
+    val haptics = LocalHapticFeedback.current
+    val target = when (mark) {
+        PlayerMark.BUZZED -> FeudColors.team2
+        PlayerMark.CORRECT -> FeudColors.team1
+        PlayerMark.WRONG -> FeudColors.pink
+        else -> FeudColors.stage
+    }
+    val background by animateColorAsState(target, tween(220), label = "boardColor")
+    val onBackground = if (background.luminance() > 0.45f) FeudColors.ink else FeudColors.cream
+
+    // بمرحلة اللعب دورك بينبّه: أي لمسة بتقول للمضيف إنك عم تجاوب.
+    val canSignal = mark == PlayerMark.ARMED
+    val interaction = remember { MutableInteractionSource() }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(background)
+            .clickable(
+                enabled = canSignal,
+                interactionSource = interaction,
+                indication = null
+            ) {
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                onBuzz()
+            }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopBar(state, playerId, teamId, status, onBackground)
+            Spacer(Modifier.height(10.dp))
+
+            val question = state?.currentQuestion
+            val questionText = question?.text.orEmpty()
+            Text(
+                text = questionText.ifBlank { waitingLine(state, status) },
+                color = onBackground,
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(10.dp))
+
+            if (question != null && questionText.isNotBlank()) {
+                AnswerBoardColumns(
+                    answers = question.answers,
+                    revealHiddenText = false,
+                    slotHeight = 46.dp,
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                Box(modifier = Modifier.weight(1f))
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (state != null &&
+                    (state.phase == RoundPhase.PLAY || state.phase == RoundPhase.STEAL)
+                ) {
+                    StrikeRow(strikes = state.strikes, size = 30.dp)
+                    Spacer(Modifier.width(12.dp))
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    Text(
+                        statusLine(mark, state, teamId, status),
+                        color = onBackground,
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopBar(
     state: GameState?,
     playerId: String?,
     teamId: TeamId?,
@@ -161,7 +243,6 @@ private fun PlayerTopBar(
     onBackground: Color
 ) {
     val me = state?.player(playerId)
-    val teamName = teamId?.let { state?.teams?.get(it)?.name }
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -169,19 +250,19 @@ private fun PlayerTopBar(
     ) {
         if (teamId != null && me != null) {
             Pill(
-                text = "${me.name} — $teamName",
+                text = me.name,
                 color = teamId.color(),
                 textColor = teamId.inkColor()
             )
         } else {
             Text(
                 connectionLabel(status),
-                color = onBackground.copy(alpha = 0.9f),
+                color = onBackground,
                 style = MaterialTheme.typography.titleSmall
             )
         }
         if (state != null) {
-            Row(modifier = Modifier.width(320.dp)) {
+            Row(modifier = Modifier.width(300.dp)) {
                 MiniScore(state, TeamId.TEAM_1, Modifier.weight(1f))
                 Spacer(Modifier.width(8.dp))
                 MiniScore(state, TeamId.TEAM_2, Modifier.weight(1f))
@@ -197,19 +278,14 @@ private fun connectionLabel(status: ConnectionStatus): String = when (status) {
     ConnectionStatus.DISCONNECTED -> "انقطع الاتصال"
 }
 
-private fun buzzLabel(mark: PlayerMark, state: GameState?, status: ConnectionStatus): String {
-    if (status != ConnectionStatus.CONNECTED || state == null) return "استنى"
-    if (state.gameOver) return "انتهت"
-    return when (mark) {
-        PlayerMark.ARMED -> "جاوب!"
-        PlayerMark.BUZZED -> "ضغطت!"
-        PlayerMark.CORRECT -> "صح ✔"
-        PlayerMark.WRONG -> "غلط ✘"
-        PlayerMark.IDLE -> "استنى"
-    }
+private fun waitingLine(state: GameState?, status: ConnectionStatus): String = when {
+    status != ConnectionStatus.CONNECTED -> connectionLabel(status)
+    state == null -> "بانتظار المضيف"
+    state.gameOver -> "انتهت اللعبة"
+    else -> "استنى السؤال من المضيف"
 }
 
-private fun headline(
+private fun statusLine(
     mark: PlayerMark,
     state: GameState?,
     teamId: TeamId?,
@@ -220,52 +296,52 @@ private fun headline(
     if (state.gameOver) return "انتهت اللعبة"
 
     return when (mark) {
-        PlayerMark.ARMED -> if (state.phase == RoundPhase.FACE_OFF) "اضغط!" else "دورك"
-        PlayerMark.BUZZED -> "ضغطت أول!"
-        PlayerMark.CORRECT -> "صح ✔"
-        PlayerMark.WRONG -> "غلط ✘"
+        PlayerMark.ARMED -> when (state.phase) {
+            RoundPhase.STEAL -> "دورك — جواب واحد بس، دوس لما تجاوب"
+            else -> "دورك — جاوب، ودوس عالشاشة"
+        }
+
+        PlayerMark.BUZZED -> "ضغطت! المضيف عم يسمع جوابك"
+        PlayerMark.CORRECT -> "صح ✔ — الدور بينتقل لزميلك"
+        PlayerMark.WRONG -> "غلط ✘ — استنى لحد ما يخلّص زمايلك"
         PlayerMark.IDLE -> when {
             state.phase == RoundPhase.ROUND_END && state.roundWinner == teamId -> "الجولة إلنا!"
             state.phase == RoundPhase.ROUND_END -> "انتهت الجولة"
+            state.turnPlayerId != null ->
+                state.player(state.turnPlayerId)?.name?.let { "الدور على $it" } ?: "استنى دورك"
+
             state.activeTeam == teamId -> "دور فريقك"
             else -> "استنى دورك"
         }
     }
 }
 
-private fun subLine(mark: PlayerMark, state: GameState?, playerId: String?): String? {
-    if (state == null) return null
-    return when (mark) {
-        PlayerMark.ARMED -> when (state.phase) {
-            RoundPhase.FACE_OFF -> "إنت عالمنصة — أول ضغطة بتجاوب"
-            RoundPhase.STEAL -> "فرصة السرقة — جواب واحد بس"
-            else -> "قول جوابك للمضيف"
-        }
-
-        PlayerMark.BUZZED -> "المضيف عم يسمع جوابك"
-        PlayerMark.WRONG -> "استنى لحد ما يخلّص زمايلك دورهم"
-        PlayerMark.CORRECT -> "الدور بينتقل لزميلك"
-        PlayerMark.IDLE -> state.turnPlayerId
-            ?.takeIf { it != playerId }
-            ?.let { state.player(it)?.name }
-            ?.let { "الدور على $it" }
-    }
-}
-
 @Preview(showBackground = true, widthDp = 880, heightDp = 420)
 @Composable
-private fun PlayerScreenPreview() {
+private fun PlayerBoardPreview() {
     FeudPartyTheme {
         PlayerScreen(
             state = GameState(
-                questions = listOf(Question("q1", "", listOf(Answer("", 40)), "عام")),
+                questions = listOf(
+                    Question(
+                        "q1",
+                        "اذكر شي بيعمله الناس أول ما يصحوا",
+                        listOf(
+                            Answer("يشيّكوا الموبايل", 40, revealed = true),
+                            Answer("", 30),
+                            Answer("", 20),
+                            Answer("", 10)
+                        ),
+                        "عام"
+                    )
+                ),
                 players = listOf(
                     Player("p1", "سامر", TeamId.TEAM_1),
                     Player("p2", "ليلى", TeamId.TEAM_2)
                 ),
                 teams = mapOf(
-                    TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "النجوم", score = 120),
-                    TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "الصقور", score = 80)
+                    TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الأحمر", score = 120),
+                    TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "الأزرق", score = 80)
                 ),
                 phase = RoundPhase.PLAY,
                 controllingTeam = TeamId.TEAM_1,

@@ -44,18 +44,35 @@ class GameModelsTest {
     }
 
     @Test
-    fun `masked state hides the question and the unrevealed answers from players`() {
+    fun `the question is hidden from players while the buzzer is open`() {
+        val masked = freshState().maskedForPlayers()
+
+        assertEquals("", masked.currentQuestion!!.text)
+    }
+
+    @Test
+    fun `the question appears once somebody buzzes, the hidden answers never do`() {
         val engine = GameEngine(freshState())
         engine.buzzPodium(TeamId.TEAM_1)
         val masked = engine.correct(0).maskedForPlayers()
         val question = masked.currentQuestion!!
 
-        // اللاعب ما بيشوف السؤال أصلاً — بيسمعه من المضيف.
-        assertEquals("", question.text)
+        assertEquals("سؤال q1", question.text)
         assertEquals("الأول", question.answers[0].text)
         assertTrue(question.answers.drop(1).all { it.text.isEmpty() })
         // النقاط بتضل ظاهرة — اللوح بيعرض قيمة كل خانة مخفية.
         assertEquals(30, question.answers[1].points)
+    }
+
+    @Test
+    fun `the next round hides its question again`() {
+        val engine = GameEngine(freshState())
+        engine.giveControlTo(TeamId.TEAM_1)
+        repeat(3) { engine.wrong() }
+        engine.wrong()
+        val next = engine.apply(GameEvent.NextRound).maskedForPlayers()
+
+        assertEquals("", next.currentQuestion!!.text)
     }
 
     @Test
