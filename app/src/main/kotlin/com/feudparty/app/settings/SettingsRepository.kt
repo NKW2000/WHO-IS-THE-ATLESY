@@ -26,10 +26,7 @@ class SettingsRepository(context: Context) {
             ?: GameSettings.DEFAULT_MULTIPLIERS,
         strikesToSteal = prefs.getInt(KEY_STRIKES, GameSettings.DEFAULT_STRIKES),
         bankName = prefs.getString(KEY_BANK_NAME, null)?.takeIf { bankFile.exists() },
-        bankQuestionCount = prefs.getInt(KEY_BANK_COUNT, 0),
-        lanTesting = prefs.getBoolean(KEY_LAN, false),
-        lanHost = prefs.getString(KEY_LAN_HOST, GameSettings.DEFAULT_LAN_HOST)
-            ?: GameSettings.DEFAULT_LAN_HOST
+        bankQuestionCount = prefs.getInt(KEY_BANK_COUNT, 0)
     ).clamped()
 
     fun save(settings: GameSettings) {
@@ -38,8 +35,6 @@ class SettingsRepository(context: Context) {
             .putInt(KEY_ROUNDS, safe.rounds)
             .putString(KEY_MULTIPLIERS, safe.multipliers.joinToString(","))
             .putInt(KEY_STRIKES, safe.strikesToSteal)
-            .putBoolean(KEY_LAN, safe.lanTesting)
-            .putString(KEY_LAN_HOST, safe.lanHost)
             .apply()
     }
 
@@ -89,7 +84,5 @@ class SettingsRepository(context: Context) {
         const val KEY_STRIKES = "strikes"
         const val KEY_BANK_NAME = "bank_name"
         const val KEY_BANK_COUNT = "bank_count"
-        const val KEY_LAN = "lan_testing"
-        const val KEY_LAN_HOST = "lan_host"
     }
 }

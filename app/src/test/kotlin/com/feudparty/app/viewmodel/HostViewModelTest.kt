@@ -56,6 +56,16 @@ class HostViewModelTest {
         }
     }
 
+    /** القرار بيجي من جهاز اللاعب اللي كسب المواجهة. */
+    private fun choose(endpointId: String, play: Boolean) {
+        connections.emit(
+            ConnectionEvent.ClientMessageReceived(
+                endpointId,
+                ClientMessage.Choose(endpointId, play)
+            )
+        )
+    }
+
     private fun buzz(endpointId: String, atMillis: Long = 1L) {
         connections.emit(
             ConnectionEvent.ClientMessageReceived(
@@ -136,7 +146,8 @@ class HostViewModelTest {
             testScheduler.advanceUntilIdle()
 
             vm.judgeCorrect(0) // الجواب رقم ١ بيكسب المواجهة
-            vm.chooseControl(play = true)
+            choose("ep-a", play = true)
+            testScheduler.advanceUntilIdle()
 
             val state = vm.uiState.value
             assertEquals(RoundPhase.PLAY, state.phase)
@@ -189,7 +200,8 @@ class HostViewModelTest {
         buzz("ep-a")
         testScheduler.advanceUntilIdle()
         vm.judgeCorrect(0)
-        vm.chooseControl(play = true)
+        choose("ep-a", play = true)
+        testScheduler.advanceUntilIdle()
         repeat(3) { vm.judgeWrong() }
 
         val state = vm.uiState.value
@@ -263,7 +275,8 @@ class HostViewModelTest {
         buzz("ep-a")
         testScheduler.advanceUntilIdle()
         vm.judgeCorrect(0)
-        vm.chooseControl(play = true)
+        choose("ep-a", play = true)
+        testScheduler.advanceUntilIdle()
         vm.judgeCorrect(1) // انكشف اللوح كله
         vm.nextRound()
 

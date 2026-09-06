@@ -62,8 +62,7 @@ fun HostGameBoardScreen(
     state: GameState,
     onCorrect: (Int) -> Unit,
     onWrong: () -> Unit,
-    onNextRound: () -> Unit,
-    onChoose: (Boolean) -> Unit = {}
+    onNextRound: () -> Unit
 ) {
     val canJudge = state.canJudge()
     val accent = accentFor(state.activeTeam)
@@ -116,26 +115,6 @@ fun HostGameBoardScreen(
                                 .weight(1f)
                                 .verticalScroll(rememberScrollState())
                         )
-
-                        if (state.phase == RoundPhase.PLAY_OR_PASS) {
-                            // احتياط: إذا جهاز اللاعب مش معه، المضيف بيقرر عنه.
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                SecondaryButton(
-                                    text = "نلعب",
-                                    onClick = { onChoose(true) },
-                                    accent = FeudColors.lime,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                SecondaryButton(
-                                    text = "نمرّر",
-                                    onClick = { onChoose(false) },
-                                    accent = FeudColors.pink,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            Spacer(Modifier.height(8.dp))
-                        }
 
                         Spacer(Modifier.height(8.dp))
                         SecondaryButton(

@@ -83,9 +83,6 @@ class HostViewModel(
 
     fun nextRound() = applyAndBroadcast(GameEvent.NextRound)
 
-    /** المضيف بيقدر يختار بدل اللاعب إذا جهازه مش معه. */
-    fun chooseControl(play: Boolean) = applyAndBroadcast(GameEvent.ChooseControl(play))
-
     fun endGame() {
         applyAndBroadcast(GameEvent.EndGame)
     }

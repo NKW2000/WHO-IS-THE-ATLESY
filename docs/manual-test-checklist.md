@@ -88,39 +88,3 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk   # على كل جها�
 
 > أي مشكلة بتطلع بهاي القائمة تتسجّل كـ issue قبل النشر.
 
-## اختبار على محاكيات (بدون ٣ تلفونات)
-
-Nearby ما بيشتغل عالمحاكي — بيحتاج بلوتوث وواي فاي حقيقيين. لهيك في
-**وضع الاختبار (شبكة)** بالإعدادات: بيستبدل Nearby بوصل TCP عادي.
-
-1. افتح المحاكيات كلها بـ `-read-only` (لازم كلهم، حتى الأول):
-   ```bash
-   emulator -avd <AVD> -port 5554 -read-only
-   emulator -avd <AVD> -port 5556 -read-only
-   emulator -avd <AVD> -port 5558 -read-only
-   ```
-2. ركّب التطبيق على الكل: `adb -s emulator-5554 install -r app-release.apk`
-3. اربط المنافذ — المضيف `forward` وكل لاعب `reverse`:
-   ```bash
-   adb -s emulator-5554 forward tcp:5599 tcp:5599
-   adb -s emulator-5556 reverse tcp:5599 tcp:5599
-   adb -s emulator-5558 reverse tcp:5599 tcp:5599
-   ```
-4. على **كل** جهاز: الإعدادات ← وضع الاختبار (شبكة) ← فعّله.
-5. جهاز المضيف: استضافة لعبة ← بدء البث. باقي الأجهزة: انضمام كلاعب.
-
-إذا ما ظهر ولا لاعب، تأكد إنه المضيف سامع:
-
-```bash
-adb -s emulator-5554 logcat -d -s FeudLan
-```
-
-لازم تشوف `listening on port 5599`. وإذا بدك تتأكد من ربط المنافذ نفسها،
-جرّب توصل من الكمبيوتر:
-
-```bash
-python -c "import socket;socket.create_connection(('127.0.0.1',5599),3);print('ok')"
-```
-
-> نفس الوضع بيشتغل على تلفونات حقيقية على نفس شبكة الواي فاي: حط عنوان
-> المضيف بدل 127.0.0.1 (لسا بدها حقل بالواجهة).
