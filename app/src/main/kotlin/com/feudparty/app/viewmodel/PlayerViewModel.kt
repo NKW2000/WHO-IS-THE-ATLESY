@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.feudparty.core.game.GameState
 import com.feudparty.core.game.PlayerMark
+import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.network.ClientMessage
 import com.feudparty.core.network.ConnectionEvent
@@ -76,6 +77,14 @@ class PlayerViewModel(
         val id = _playerId.value ?: return
         if (!canBuzz()) return
         connections.sendToEndpoint(endpointId, ClientMessage.Buzz(id, clock()))
+    }
+
+    /** قرار «نلعب» أو «نمرّر» — بيوصل بس من اللاعب اللي كسب المواجهة. */
+    fun choose(play: Boolean) {
+        val endpointId = hostEndpointId ?: return
+        val id = _playerId.value ?: return
+        if (_gameState.value?.phase != RoundPhase.PLAY_OR_PASS) return
+        connections.sendToEndpoint(endpointId, ClientMessage.Choose(id, play))
     }
 
     /** الزر بيشتغل بس لما المضيف يفتحه لهاد اللاعب بالذات. */

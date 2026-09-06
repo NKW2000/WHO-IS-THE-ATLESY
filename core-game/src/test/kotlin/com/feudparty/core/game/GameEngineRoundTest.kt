@@ -79,7 +79,8 @@ class GameEngineRoundTest {
         engine.giveControlTo(TeamId.TEAM_1)
         repeat(3) { engine.wrong() }
         engine.wrong() // نهاية الجولة الأولى
-        engine.apply(GameEvent.NextRound)
+        engine.apply(GameEvent.NextRound) // شاشة النتائج
+        engine.apply(GameEvent.NextRound) // الجولة الجاية
 
         engine.giveControlTo(TeamId.TEAM_2)
         repeat(3) { engine.wrong() }
@@ -95,6 +96,8 @@ class GameEngineRoundTest {
         val engine = GameEngine(freshState())
         engine.giveControlTo(TeamId.TEAM_1)
         engine.wrong()
+        repeat(3) { engine.wrong() }
+        engine.apply(GameEvent.NextRound)
         val result = engine.apply(GameEvent.NextRound)
 
         assertEquals(1, result.currentQuestionIndex)
@@ -111,6 +114,7 @@ class GameEngineRoundTest {
     fun `next round after the last question ends the game`() {
         val engine = GameEngine(freshState())
         engine.apply(GameEvent.NextRound)
+        engine.apply(GameEvent.NextRound)
         val result = engine.apply(GameEvent.NextRound)
 
         assertTrue(result.gameOver)
@@ -123,9 +127,28 @@ class GameEngineRoundTest {
         val single = Question("solo", "سؤال", listOf(Answer("وحيد", 55)), "عام")
         val engine = GameEngine(freshState(questions = listOf(single), multipliers = listOf(1)))
         engine.buzzPodium(TeamId.TEAM_1)
-        val result = engine.correct(0)
+        engine.correct(0)
+        val result = engine.choosePlay()
 
         assertEquals(RoundPhase.ROUND_END, result.phase)
         assertEquals(55, result.score(TeamId.TEAM_1))
+    }
+
+    @Test
+    fun `next round shows the scoreboard before the next question`() {
+        val engine = GameEngine(freshState())
+        engine.giveControlTo(TeamId.TEAM_1)
+        repeat(3) { engine.wrong() }
+        engine.wrong() // انتهت الجولة
+
+        val scoreboard = engine.apply(GameEvent.NextRound)
+        assertEquals(RoundPhase.SCOREBOARD, scoreboard.phase)
+        // لسا نفس السؤال — بس بتظهر النتيجة.
+        assertEquals(0, scoreboard.currentQuestionIndex)
+        assertEquals(40, scoreboard.score(TeamId.TEAM_1))
+
+        val next = engine.apply(GameEvent.NextRound)
+        assertEquals(RoundPhase.FACE_OFF, next.phase)
+        assertEquals(1, next.currentQuestionIndex)
     }
 }

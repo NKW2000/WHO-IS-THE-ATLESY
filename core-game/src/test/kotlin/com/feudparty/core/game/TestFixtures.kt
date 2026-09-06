@@ -42,10 +42,15 @@ internal fun GameEngine.correct(index: Int) = apply(GameEvent.JudgeCorrect(index
 
 internal fun GameEngine.wrong() = apply(GameEvent.JudgeWrong)
 
+internal fun GameEngine.choosePlay() = apply(GameEvent.ChooseControl(play = true))
+
+internal fun GameEngine.choosePass() = apply(GameEvent.ChooseControl(play = false))
+
 /** بتوصل اللعبة لمرحلة اللعب مع [team] ماسك اللوح وجواب رقم ١ مكشوف. */
 internal fun GameEngine.giveControlTo(team: TeamId): GameState {
     buzzPodium(team)
-    return correct(0)
+    correct(0)
+    return choosePlay()
 }
 
 internal fun GameState.score(team: TeamId): Int = teams.getValue(team).score

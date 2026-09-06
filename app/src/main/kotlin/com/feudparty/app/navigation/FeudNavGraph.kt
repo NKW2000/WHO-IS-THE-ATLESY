@@ -37,6 +37,7 @@ import com.feudparty.app.ui.HostSettingsScreen
 import com.feudparty.app.ui.HostSetupScreen
 import com.feudparty.app.ui.PlayerJoinScreen
 import com.feudparty.app.ui.PlayerScreen
+import com.feudparty.app.ui.ScoreboardScreen
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.viewmodel.HostViewModel
 import com.feudparty.app.viewmodel.PlayerViewModel
@@ -151,12 +152,17 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                     }
                 }
 
-                HostGameBoardScreen(
-                    state = state,
-                    onCorrect = vm::judgeCorrect,
-                    onWrong = vm::judgeWrong,
-                    onNextRound = vm::nextRound
-                )
+                if (state.phase == RoundPhase.SCOREBOARD) {
+                    ScoreboardScreen(state = state, onContinue = vm::nextRound)
+                } else {
+                    HostGameBoardScreen(
+                        state = state,
+                        onCorrect = vm::judgeCorrect,
+                        onWrong = vm::judgeWrong,
+                        onNextRound = vm::nextRound,
+                        onChoose = vm::chooseControl
+                    )
+                }
             }
 
             composable(Routes.HOST_RESULT) {
@@ -204,13 +210,16 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                 PlayerMarkCues(mark)
                 when {
                     live != null && live.gameOver -> GameOverScreen(state = live)
+                    live != null && live.phase == RoundPhase.SCOREBOARD ->
+                        ScoreboardScreen(state = live)
                     else -> PlayerScreen(
                         state = live,
                         playerId = playerId,
                         teamId = teamId,
                         mark = mark,
                         status = status,
-                        onBuzz = vm::onBuzzTapped
+                        onBuzz = vm::onBuzzTapped,
+                        onChoose = vm::choose
                     )
                 }
             }

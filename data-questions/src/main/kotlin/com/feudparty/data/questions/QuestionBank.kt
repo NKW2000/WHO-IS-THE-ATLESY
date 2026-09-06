@@ -35,7 +35,7 @@ object QuestionBank {
 
     /** أقل وأكثر عدد أجوبة مسموح فيه بالسؤال الواحد. */
     const val MIN_ANSWERS = 2
-    const val MAX_ANSWERS = 8
+    const val MAX_ANSWERS = 6
 
     private val bundled: List<Question> by lazy {
         when (val result = parse(readResource())) {

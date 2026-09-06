@@ -5,7 +5,7 @@ import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.game.buzzedTeam
 
-private fun GameState.nameOf(teamId: TeamId?): String =
+internal fun GameState.nameOf(teamId: TeamId?): String =
     teamId?.let { teams[it]?.name } ?: "الفريق"
 
 private fun GameState.playerName(playerId: String?): String =
@@ -28,8 +28,15 @@ fun hostStatusText(state: GameState): String = when (state.phase) {
         "دور $player بالمواجهة — لازم جواب أعلى"
     }
 
+    RoundPhase.PLAY_OR_PASS -> {
+        val team = state.nameOf(state.faceOffWinner)
+        "$team كسب المواجهة — بيختار يلعب أو يمرّر"
+    }
+
+    RoundPhase.SCOREBOARD -> "النتيجة — اضغط لتبلّش الجولة الجاية"
+
     RoundPhase.PLAY ->
-        "دور ${state.playerName(state.turnPlayerId)} — ${state.strikes}/3 أخطاء"
+        "دور ${state.playerName(state.turnPlayerId)} — ${state.strikes.ar()}/${state.strikesToSteal.ar()} أخطاء"
 
     RoundPhase.STEAL ->
         "سرقة: ${state.playerName(state.turnPlayerId)} عنده جواب واحد"

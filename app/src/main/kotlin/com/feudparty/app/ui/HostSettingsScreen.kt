@@ -174,38 +174,12 @@ private fun BankSection(
 
         Spacer(Modifier.height(12.dp))
         Text(
-            "شكل الملف: قائمة JSON، كل سؤال إله نص وأجوبة، وكل جواب إله نقاط. " +
-                "الأجوبة بتنرتب لحالها من الأعلى نقاط للأقل، وأعلى جواب هو اللي " +
-                "بياخد اللوح بالمواجهة.",
+            "بتقدر تستورد أسئلتك من ملف بدل الأسئلة الجاهزة. كل سؤال بدّه " +
+                "نص وأجوبة، وكل جواب إله نقاط — والأعلى نقاط بياخد اللوح " +
+                "بالمواجهة.",
             color = FeudColors.textMuted,
             style = MaterialTheme.typography.bodyMedium
         )
-        Spacer(Modifier.height(8.dp))
-        CartoonSurface(
-            modifier = Modifier.fillMaxWidth(),
-            color = FeudColors.ink.copy(alpha = 0.55f),
-            borderWidth = 3.dp,
-            corner = 12.dp,
-            shadow = 4.dp
-        ) {
-            Text(
-                """
-                [
-                  {
-                    "text": "اذكر شي بيعمله الناس أول ما يصحوا",
-                    "category": "عام",
-                    "answers": [
-                      {"text": "يشيّكوا الموبايل", "points": 40},
-                      {"text": "يشربوا قهوة", "points": 30}
-                    ]
-                  }
-                ]
-                """.trimIndent(),
-                color = FeudColors.textMuted,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(12.dp)
-            )
-        }
     }
 }
 

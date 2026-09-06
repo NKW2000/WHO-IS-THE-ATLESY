@@ -109,6 +109,7 @@ class GameEnginePlayersTest {
         engine.giveControlTo(TeamId.TEAM_1)
         repeat(3) { engine.wrong() }
         engine.wrong() // انتهت الجولة
+        engine.apply(GameEvent.NextRound) // شاشة النتائج
         val next = engine.apply(GameEvent.NextRound)
 
         assertEquals("a2", next.podiumPlayer(TeamId.TEAM_1)?.id)

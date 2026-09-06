@@ -58,13 +58,23 @@ enum class RoundPhase {
     /** لاعب المنصة من الفريق التاني بياخد فرصته. */
     FACE_OFF_SECOND,
 
-    /** الفريق اللي فاز بالمواجهة بيلعب اللوح، لاعب ورا لاعب بالدور. */
+    /**
+     * الفريق اللي فاز بالمواجهة بيختار: يلعب اللوح أو يمرّرو للفريق
+     * التاني. الاختيار بيصير من جهاز لاعب المنصة نفسه.
+     */
+    PLAY_OR_PASS,
+
+    /** الفريق اللي معه اللوح بيلعب، لاعب ورا لاعب بالدور. */
     PLAY,
 
     /** محاولة وحدة للفريق المقابل يسرق فيها نقاط الجولة. */
     STEAL,
 
     ROUND_END,
+
+    /** نتيجة الفريقين بتظهر عند الكل قبل ما تبلّش الجولة الجاية. */
+    SCOREBOARD,
+
     GAME_OVER
 }
 
@@ -97,6 +107,8 @@ data class GameState(
     val faceOffTeam: TeamId? = null,
     val faceOffLeader: TeamId? = null,
     val faceOffLeaderPoints: Int = 0,
+    /** الفريق اللي كسب المواجهة وبيختار يلعب أو يمرّر. */
+    val faceOffWinner: TeamId? = null,
     /** اللاعب اللي ضاغط حالياً (أزرق عند الكل). */
     val buzzedPlayerId: String? = null,
     /** اللاعب اللي دوره يجاوب بمرحلة اللعب أو السرقة. */
@@ -131,6 +143,7 @@ data class GameState(
     val activeTeam: TeamId?
         get() = when (phase) {
             RoundPhase.FACE_OFF, RoundPhase.FACE_OFF_SECOND -> faceOffTeam
+            RoundPhase.PLAY_OR_PASS -> faceOffWinner
             RoundPhase.PLAY -> controllingTeam
             RoundPhase.STEAL -> stealingTeam
             else -> null
@@ -170,6 +183,7 @@ data class GameState(
         }
 
         RoundPhase.FACE_OFF_SECOND -> setOfNotNull(faceOffTeam?.let { podiumPlayer(it)?.id })
+        RoundPhase.PLAY_OR_PASS -> setOfNotNull(faceOffWinner?.let { podiumPlayer(it)?.id })
         RoundPhase.PLAY, RoundPhase.STEAL -> setOfNotNull(turnPlayerId)
         else -> emptySet()
     }

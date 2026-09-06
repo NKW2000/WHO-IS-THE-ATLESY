@@ -25,6 +25,7 @@ class GameEngine(initialState: GameState) {
             is GameEvent.Buzz -> handleBuzz(event)
             is GameEvent.JudgeCorrect -> handleCorrect(event.answerIndex)
             GameEvent.JudgeWrong -> handleWrong()
+            is GameEvent.ChooseControl -> handleChoice(event.play)
             GameEvent.NextRound -> handleNextRound()
             is GameEvent.PlayerJoined -> handlePlayerJoined(event)
             is GameEvent.PlayerLeft -> handlePlayerLeft(event)
@@ -79,6 +80,13 @@ class GameEngine(initialState: GameState) {
         else -> null
     }
 
+    /** بعد المواجهة: الفائز بيلعب اللوح أو بيمرّرو للفريق التاني. */
+    private fun handleChoice(play: Boolean): GameState {
+        if (state.phase != RoundPhase.PLAY_OR_PASS) return state
+        val winner = state.faceOffWinner ?: return state
+        return state.startPlay(if (play) winner else winner.other())
+    }
+
     private fun handleCorrect(answerIndex: Int): GameState {
         val question = state.currentQuestion ?: return state
         val answer = question.answers.getOrNull(answerIndex) ?: return state
@@ -102,7 +110,7 @@ class GameEngine(initialState: GameState) {
         if (first) {
             // جواب رقم ١ بياخد اللوح على طول، غيره بيفتح فرصة للفريق التاني.
             return if (index == 0) {
-                revealed.startPlay(team)
+                revealed.offerChoice(team)
             } else {
                 revealed.copy(
                     phase = RoundPhase.FACE_OFF_SECOND,
@@ -121,7 +129,7 @@ class GameEngine(initialState: GameState) {
             answer.points > revealed.faceOffLeaderPoints -> team
             else -> leader
         }
-        return revealed.startPlay(winner)
+        return revealed.offerChoice(winner)
     }
 
     private fun playCorrect(index: Int, answer: Answer): GameState {
@@ -161,7 +169,7 @@ class GameEngine(initialState: GameState) {
                 val marked = state.markWrong(answering)
                 val leader = marked.faceOffLeader
                 if (leader != null) {
-                    marked.startPlay(leader)
+                    marked.offerChoice(leader)
                 } else {
                     // الاتنين غلطوا — منرجّع الزر مفتوح لنفس السؤال.
                     marked.copy(
@@ -192,6 +200,11 @@ class GameEngine(initialState: GameState) {
     // ---------------------------------------------------------- انتقال الجولات
 
     private fun handleNextRound(): GameState {
+        // بين الجولات بتظهر النتيجة عند الكل، وبعدين بتبلّش الجولة الجاية.
+        if (state.phase == RoundPhase.ROUND_END) {
+            return state.copy(phase = RoundPhase.SCOREBOARD, buzzState = BuzzState.CLOSED)
+        }
+
         val nextIndex = state.currentQuestionIndex + 1
         if (nextIndex >= state.questions.size) {
             return state.copy(
@@ -218,6 +231,7 @@ class GameEngine(initialState: GameState) {
             wrongPlayers = emptySet(),
             correctPlayers = emptySet(),
             roundWinner = null,
+            faceOffWinner = null,
             podiumIndex = state.rotatePodium()
         )
     }
@@ -284,6 +298,16 @@ private fun GameState.markCorrect(playerId: String?): GameState =
 private fun GameState.markWrong(playerId: String?): GameState =
     if (playerId == null) this
     else copy(wrongPlayers = wrongPlayers + playerId, correctPlayers = correctPlayers - playerId)
+
+/** الفائز بالمواجهة بيستنى قرار: يلعب أو يمرّر. */
+private fun GameState.offerChoice(winner: TeamId): GameState = copy(
+    phase = RoundPhase.PLAY_OR_PASS,
+    faceOffWinner = winner,
+    faceOffTeam = null,
+    buzzState = BuzzState.CLOSED,
+    buzzedPlayerId = null,
+    turnPlayerId = podiumPlayer(winner)?.id
+)
 
 /** بداية مرحلة اللعب: الدور بينتقل للاعب اللي بعد لاعب المنصة. */
 private fun GameState.startPlay(team: TeamId): GameState {

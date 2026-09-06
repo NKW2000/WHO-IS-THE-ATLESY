@@ -135,7 +135,8 @@ class HostViewModelTest {
             buzz("ep-a")
             testScheduler.advanceUntilIdle()
 
-            vm.judgeCorrect(0) // الجواب رقم ١ بياخد اللوح
+            vm.judgeCorrect(0) // الجواب رقم ١ بيكسب المواجهة
+            vm.chooseControl(play = true)
 
             val state = vm.uiState.value
             assertEquals(RoundPhase.PLAY, state.phase)
@@ -188,6 +189,7 @@ class HostViewModelTest {
         buzz("ep-a")
         testScheduler.advanceUntilIdle()
         vm.judgeCorrect(0)
+        vm.chooseControl(play = true)
         repeat(3) { vm.judgeWrong() }
 
         val state = vm.uiState.value
@@ -226,4 +228,47 @@ class HostViewModelTest {
         assertNull(vm.lastError.value)
     }
 
+
+    @Test
+    fun `only the winning podium player's choice is accepted`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        join("ep-a", "ep-b")
+        buzz("ep-a")
+        testScheduler.advanceUntilIdle()
+        vm.judgeCorrect(0)
+
+        // ep-b مش صاحب القرار — بينتجاهل.
+        connections.emit(
+            ConnectionEvent.ClientMessageReceived("ep-b", ClientMessage.Choose("ep-b", false))
+        )
+        testScheduler.advanceUntilIdle()
+        assertEquals(RoundPhase.PLAY_OR_PASS, vm.uiState.value.phase)
+
+        connections.emit(
+            ConnectionEvent.ClientMessageReceived("ep-a", ClientMessage.Choose("ep-a", false))
+        )
+        testScheduler.advanceUntilIdle()
+
+        // مرّرها، فاللوح راح للفريق التاني.
+        assertEquals(RoundPhase.PLAY, vm.uiState.value.phase)
+        assertEquals(TeamId.TEAM_2, vm.uiState.value.controllingTeam)
+    }
+
+    @Test
+    fun `next round shows everyone the scoreboard first`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        join("ep-a", "ep-b")
+        buzz("ep-a")
+        testScheduler.advanceUntilIdle()
+        vm.judgeCorrect(0)
+        vm.chooseControl(play = true)
+        vm.judgeCorrect(1) // انكشف اللوح كله
+        vm.nextRound()
+
+        val sent = (connections.broadcasts.last() as HostMessage.StateUpdate).state
+        assertEquals(RoundPhase.SCOREBOARD, sent.phase)
+        assertEquals(RoundPhase.SCOREBOARD, vm.uiState.value.phase)
+    }
 }

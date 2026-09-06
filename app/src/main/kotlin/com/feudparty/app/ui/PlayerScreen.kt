@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.AnswerBoardColumns
 import com.feudparty.app.ui.components.MiniScore
 import com.feudparty.app.ui.components.Pill
+import com.feudparty.app.ui.components.PrimaryButton
+import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StrikeRow
 import com.feudparty.app.ui.components.color
 import com.feudparty.app.ui.components.inkColor
@@ -53,6 +55,7 @@ import com.feudparty.core.game.Question
 import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.game.TeamState
+import com.feudparty.core.game.other
 
 /**
  * جهاز اللاعب. شاشتين بس:
@@ -71,9 +74,21 @@ fun PlayerScreen(
     teamId: TeamId?,
     mark: PlayerMark,
     status: ConnectionStatus,
-    onBuzz: () -> Unit
+    onBuzz: () -> Unit,
+    onChoose: (Boolean) -> Unit = {}
 ) {
     val connected = status == ConnectionStatus.CONNECTED
+
+    // الفائز بالمواجهة بيقرر من جهازه: نلعب أو نمرّر.
+    if (connected &&
+        state?.phase == RoundPhase.PLAY_OR_PASS &&
+        playerId != null &&
+        playerId in state.armedPlayerIds()
+    ) {
+        PlayOrPassScreen(state = state, teamId = teamId, onChoose = onChoose)
+        return
+    }
+
     val faceOffBuzzer = connected &&
         mark == PlayerMark.ARMED &&
         state?.phase == RoundPhase.FACE_OFF
@@ -89,6 +104,54 @@ fun PlayerScreen(
             status = status,
             onBuzz = onBuzz
         )
+    }
+}
+
+/** قرار الفائز بالمواجهة — زرين كبار، بدون أي إشي تاني بالشاشة. */
+@Composable
+private fun PlayOrPassScreen(
+    state: GameState,
+    teamId: TeamId?,
+    onChoose: (Boolean) -> Unit
+) {
+    val other = state.teams[teamId?.other()]?.name ?: "الفريق التاني"
+
+    Box(modifier = Modifier.fillMaxSize().background(FeudColors.stage).padding(20.dp)) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                "كسبتوا المواجهة!",
+                color = FeudColors.gold,
+                style = MaterialTheme.typography.displaySmall,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "بدكم تلعبوا اللوح ولا تمرّروه لـ$other؟",
+                color = FeudColors.text,
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(22.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                PrimaryButton(
+                    text = "نلعب",
+                    onClick = { onChoose(true) },
+                    color = FeudColors.lime,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(16.dp))
+                SecondaryButton(
+                    text = "نمرّرها",
+                    onClick = { onChoose(false) },
+                    accent = FeudColors.pink,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
     }
 }
 
@@ -305,6 +368,9 @@ private fun statusLine(
         PlayerMark.CORRECT -> "صح ✔ — الدور بينتقل لزميلك"
         PlayerMark.WRONG -> "غلط ✘ — استنى لحد ما يخلّص زمايلك"
         PlayerMark.IDLE -> when {
+            state.phase == RoundPhase.PLAY_OR_PASS ->
+                "${state.teams[state.faceOffWinner]?.name ?: ""} عم يقرر يلعب أو يمرّر"
+
             state.phase == RoundPhase.ROUND_END && state.roundWinner == teamId -> "الجولة إلنا!"
             state.phase == RoundPhase.ROUND_END -> "انتهت الجولة"
             state.turnPlayerId != null ->

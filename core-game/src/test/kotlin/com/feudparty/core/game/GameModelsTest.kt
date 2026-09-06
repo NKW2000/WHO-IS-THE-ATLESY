@@ -70,6 +70,7 @@ class GameModelsTest {
         engine.giveControlTo(TeamId.TEAM_1)
         repeat(3) { engine.wrong() }
         engine.wrong()
+        engine.apply(GameEvent.NextRound) // شاشة النتائج
         val next = engine.apply(GameEvent.NextRound).maskedForPlayers()
 
         assertEquals("", next.currentQuestion!!.text)

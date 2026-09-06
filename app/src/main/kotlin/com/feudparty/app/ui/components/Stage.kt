@@ -45,7 +45,6 @@ import com.feudparty.app.ui.theme.FeudColors
 fun StageBackground(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(20.dp),
-    showStripes: Boolean = true,
     content: @Composable BoxScope.() -> Unit
 ) {
     Box(
@@ -55,7 +54,6 @@ fun StageBackground(
             .dotGrid()
     ) {
         Box(modifier = Modifier.fillMaxSize().padding(contentPadding), content = content)
-        if (showStripes) StripeBar(modifier = Modifier.align(Alignment.TopCenter))
     }
 }
 
@@ -75,44 +73,6 @@ private fun Modifier.dotGrid(
         }
         y += step
     }
-}
-
-/** شريط مخطط بيزحف — ذهبي/وردي/فيروزي. */
-@Composable
-fun StripeBar(modifier: Modifier = Modifier, height: Dp = 12.dp) {
-    val transition = rememberInfiniteTransition(label = "stripes")
-    val shift by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(4_500, easing = LinearEasing), RepeatMode.Restart),
-        label = "stripeShift"
-    )
-    val colors = FeudBrushes.stripes
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height)
-            .drawBehind {
-                val band = 18.dp.toPx()
-                val period = band * colors.size
-                var x = -period + shift * period
-                var index = 0
-                while (x < size.width) {
-                    drawRect(
-                        color = colors[index % colors.size],
-                        topLeft = Offset(x, 0f),
-                        size = Size(band, size.height)
-                    )
-                    x += band
-                    index++
-                }
-                drawRect(
-                    color = FeudColors.ink,
-                    topLeft = Offset(0f, size.height - 3.dp.toPx()),
-                    size = Size(size.width, 3.dp.toPx())
-                )
-            }
-    )
 }
 
 /**

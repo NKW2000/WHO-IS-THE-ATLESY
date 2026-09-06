@@ -83,6 +83,9 @@ class HostViewModel(
 
     fun nextRound() = applyAndBroadcast(GameEvent.NextRound)
 
+    /** المضيف بيقدر يختار بدل اللاعب إذا جهازه مش معه. */
+    fun chooseControl(play: Boolean) = applyAndBroadcast(GameEvent.ChooseControl(play))
+
     fun endGame() {
         applyAndBroadcast(GameEvent.EndGame)
     }
@@ -98,6 +101,12 @@ class HostViewModel(
                 // منعتمد على معرّف الجهاز، مش على اللي الجهاز بيدّعيه.
                 if (endpointId !in knownEndpoints) return
                 applyAndBroadcast(GameEvent.Buzz(endpointId, message.atMillis))
+            }
+
+            is ClientMessage.Choose -> {
+                // بس اللاعب اللي المحرك فاتح له القرار بينسمع منه.
+                if (endpointId !in engine.state.armedPlayerIds()) return
+                applyAndBroadcast(GameEvent.ChooseControl(message.play))
             }
         }
     }

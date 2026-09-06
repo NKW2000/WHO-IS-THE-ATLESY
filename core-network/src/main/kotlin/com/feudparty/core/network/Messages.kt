@@ -18,6 +18,11 @@ sealed class ClientMessage {
     @Serializable
     @SerialName("buzz")
     data class Buzz(val playerId: String, val atMillis: Long) : ClientMessage()
+
+    /** قرار الفائز بالمواجهة: يلعب اللوح أو يمرّرو. */
+    @Serializable
+    @SerialName("choice")
+    data class Choose(val playerId: String, val play: Boolean) : ClientMessage()
 }
 
 /** رسائل من المضيف ← لأجهزة اللاعبين. المضيف هو مصدر الحقيقة الوحيد. */

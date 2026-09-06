@@ -10,6 +10,12 @@ sealed class GameEvent {
     /** جواب غلط — بالمواجهة بينقل الدور، وباللعب بيزيد خطأ (X). */
     object JudgeWrong : GameEvent()
 
+    /**
+     * قرار الفريق اللي كسب المواجهة: يلعب اللوح ([play] = true) أو
+     * يمرّرو للفريق التاني.
+     */
+    data class ChooseControl(val play: Boolean) : GameEvent()
+
     /** الانتقال للجولة التالية (أو للجولة السريعة أو نهاية اللعبة). */
     object NextRound : GameEvent()
 

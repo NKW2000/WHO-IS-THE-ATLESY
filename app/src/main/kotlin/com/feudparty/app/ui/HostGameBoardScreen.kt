@@ -38,7 +38,6 @@ import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.components.StatusBanner
 import com.feudparty.app.ui.components.StrikeFlash
-import com.feudparty.app.ui.components.StrikeRow
 import com.feudparty.app.ui.components.accentFor
 import com.feudparty.app.ui.components.color
 import com.feudparty.app.ui.theme.FeudColors
@@ -63,7 +62,8 @@ fun HostGameBoardScreen(
     state: GameState,
     onCorrect: (Int) -> Unit,
     onWrong: () -> Unit,
-    onNextRound: () -> Unit
+    onNextRound: () -> Unit,
+    onChoose: (Boolean) -> Unit = {}
 ) {
     val canJudge = state.canJudge()
     val accent = accentFor(state.activeTeam)
@@ -108,15 +108,6 @@ fun HostGameBoardScreen(
                         StatusBanner(text = hostStatusText(state), accent = accent)
                         Spacer(Modifier.height(10.dp))
 
-                        if (state.phase == RoundPhase.PLAY || state.phase == RoundPhase.STEAL) {
-                            StrikeRow(
-                                strikes = state.strikes,
-                                size = 40.dp,
-                                modifier = Modifier.align(Alignment.CenterHorizontally)
-                            )
-                            Spacer(Modifier.height(10.dp))
-                        }
-
                         AwardBanner(state)
 
                         TurnRail(
@@ -125,6 +116,26 @@ fun HostGameBoardScreen(
                                 .weight(1f)
                                 .verticalScroll(rememberScrollState())
                         )
+
+                        if (state.phase == RoundPhase.PLAY_OR_PASS) {
+                            // احتياط: إذا جهاز اللاعب مش معه، المضيف بيقرر عنه.
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                SecondaryButton(
+                                    text = "نلعب",
+                                    onClick = { onChoose(true) },
+                                    accent = FeudColors.lime,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                SecondaryButton(
+                                    text = "نمرّر",
+                                    onClick = { onChoose(false) },
+                                    accent = FeudColors.pink,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                        }
 
                         Spacer(Modifier.height(8.dp))
                         SecondaryButton(

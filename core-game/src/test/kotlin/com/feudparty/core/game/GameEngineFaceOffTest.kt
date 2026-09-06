@@ -23,8 +23,8 @@ class GameEngineFaceOffTest {
         engine.buzzPodium(TeamId.TEAM_1)
         val result = engine.correct(0)
 
-        assertEquals(RoundPhase.PLAY, result.phase)
-        assertEquals(TeamId.TEAM_1, result.controllingTeam)
+        assertEquals(RoundPhase.PLAY_OR_PASS, result.phase)
+        assertEquals(TeamId.TEAM_1, result.faceOffWinner)
         assertEquals(40, result.pot)
         assertEquals(0, result.score(TeamId.TEAM_1)) // النقاط بتنحسب بنهاية الجولة
     }
@@ -49,8 +49,8 @@ class GameEngineFaceOffTest {
         engine.correct(2) // فريق ١ = ٢٠
         val result = engine.correct(1) // فريق ٢ = ٣٠
 
-        assertEquals(RoundPhase.PLAY, result.phase)
-        assertEquals(TeamId.TEAM_2, result.controllingTeam)
+        assertEquals(RoundPhase.PLAY_OR_PASS, result.phase)
+        assertEquals(TeamId.TEAM_2, result.faceOffWinner)
         assertEquals(50, result.pot)
     }
 
@@ -61,7 +61,7 @@ class GameEngineFaceOffTest {
         engine.correct(1) // فريق ١ = ٣٠
         val result = engine.correct(3) // فريق ٢ = ١٠
 
-        assertEquals(TeamId.TEAM_1, result.controllingTeam)
+        assertEquals(TeamId.TEAM_1, result.faceOffWinner)
         assertEquals(40, result.pot)
     }
 
@@ -96,8 +96,8 @@ class GameEngineFaceOffTest {
         engine.wrong()
         val result = engine.correct(3)
 
-        assertEquals(RoundPhase.PLAY, result.phase)
-        assertEquals(TeamId.TEAM_2, result.controllingTeam)
+        assertEquals(RoundPhase.PLAY_OR_PASS, result.phase)
+        assertEquals(TeamId.TEAM_2, result.faceOffWinner)
     }
 
     @Test
@@ -118,5 +118,52 @@ class GameEngineFaceOffTest {
 
         assertEquals(40, result.pot)
         assertTrue(result.currentQuestion!!.answers[0].revealed)
+    }
+
+    @Test
+    fun `the face-off winner is asked to play or pass, and only that player is armed`() {
+        val engine = GameEngine(freshState())
+        engine.buzzPodium(TeamId.TEAM_1)
+        val choice = engine.correct(0)
+
+        assertEquals(RoundPhase.PLAY_OR_PASS, choice.phase)
+        assertEquals(TeamId.TEAM_1, choice.faceOffWinner)
+        // بس لاعب المنصة اللي كسب بيقرر.
+        assertEquals(setOf("a1"), choice.armedPlayerIds())
+        assertNull(choice.controllingTeam)
+    }
+
+    @Test
+    fun `choosing to play keeps the board with the winner`() {
+        val engine = GameEngine(freshState())
+        engine.buzzPodium(TeamId.TEAM_1)
+        engine.correct(0)
+        val result = engine.choosePlay()
+
+        assertEquals(RoundPhase.PLAY, result.phase)
+        assertEquals(TeamId.TEAM_1, result.controllingTeam)
+        assertEquals("a2", result.turnPlayerId)
+    }
+
+    @Test
+    fun `passing hands the board to the other team`() {
+        val engine = GameEngine(freshState())
+        engine.buzzPodium(TeamId.TEAM_1)
+        engine.correct(0)
+        val result = engine.choosePass()
+
+        assertEquals(RoundPhase.PLAY, result.phase)
+        assertEquals(TeamId.TEAM_2, result.controllingTeam)
+        // الفريق التاني كمان بيبلّش من اللاعب اللي بعد لاعب منصته.
+        assertEquals("b2", result.turnPlayerId)
+    }
+
+    @Test
+    fun `a choice outside the choosing phase is ignored`() {
+        val engine = GameEngine(freshState())
+        val result = engine.choosePlay()
+
+        assertEquals(RoundPhase.FACE_OFF, result.phase)
+        assertNull(result.controllingTeam)
     }
 }
