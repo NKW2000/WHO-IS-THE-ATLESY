@@ -14,8 +14,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.feudparty.app.R
 
-/** نوع التنبيه — كل واحد له صوت ونمط اهتزاز. */
-enum class Cue { REVEAL, STRIKE, WRONG, WIN, BUZZ }
+/**
+ * نوع التنبيه — كل واحد له صوت ونمط اهتزاز.
+ * الستريكات تلاتة، وكل وحدة إلها صوتها زي البرنامج.
+ */
+enum class Cue { REVEAL, STRIKE_1, STRIKE_2, STRIKE_3, WRONG, WIN, BUZZ }
 
 /**
  * الصوت والاهتزاز مع بعض. لعبة بتنلعب بغرفة فيها ناس، فالتنبيه لازم
@@ -37,10 +40,21 @@ class GameFeedback(context: Context) {
 
     private val sounds: Map<Cue, Int> = mapOf(
         Cue.REVEAL to soundPool.load(appContext, R.raw.sfx_reveal, 1),
-        Cue.STRIKE to soundPool.load(appContext, R.raw.sfx_strike, 1),
+        Cue.STRIKE_1 to soundPool.load(appContext, R.raw.sfx_strike1, 1),
+        Cue.STRIKE_2 to soundPool.load(appContext, R.raw.sfx_strike2, 1),
+        Cue.STRIKE_3 to soundPool.load(appContext, R.raw.sfx_strike3, 1),
         Cue.WRONG to soundPool.load(appContext, R.raw.sfx_wrong, 1),
         Cue.WIN to soundPool.load(appContext, R.raw.sfx_win, 1),
-        Cue.BUZZ to soundPool.load(appContext, R.raw.sfx_buzz, 1)
+        Cue.BUZZ to soundPool.load(appContext, R.raw.sfx_press, 1)
+    )
+
+    /** صوت الخطأ حسب رقمه: الأول، التاني، التالت. */
+    fun playStrike(number: Int) = play(
+        when (number) {
+            1 -> Cue.STRIKE_1
+            2 -> Cue.STRIKE_2
+            else -> Cue.STRIKE_3
+        }
     )
 
     private val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -62,7 +76,9 @@ class GameFeedback(context: Context) {
         val timings = when (cue) {
             Cue.REVEAL -> longArrayOf(0, 28)
             Cue.BUZZ -> longArrayOf(0, 18)
-            Cue.STRIKE -> longArrayOf(0, 60, 70, 60)
+            Cue.STRIKE_1 -> longArrayOf(0, 60)
+            Cue.STRIKE_2 -> longArrayOf(0, 60, 70, 60)
+            Cue.STRIKE_3 -> longArrayOf(0, 70, 70, 70, 70, 140)
             Cue.WRONG -> longArrayOf(0, 130)
             Cue.WIN -> longArrayOf(0, 45, 60, 45, 60, 110)
         }

@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -95,33 +96,35 @@ fun CartoonSurface(
     // الضغط بينزّل السطح على ظله — نفس إحساس الأزرار بالتصميم.
     val drop = if (pressed && onClick != null && enabled) shadow else 0.dp
 
-    Box(modifier = modifier) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(x = -shadow, y = shadow)
-                .background(FeudColors.ink, shape)
-        )
-        Box(
-            modifier = Modifier
-                .offset(x = -drop, y = drop)
-                .background(color, shape)
-                .border(borderWidth, FeudColors.ink, shape)
-                .let {
-                    if (onClick != null) {
-                        it.clickable(
-                            enabled = enabled,
-                            interactionSource = interaction,
-                            indication = null,
-                            onClick = onClick
-                        )
-                    } else {
-                        it
-                    }
-                },
-            content = content
-        )
-    }
+    Box(
+        modifier = modifier
+            .offset(x = -drop, y = drop)
+            // الظل بينرسم ورا السطح نفسه، فبياخد نفس حجمه دايماً.
+            .drawBehind {
+                val offset = shadow.toPx()
+                drawRoundRect(
+                    color = FeudColors.ink,
+                    topLeft = Offset(-offset, offset),
+                    size = size,
+                    cornerRadius = CornerRadius(corner.toPx())
+                )
+            }
+            .background(color, shape)
+            .border(borderWidth, FeudColors.ink, shape)
+            .let {
+                if (onClick != null) {
+                    it.clickable(
+                        enabled = enabled,
+                        interactionSource = interaction,
+                        indication = null,
+                        onClick = onClick
+                    )
+                } else {
+                    it
+                }
+            },
+        content = content
+    )
 }
 
 /** لوح كريمي — بيستعمل للسؤال وللبطاقات الفاتحة. */

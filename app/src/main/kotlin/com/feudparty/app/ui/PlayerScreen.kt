@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -268,24 +269,36 @@ private fun PlayerBoard(
 
             val question = state?.currentQuestion
             val questionText = question?.text.orEmpty()
-            Text(
-                text = questionText.ifBlank { waitingLine(state, status) },
-                color = onBackground,
-                style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(10.dp))
-
-            // اللوح بيبان للكل حتى وهو السؤال مخفي — خانات فاضية بتنكشف
-            // وحدة وحدة مع حكم المضيف.
-            if (question != null) {
-                AnswerBoardColumns(
-                    answers = question.answers,
-                    revealHiddenText = false,
-                    slotHeight = 46.dp,
-                    modifier = Modifier.weight(1f)
+            if (questionText.isNotBlank()) {
+                Text(
+                    text = questionText,
+                    color = onBackground,
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(Modifier.height(8.dp))
+            }
+
+            // اللوح بيبان للكل حتى وهو السؤال مخفي: رقم الخانة بس، بدون
+            // نص وبدون نقاط، لحد ما المضيف يكشفها.
+            if (question != null) {
+                // الخانات بتتقسّم الارتفاع المتاح بينها، فما بيضل فراغ تحت.
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(vertical = 4.dp)
+                ) {
+                    val rows = (question.answers.size + 1) / 2
+                    val spacing = 10.dp
+                    val slot = ((maxHeight - spacing * (rows - 1)) / rows).coerceAtLeast(44.dp)
+                    AnswerBoardColumns(
+                        answers = question.answers,
+                        revealHiddenText = false,
+                        showHiddenPoints = false,
+                        slotHeight = slot
+                    )
+                }
             } else {
                 Box(modifier = Modifier.weight(1f))
             }
@@ -344,9 +357,9 @@ private fun TopBar(
             )
         }
         if (state != null) {
-            Row(modifier = Modifier.width(300.dp)) {
+            Row(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
                 MiniScore(state, TeamId.TEAM_1, Modifier.weight(1f))
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(10.dp))
                 MiniScore(state, TeamId.TEAM_2, Modifier.weight(1f))
             }
         }
@@ -360,12 +373,6 @@ private fun connectionLabel(status: ConnectionStatus): String = when (status) {
     ConnectionStatus.DISCONNECTED -> "انقطع الاتصال"
 }
 
-private fun waitingLine(state: GameState?, status: ConnectionStatus): String = when {
-    status != ConnectionStatus.CONNECTED -> connectionLabel(status)
-    state == null -> "بانتظار المضيف"
-    state.gameOver -> "انتهت اللعبة"
-    else -> "استنى — المضيف عم يقرا السؤال"
-}
 
 private fun statusLine(
     mark: PlayerMark,

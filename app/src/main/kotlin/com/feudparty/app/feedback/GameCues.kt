@@ -30,7 +30,7 @@ fun GameStateCues(state: GameState?) {
         when {
             // نهاية الجولة بتكشف اللوح كله، فبنعلن الفوز مش كل خانة.
             award != null && award != lastAward -> feedback.play(Cue.WIN)
-            state.strikes > lastStrikes -> feedback.play(Cue.STRIKE)
+            state.strikes > lastStrikes -> feedback.playStrike(state.strikes)
             revealed > lastRevealed -> feedback.play(Cue.REVEAL)
         }
 

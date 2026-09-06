@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -42,6 +43,7 @@ fun AnswerBoard(
     answers: List<Answer>,
     modifier: Modifier = Modifier,
     revealHiddenText: Boolean = false,
+    showHiddenPoints: Boolean = true,
     enabledSlots: Boolean = false,
     startIndex: Int = 0,
     slotHeight: Dp = 58.dp,
@@ -57,6 +59,7 @@ fun AnswerBoard(
                 position = index + 1,
                 answer = answer,
                 revealHiddenText = revealHiddenText,
+                showHiddenPoints = showHiddenPoints,
                 enabled = enabledSlots && !answer.revealed && onSlotClick != null,
                 height = slotHeight,
                 onClick = { onSlotClick?.invoke(index) }
@@ -71,6 +74,7 @@ fun AnswerBoardColumns(
     answers: List<Answer>,
     modifier: Modifier = Modifier,
     revealHiddenText: Boolean = false,
+    showHiddenPoints: Boolean = true,
     enabledSlots: Boolean = false,
     slotHeight: Dp = 54.dp,
     onSlotClick: ((Int) -> Unit)? = null
@@ -84,6 +88,7 @@ fun AnswerBoardColumns(
             answers = answers.take(half),
             modifier = Modifier.weight(1f),
             revealHiddenText = revealHiddenText,
+            showHiddenPoints = showHiddenPoints,
             enabledSlots = enabledSlots,
             startIndex = 0,
             slotHeight = slotHeight,
@@ -94,6 +99,7 @@ fun AnswerBoardColumns(
                 answers = answers.drop(half),
                 modifier = Modifier.weight(1f),
                 revealHiddenText = revealHiddenText,
+                showHiddenPoints = showHiddenPoints,
                 enabledSlots = enabledSlots,
                 startIndex = half,
                 slotHeight = slotHeight,
@@ -108,6 +114,7 @@ private fun AnswerSlot(
     position: Int,
     answer: Answer,
     revealHiddenText: Boolean,
+    showHiddenPoints: Boolean,
     enabled: Boolean,
     height: Dp,
     onClick: () -> Unit
@@ -141,6 +148,7 @@ private fun AnswerSlot(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -162,11 +170,14 @@ private fun AnswerSlot(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
-            Text(
-                answer.points.ar(),
-                color = if (revealed) FeudColors.cream else FeudColors.pink,
-                style = MaterialTheme.typography.titleLarge
-            )
+            // اللاعب ما بيشوف قيمة الخانة قبل ما تنكشف.
+            if (revealed || showHiddenPoints) {
+                Text(
+                    answer.points.ar(),
+                    color = if (revealed) FeudColors.cream else FeudColors.pink,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
             if (enabled || revealed) {
                 Spacer(Modifier.width(10.dp))
                 JudgeChip(revealed = revealed)
