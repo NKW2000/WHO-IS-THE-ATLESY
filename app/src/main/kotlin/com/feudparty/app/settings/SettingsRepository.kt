@@ -30,7 +30,10 @@ class SettingsRepository(context: Context) {
         fastMoneyFirstSeconds = prefs.getInt(KEY_FM_FIRST, GameSettings().fastMoneyFirstSeconds),
         fastMoneySecondSeconds = prefs.getInt(KEY_FM_SECOND, GameSettings().fastMoneySecondSeconds),
         bankName = prefs.getString(KEY_BANK_NAME, null)?.takeIf { bankFile.exists() },
-        bankQuestionCount = prefs.getInt(KEY_BANK_COUNT, 0)
+        bankQuestionCount = prefs.getInt(KEY_BANK_COUNT, 0),
+        lanTesting = prefs.getBoolean(KEY_LAN, false),
+        lanHost = prefs.getString(KEY_LAN_HOST, GameSettings.DEFAULT_LAN_HOST)
+            ?: GameSettings.DEFAULT_LAN_HOST
     ).clamped()
 
     fun save(settings: GameSettings) {
@@ -43,6 +46,8 @@ class SettingsRepository(context: Context) {
             .putInt(KEY_FM_TARGET, safe.fastMoneyTarget)
             .putInt(KEY_FM_FIRST, safe.fastMoneyFirstSeconds)
             .putInt(KEY_FM_SECOND, safe.fastMoneySecondSeconds)
+            .putBoolean(KEY_LAN, safe.lanTesting)
+            .putString(KEY_LAN_HOST, safe.lanHost)
             .apply()
     }
 
@@ -96,5 +101,7 @@ class SettingsRepository(context: Context) {
         const val KEY_FM_SECOND = "fm_second"
         const val KEY_BANK_NAME = "bank_name"
         const val KEY_BANK_COUNT = "bank_count"
+        const val KEY_LAN = "lan_testing"
+        const val KEY_LAN_HOST = "lan_host"
     }
 }

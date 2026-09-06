@@ -46,6 +46,8 @@ import com.feudparty.app.viewmodel.SettingsViewModel
 import com.feudparty.app.settings.SettingsRepository
 import com.feudparty.core.game.FastMoneyState
 import com.feudparty.core.game.RoundPhase
+import com.feudparty.core.network.LanConnectionsManager
+import com.feudparty.core.network.NearbyConnectionsManager
 import com.feudparty.core.network.NearbyConnectionsManagerImpl
 import com.feudparty.data.questions.QuestionBank
 
@@ -262,7 +264,7 @@ private fun hostViewModel(owner: ViewModelStoreOwner, context: Context): HostVie
                 source = bank
             )
             HostViewModel(
-                connections = NearbyConnectionsManagerImpl(context.applicationContext, "مضيف"),
+                connections = connections(context, settings.lanTesting, settings.lanHost, "مضيف"),
                 questions = game.rounds,
                 fastMoneyQuestions = game.fastMoney,
                 multipliers = settings.multipliersForRounds(),
@@ -274,6 +276,20 @@ private fun hostViewModel(owner: ViewModelStoreOwner, context: Context): HostVie
         }
     })
 
+/**
+ * وضع الاختبار بيستبدل Nearby بوصل TCP، لأن Nearby ما بيشتغل عالمحاكي.
+ */
+private fun connections(
+    context: Context,
+    lanTesting: Boolean,
+    lanHost: String,
+    deviceName: String
+): NearbyConnectionsManager = if (lanTesting) {
+    LanConnectionsManager(hostAddress = lanHost)
+} else {
+    NearbyConnectionsManagerImpl(context.applicationContext, deviceName)
+}
+
 @Composable
 private fun settingsViewModel(owner: ViewModelStoreOwner, context: Context): SettingsViewModel =
     viewModel(viewModelStoreOwner = owner, factory = viewModelFactory {
@@ -284,6 +300,9 @@ private fun settingsViewModel(owner: ViewModelStoreOwner, context: Context): Set
 private fun playerViewModel(owner: ViewModelStoreOwner, context: Context): PlayerViewModel =
     viewModel(viewModelStoreOwner = owner, factory = viewModelFactory {
         initializer {
-            PlayerViewModel(NearbyConnectionsManagerImpl(context.applicationContext, "لاعب"))
+            val settings = SettingsRepository(context).load()
+            PlayerViewModel(
+                connections(context, settings.lanTesting, settings.lanHost, "لاعب")
+            )
         }
     })

@@ -15,7 +15,10 @@ data class GameSettings(
     val fastMoneyFirstSeconds: Int = FastMoneyState.FIRST_PLAYER_SECONDS,
     val fastMoneySecondSeconds: Int = FastMoneyState.SECOND_PLAYER_SECONDS,
     val bankName: String? = null,
-    val bankQuestionCount: Int = 0
+    val bankQuestionCount: Int = 0,
+    /** وضع الاختبار: وصل عبر TCP بدل Nearby حتى نلعب على محاكيات. */
+    val lanTesting: Boolean = false,
+    val lanHost: String = DEFAULT_LAN_HOST
 ) {
     /** مضاعف كل جولة — إذا المضاعفات أقل من عدد الجولات منكرر الأخير. */
     fun multipliersForRounds(): List<Int> = List(rounds) { index ->
@@ -43,5 +46,6 @@ data class GameSettings(
         const val MAX_STRIKES = 5
         const val DEFAULT_STRIKES = 3
         val DEFAULT_MULTIPLIERS = listOf(1, 1, 2, 3)
+        const val DEFAULT_LAN_HOST = "127.0.0.1"
     }
 }

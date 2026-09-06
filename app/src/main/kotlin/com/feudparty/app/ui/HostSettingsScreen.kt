@@ -36,6 +36,7 @@ import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
 import com.feudparty.core.game.FastMoneyState
+import com.feudparty.core.network.LanConnectionsManager
 
 /**
  * إعدادات المضيف: بنك الأسئلة، عدد الجولات ومضاعفاتها، عدد الأخطاء،
@@ -108,6 +109,8 @@ fun HostSettingsScreen(
                     RoundsSection(settings, onSettingsChange)
                     Spacer(Modifier.height(12.dp))
                     FastMoneySection(settings, onSettingsChange)
+                    Spacer(Modifier.height(12.dp))
+                    LanSection(settings, onSettingsChange)
                     Spacer(Modifier.height(12.dp))
                     SecondaryButton(
                         text = "رجوع للإعدادات الافتراضية",
@@ -320,6 +323,62 @@ private fun FastMoneySection(settings: GameSettings, onChange: (GameSettings) ->
                 color = FeudColors.textMuted,
                 style = MaterialTheme.typography.bodyMedium
             )
+        }
+    }
+}
+
+/** وضع الاختبار — بيستبدل Nearby بوصل TCP حتى نلعب على محاكيات. */
+@Composable
+private fun LanSection(settings: GameSettings, onChange: (GameSettings) -> Unit) {
+    SettingsCard(title = "وضع الاختبار (شبكة)") {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (settings.lanTesting) "شغّال — الوصل عبر TCP" else "مطفي — الوصل عبر Nearby",
+                color = FeudColors.text,
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f)
+            )
+            SecondaryButton(
+                text = if (settings.lanTesting) "طفّيه" else "فعّله",
+                onClick = { onChange(settings.copy(lanTesting = !settings.lanTesting)) },
+                accent = if (settings.lanTesting) FeudColors.pink else FeudColors.teal,
+                modifier = Modifier.width(150.dp)
+            )
+        }
+
+        if (settings.lanTesting) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "عنوان المضيف: ${settings.lanHost}:${LanConnectionsManager.DEFAULT_PORT}",
+                color = FeudColors.gold,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Nearby بيحتاج بلوتوث وواي فاي حقيقيين فما بيشتغل عالمحاكي. " +
+                    "بهاد الوضع منستعمل TCP: شغّل الأمرين هدول عالكمبيوتر بعد ما " +
+                    "تفتح المحاكيات، وبعدين استضيف من الأول وانضم من الباقيين.",
+                color = FeudColors.textMuted,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(Modifier.height(8.dp))
+            CartoonSurface(
+                modifier = Modifier.fillMaxWidth(),
+                color = FeudColors.ink.copy(alpha = 0.55f),
+                borderWidth = 3.dp,
+                corner = 12.dp,
+                shadow = 4.dp
+            ) {
+                Text(
+                    """
+                    adb -s emulator-5554 forward tcp:5599 tcp:5599
+                    adb -s emulator-5556 reverse tcp:5599 tcp:5599
+                    """.trimIndent(),
+                    color = FeudColors.textMuted,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
         }
     }
 }
