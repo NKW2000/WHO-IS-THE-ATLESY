@@ -177,11 +177,7 @@ private fun PlayerRow(player: Player, mark: PlayerMark) {
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .background(if (player.connected) color else FeudColors.textMuted, CircleShape)
-        )
+        SeatBadge(seat = player.seat, dim = !player.connected, size = 26.dp)
         Spacer(Modifier.width(8.dp))
         Text(
             player.name,
@@ -238,10 +234,10 @@ private fun HostGameBoardScreenPreview() {
                     )
                 ),
                 players = listOf(
-                    Player("a1", "سامر", TeamId.TEAM_1),
-                    Player("a2", "هناء", TeamId.TEAM_1),
-                    Player("a3", "زيد", TeamId.TEAM_1),
-                    Player("b1", "ليلى", TeamId.TEAM_2)
+                    Player("a1", "سامر", TeamId.TEAM_1, seat = 1),
+                    Player("a2", "هناء", TeamId.TEAM_1, seat = 2),
+                    Player("a3", "زيد", TeamId.TEAM_1, seat = 3),
+                    Player("b1", "ليلى", TeamId.TEAM_2, seat = 1)
                 ),
                 teams = mapOf(
                     TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأحمر", 140, connected = true),

@@ -15,8 +15,8 @@ internal fun board(id: String = "q1"): Question = Question(
 
 /** ٣ لاعبين لكل فريق: a1,a2,a3 و b1,b2,b3. */
 internal fun defaultPlayers(perTeam: Int = 3): List<Player> =
-    (1..perTeam).map { Player("a$it", "لاعب أ$it", TeamId.TEAM_1) } +
-        (1..perTeam).map { Player("b$it", "لاعب ب$it", TeamId.TEAM_2) }
+    (1..perTeam).map { Player("a$it", "لاعب أ$it", TeamId.TEAM_1, seat = it) } +
+        (1..perTeam).map { Player("b$it", "لاعب ب$it", TeamId.TEAM_2, seat = it) }
 
 internal fun freshState(
     questions: List<Question> = listOf(board("q1"), board("q2")),

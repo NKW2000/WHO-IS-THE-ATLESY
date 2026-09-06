@@ -101,6 +101,32 @@ class GameEnginePlayersTest {
     }
 
     @Test
+    fun `the face-off pairs the same seat number from each team`() {
+        val state = freshState()
+
+        TeamId.entries.forEach { team ->
+            assertEquals(1, state.podiumPlayer(team)?.seat)
+        }
+        val samer = state.playersOf(TeamId.TEAM_1).first()
+        assertEquals("b1", state.opponentOf(samer)?.id)
+        assertEquals(samer.seat, state.opponentOf(samer)?.seat)
+    }
+
+    @Test
+    fun `a short team wraps so there is always an opponent`() {
+        val uneven = listOf(
+            Player("a1", "أ١", TeamId.TEAM_1, seat = 1),
+            Player("a2", "أ٢", TeamId.TEAM_1, seat = 2),
+            Player("b1", "ب١", TeamId.TEAM_2, seat = 1)
+        )
+        val state = freshState(players = uneven).copy(faceOffSeat = 2)
+
+        assertEquals("a2", state.podiumPlayer(TeamId.TEAM_1)?.id)
+        // الفريق التاني فيه لاعب واحد، فبيرجع عليه.
+        assertEquals("b1", state.podiumPlayer(TeamId.TEAM_2)?.id)
+    }
+
+    @Test
     fun `the podium player changes every round`() {
         val engine = GameEngine(freshState())
         assertEquals("a1", engine.state.podiumPlayer(TeamId.TEAM_1)?.id)
@@ -112,6 +138,7 @@ class GameEnginePlayersTest {
         engine.apply(GameEvent.NextRound) // شاشة النتائج
         val next = engine.apply(GameEvent.NextRound)
 
+        assertEquals(2, next.faceOffSeat)
         assertEquals("a2", next.podiumPlayer(TeamId.TEAM_1)?.id)
         assertEquals("b2", next.podiumPlayer(TeamId.TEAM_2)?.id)
         assertEquals(setOf("a2", "b2"), next.armedPlayerIds())
@@ -126,6 +153,9 @@ class GameEnginePlayersTest {
         val result = engine.apply(GameEvent.PlayerJoined("p3", "رامي", TeamId.TEAM_1))
 
         assertEquals(listOf("p1", "p3"), result.playersOf(TeamId.TEAM_1).map { it.id })
+        // كل لاعب بياخد رقمه بفريقه لما ينضم.
+        assertEquals(listOf(1, 2), result.playersOf(TeamId.TEAM_1).map { it.seat })
+        assertEquals(listOf(1), result.playersOf(TeamId.TEAM_2).map { it.seat })
         assertEquals("سامر", result.podiumPlayer(TeamId.TEAM_1)?.name)
         assertTrue(result.teams.getValue(TeamId.TEAM_1).connected)
         assertTrue(result.teams.getValue(TeamId.TEAM_2).connected)
@@ -155,8 +185,8 @@ class GameEnginePlayersTest {
     @Test
     fun `a single-player team keeps its turn`() {
         val solo = listOf(
-            Player("a1", "وحيد", TeamId.TEAM_1),
-            Player("b1", "وحيدة", TeamId.TEAM_2)
+            Player("a1", "وحيد", TeamId.TEAM_1, seat = 1),
+            Player("b1", "وحيدة", TeamId.TEAM_2, seat = 1)
         )
         val engine = GameEngine(freshState(players = solo))
         engine.giveControlTo(TeamId.TEAM_1)

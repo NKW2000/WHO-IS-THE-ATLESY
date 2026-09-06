@@ -45,8 +45,8 @@ class PlayerViewModelTest {
     private fun state() = GameState(
         questions = listOf(Question("q1", "", listOf(Answer("", 100)), "عام")),
         players = listOf(
-            Player("p-a", "سامر", TeamId.TEAM_1),
-            Player("p-b", "ليلى", TeamId.TEAM_2)
+            Player("p-a", "سامر", TeamId.TEAM_1, seat = 1),
+            Player("p-b", "ليلى", TeamId.TEAM_2, seat = 1)
         ),
         teams = mapOf(
             TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأحمر"),

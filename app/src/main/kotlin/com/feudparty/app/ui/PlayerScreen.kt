@@ -94,7 +94,12 @@ fun PlayerScreen(
         state?.phase == RoundPhase.FACE_OFF
 
     if (faceOffBuzzer) {
-        FullScreenBuzzer(onBuzz = onBuzz)
+        val me = state?.player(playerId)
+        FullScreenBuzzer(
+            seat = me?.seat,
+            opponent = me?.let { state.opponentOf(it)?.name },
+            onBuzz = onBuzz
+        )
     } else {
         PlayerBoard(
             state = state,
@@ -157,7 +162,11 @@ private fun PlayOrPassScreen(
 
 /** الشاشة كلها زر — وميض كريمي/أسود، وأي لمسة بأي مكان بتحتسب. */
 @Composable
-private fun FullScreenBuzzer(onBuzz: () -> Unit) {
+private fun FullScreenBuzzer(
+    seat: Int?,
+    opponent: String?,
+    onBuzz: () -> Unit
+) {
     val haptics = LocalHapticFeedback.current
     val blink = rememberInfiniteTransition(label = "blink")
     val phase by blink.animateFloat(
@@ -203,7 +212,11 @@ private fun FullScreenBuzzer(onBuzz: () -> Unit) {
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                "الشاشة كلها زر",
+                when {
+                    seat != null && opponent != null -> "رقم ${seat.ar()} — وش لوش مع $opponent"
+                    seat != null -> "رقم ${seat.ar()}"
+                    else -> "الشاشة كلها زر"
+                },
                 color = foreground.copy(alpha = 0.75f),
                 style = MaterialTheme.typography.titleMedium
             )
@@ -264,7 +277,9 @@ private fun PlayerBoard(
             )
             Spacer(Modifier.height(10.dp))
 
-            if (question != null && questionText.isNotBlank()) {
+            // اللوح بيبان للكل حتى وهو السؤال مخفي — خانات فاضية بتنكشف
+            // وحدة وحدة مع حكم المضيف.
+            if (question != null) {
                 AnswerBoardColumns(
                     answers = question.answers,
                     revealHiddenText = false,
@@ -312,11 +327,15 @@ private fun TopBar(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         if (teamId != null && me != null) {
-            Pill(
-                text = me.name,
-                color = teamId.color(),
-                textColor = teamId.inkColor()
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SeatBadge(seat = me.seat, size = 26.dp)
+                Spacer(Modifier.width(8.dp))
+                Pill(
+                    text = me.name,
+                    color = teamId.color(),
+                    textColor = teamId.inkColor()
+                )
+            }
         } else {
             Text(
                 connectionLabel(status),
@@ -345,7 +364,7 @@ private fun waitingLine(state: GameState?, status: ConnectionStatus): String = w
     status != ConnectionStatus.CONNECTED -> connectionLabel(status)
     state == null -> "بانتظار المضيف"
     state.gameOver -> "انتهت اللعبة"
-    else -> "استنى السؤال من المضيف"
+    else -> "استنى — المضيف عم يقرا السؤال"
 }
 
 private fun statusLine(
@@ -402,8 +421,8 @@ private fun PlayerBoardPreview() {
                     )
                 ),
                 players = listOf(
-                    Player("p1", "سامر", TeamId.TEAM_1),
-                    Player("p2", "ليلى", TeamId.TEAM_2)
+                    Player("p1", "سامر", TeamId.TEAM_1, seat = 1),
+                    Player("p2", "ليلى", TeamId.TEAM_2, seat = 2)
                 ),
                 teams = mapOf(
                     TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الأحمر", score = 120),

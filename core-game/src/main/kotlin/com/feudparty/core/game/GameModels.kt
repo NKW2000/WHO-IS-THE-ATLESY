@@ -33,12 +33,19 @@ data class TeamState(
     val connected: Boolean = false
 )
 
-/** لاعب واحد = جهاز واحد. الترتيب باللستة هو ترتيب الدور بالفريق. */
+/**
+ * لاعب واحد = جهاز واحد.
+ *
+ * [seat] هو رقمه بالفريق (١، ٢، ٣...) وبياخدو لما ينضم وبيضل إله. الرقم
+ * هو أساس المواجهة: صاحب الرقم ١ بفريق بيواجه صاحب الرقم ١ بالفريق
+ * التاني، والرقم ٢ مع الرقم ٢، وهكذا.
+ */
 @Serializable
 data class Player(
     val id: String,
     val name: String,
     val teamId: TeamId,
+    val seat: Int,
     val connected: Boolean = true
 )
 
@@ -113,8 +120,8 @@ data class GameState(
     val buzzedPlayerId: String? = null,
     /** اللاعب اللي دوره يجاوب بمرحلة اللعب أو السرقة. */
     val turnPlayerId: String? = null,
-    /** لاعب المنصة الحالي لكل فريق — بيتغير كل جولة. */
-    val podiumIndex: Map<TeamId, Int> = emptyMap(),
+    /** الرقم اللي عليه الدور بالمواجهة — بيزيد كل جولة. */
+    val faceOffSeat: Int = 1,
     /** مؤشر الدور داخل الفريق بمرحلة اللعب. */
     val turnIndex: Map<TeamId, Int> = emptyMap(),
     /** لاعبين جاوبوا غلط — بيضلوا حمر لحد ما يرجع دورهم. */
@@ -164,12 +171,24 @@ data class GameState(
 
     fun player(playerId: String?): Player? = players.firstOrNull { it.id == playerId }
 
-    /** لاعب المنصة الحالي للفريق — هو الوحيد اللي بيبزّ بالمواجهة. */
+    /** أكبر رقم موجود بالفريقين — عليه بتلف المواجهة. */
+    val maxSeat: Int
+        get() = players.maxOfOrNull { it.seat } ?: 1
+
+    /**
+     * لاعب المنصة للفريق: صاحب الرقم [faceOffSeat]. إذا الفريق أقصر من
+     * الرقم، منلفّ عليه من الأول حتى يضل في مواجهة.
+     */
     fun podiumPlayer(teamId: TeamId): Player? {
         val list = playersOf(teamId)
         if (list.isEmpty()) return null
-        return list[(podiumIndex[teamId] ?: 0) % list.size]
+        return list.firstOrNull { it.seat == faceOffSeat }
+            ?: list[(faceOffSeat - 1) % list.size]
     }
+
+    /** اللاعب اللي قدّامه بالفريق التاني — نفس الرقم. */
+    fun opponentOf(player: Player): Player? =
+        playersOf(player.teamId.other()).firstOrNull { it.seat == player.seat }
 
     /** مين مسموح له يضغط هلق — عليهم بيومض الزر. */
     fun armedPlayerIds(): Set<String> = when (phase) {

@@ -17,7 +17,7 @@ fun hostStatusText(state: GameState): String = when (state.phase) {
         null -> {
             val one = state.podiumPlayer(TeamId.TEAM_1)?.name ?: "—"
             val two = state.podiumPlayer(TeamId.TEAM_2)?.name ?: "—"
-            "المواجهة: $one ضد $two"
+            "مواجهة رقم ${state.faceOffSeat.ar()}: $one ضد $two"
         }
 
         else -> "${state.playerName(state.buzzedPlayerId)} ضغط أول — احكم على جوابه"

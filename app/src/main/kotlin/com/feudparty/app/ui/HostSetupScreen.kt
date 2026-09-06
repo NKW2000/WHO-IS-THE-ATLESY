@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +34,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.Pill
@@ -205,8 +207,7 @@ private fun TeamColumn(
             // قائمة كسولة — تضل داخل الشاشة مهما زاد العدد.
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(players) { player ->
-                    val index = players.indexOf(player)
-                    PlayerRow(player = player, position = index + 1, teamId = teamId)
+                    PlayerRow(player = player, teamId = teamId)
                     Spacer(Modifier.height(6.dp))
                 }
             }
@@ -215,32 +216,39 @@ private fun TeamColumn(
 }
 
 @Composable
-private fun PlayerRow(player: Player, position: Int, teamId: TeamId) {
+private fun PlayerRow(player: Player, teamId: TeamId) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .background(
-                    if (player.connected) FeudColors.cream else FeudColors.textMuted,
-                    CircleShape
-                )
-                .border(2.dp, FeudColors.ink, CircleShape)
-        )
+        // رقم اللاعب — هو نفسه رقم خصمه بالفريق التاني.
+        SeatBadge(seat = player.seat, dim = !player.connected)
         Spacer(Modifier.width(10.dp))
         Text(
-            "${position.ar()}. ${player.name}",
+            player.name,
             color = if (player.connected) teamId.inkColor() else FeudColors.textMuted,
             style = MaterialTheme.typography.titleMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
-        if (position == 1) {
-            Pill(text = "المنصة", color = FeudColors.gold)
-        }
+    }
+}
+
+/** رقم اللاعب بمربّع — نفس الرقم عند الخصم. */
+@Composable
+fun SeatBadge(seat: Int, dim: Boolean = false, size: Dp = 30.dp) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .background(
+                if (dim) FeudColors.textMuted else FeudColors.gold,
+                RoundedCornerShape(9.dp)
+            )
+            .border(3.dp, FeudColors.ink, RoundedCornerShape(9.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(seat.ar(), color = FeudColors.ink, style = MaterialTheme.typography.labelMedium)
     }
 }
 
@@ -254,9 +262,9 @@ private fun HostSetupScreenPreview() {
                 TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "الفريق الأزرق", connected = true)
             ),
             players = listOf(
-                Player("a1", "سامر", TeamId.TEAM_1),
-                Player("a2", "هناء", TeamId.TEAM_1),
-                Player("b1", "ليلى", TeamId.TEAM_2)
+                Player("a1", "سامر", TeamId.TEAM_1, seat = 1),
+                Player("a2", "هناء", TeamId.TEAM_1, seat = 2),
+                Player("b1", "ليلى", TeamId.TEAM_2, seat = 1)
             ),
             advertising = true,
             minPerTeam = 1,

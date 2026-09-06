@@ -232,7 +232,7 @@ class GameEngine(initialState: GameState) {
             correctPlayers = emptySet(),
             roundWinner = null,
             faceOffWinner = null,
-            podiumIndex = state.rotatePodium()
+            faceOffSeat = state.nextSeat()
         )
     }
 
@@ -241,7 +241,8 @@ class GameEngine(initialState: GameState) {
     private fun handlePlayerJoined(event: GameEvent.PlayerJoined): GameState {
         val existing = state.players.firstOrNull { it.id == event.playerId }
         val players = if (existing == null) {
-            state.players + Player(event.playerId, event.name, event.teamId)
+            val seat = state.playersOf(event.teamId).size + 1
+            state.players + Player(event.playerId, event.name, event.teamId, seat)
         } else {
             state.players.map {
                 if (it.id == event.playerId) {
@@ -318,7 +319,7 @@ private fun GameState.startPlay(team: TeamId): GameState {
         strikes = 0,
         faceOffTeam = null,
         buzzedPlayerId = null,
-        turnIndex = turnIndex + (team to (podiumIndex[team] ?: 0))
+        turnIndex = turnIndex + (team to podiumIndexOf(team))
     ).advanceTurn(team)
 
     // لوح صغير ممكن يخلص من المواجهة نفسها.
@@ -352,10 +353,17 @@ private fun GameState.openSteal(controlling: TeamId): GameState {
         buzzState = BuzzState.CLOSED,
         buzzedPlayerId = null,
         turnPlayerId = podium?.id,
-        turnIndex = if (podium == null) turnIndex else turnIndex + (thief to (podiumIndex[thief] ?: 0)),
+        turnIndex = if (podium == null) turnIndex else turnIndex + (thief to podiumIndexOf(thief)),
         wrongPlayers = if (podium == null) wrongPlayers else wrongPlayers - podium.id,
         correctPlayers = if (podium == null) correctPlayers else correctPlayers - podium.id
     )
+}
+
+/** مكان لاعب المنصة باللستة — منه بيبلّش الدور. */
+private fun GameState.podiumIndexOf(team: TeamId): Int {
+    val list = playersOf(team)
+    val podium = podiumPlayer(team) ?: return 0
+    return list.indexOf(podium).coerceAtLeast(0)
 }
 
 private fun GameState.nextConnectedIndex(list: List<Player>, current: Int): Int {
@@ -366,12 +374,8 @@ private fun GameState.nextConnectedIndex(list: List<Player>, current: Int): Int 
     return (current + 1) % list.size
 }
 
-/** لاعب المنصة بيتبدّل كل جولة. */
-private fun GameState.rotatePodium(): Map<TeamId, Int> =
-    TeamId.entries.associateWith { teamId ->
-        val size = playersOf(teamId).size
-        if (size == 0) 0 else ((podiumIndex[teamId] ?: 0) + 1) % size
-    }
+/** المواجهة بتنتقل للرقم اللي بعده، وبترجع للرقم ١ بعد آخر رقم. */
+private fun GameState.nextSeat(): Int = (faceOffSeat % maxSeat) + 1
 
 /** بتقفل الجولة: كل النقاط × مضاعف الجولة لفريق واحد، وبتكشف باقي اللوح. */
 private fun GameState.award(team: TeamId, stolen: Boolean): GameState {
