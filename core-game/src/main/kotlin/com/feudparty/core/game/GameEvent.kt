@@ -21,10 +21,5 @@ sealed class GameEvent {
 
     data class PlayerLeft(val playerId: String) : GameEvent()
 
-    object FastMoneyStartTimer : GameEvent()
-    object FastMoneyTick : GameEvent()
-    data class FastMoneySubmit(val answerIndex: Int?) : GameEvent()
-    object FastMoneyReveal : GameEvent()
-
     object EndGame : GameEvent()
 }

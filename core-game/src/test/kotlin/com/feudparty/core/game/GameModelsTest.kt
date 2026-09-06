@@ -75,22 +75,4 @@ class GameModelsTest {
         assertEquals("", next.currentQuestion!!.text)
     }
 
-    @Test
-    fun `masked state hides fast money questions until they are revealed`() {
-        val fastMoney = FastMoneyState(
-            questions = listOf(board("f1")),
-            teamId = TeamId.TEAM_1
-        )
-        val state = freshState().copy(
-            fastMoneyQuestions = listOf(board("f1")),
-            fastMoney = fastMoney
-        )
-
-        val masked = state.maskedForPlayers()
-        assertTrue(masked.fastMoneyQuestions.isEmpty())
-        assertTrue(masked.fastMoney!!.questions[0].answers.all { it.text.isEmpty() })
-
-        val revealed = state.copy(fastMoney = fastMoney.copy(revealed = true)).maskedForPlayers()
-        assertEquals("الأول", revealed.fastMoney!!.questions[0].answers[0].text)
-    }
 }

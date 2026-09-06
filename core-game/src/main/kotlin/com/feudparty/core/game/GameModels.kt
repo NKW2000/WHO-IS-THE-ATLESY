@@ -65,7 +65,6 @@ enum class RoundPhase {
     STEAL,
 
     ROUND_END,
-    FAST_MONEY,
     GAME_OVER
 }
 
@@ -83,50 +82,6 @@ data class Award(
     val points: Int,
     val stolen: Boolean = false
 )
-
-@Serializable
-data class FastMoneyEntry(
-    val answerIndex: Int?,
-    val points: Int,
-    val duplicate: Boolean = false
-) {
-    val passed: Boolean get() = answerIndex == null
-}
-
-@Serializable
-data class FastMoneyState(
-    val questions: List<Question>,
-    val teamId: TeamId,
-    val target: Int = TARGET,
-    val firstPlayerSeconds: Int = FIRST_PLAYER_SECONDS,
-    val secondPlayerSeconds: Int = SECOND_PLAYER_SECONDS,
-    val playerIds: List<String> = emptyList(),
-    val playerIndex: Int = 0,
-    val questionIndex: Int = 0,
-    val playerOne: List<FastMoneyEntry> = emptyList(),
-    val playerTwo: List<FastMoneyEntry> = emptyList(),
-    val secondsRemaining: Int = FIRST_PLAYER_SECONDS,
-    val timerRunning: Boolean = false,
-    val duplicateFlag: Boolean = false,
-    val revealed: Boolean = false,
-    val finished: Boolean = false
-) {
-    val currentQuestion: Question? get() = questions.getOrNull(questionIndex)
-    val currentEntries: List<FastMoneyEntry> get() = if (playerIndex == 0) playerOne else playerTwo
-    val currentPlayerId: String? get() = playerIds.getOrNull(playerIndex)
-    val total: Int get() = playerOne.sumOf { it.points } + playerTwo.sumOf { it.points }
-    val won: Boolean get() = total >= target
-    val playerOneTotal: Int get() = playerOne.sumOf { it.points }
-    val playerTwoTotal: Int get() = playerTwo.sumOf { it.points }
-    val usedByPlayerOne: Set<Int> get() = playerOne.mapNotNull { it.answerIndex }.toSet()
-
-    companion object {
-        const val TARGET = 200
-        const val FIRST_PLAYER_SECONDS = 20
-        const val SECOND_PLAYER_SECONDS = 25
-        const val QUESTIONS_PER_PLAYER = 5
-    }
-}
 
 @Serializable
 data class GameState(
@@ -159,12 +114,6 @@ data class GameState(
     val multipliers: List<Int> = listOf(1, 1, 2, 3),
     /** عدد الأخطاء اللي بتفتح السرقة — ٣ زي البرنامج. */
     val strikesToSteal: Int = 3,
-    /** إعدادات الجولة السريعة — الهدف ووقت كل لاعب. */
-    val fastMoneyTarget: Int = FastMoneyState.TARGET,
-    val fastMoneyFirstSeconds: Int = FastMoneyState.FIRST_PLAYER_SECONDS,
-    val fastMoneySecondSeconds: Int = FastMoneyState.SECOND_PLAYER_SECONDS,
-    val fastMoneyQuestions: List<Question> = emptyList(),
-    val fastMoney: FastMoneyState? = null,
     val gameOver: Boolean = false
 ) {
     val currentQuestion: Question? get() = questions.getOrNull(currentQuestionIndex)
@@ -184,7 +133,6 @@ data class GameState(
             RoundPhase.FACE_OFF, RoundPhase.FACE_OFF_SECOND -> faceOffTeam
             RoundPhase.PLAY -> controllingTeam
             RoundPhase.STEAL -> stealingTeam
-            RoundPhase.FAST_MONEY -> fastMoney?.teamId
             else -> null
         }
 
@@ -257,16 +205,6 @@ fun GameState.maskedForPlayers(): GameState {
         questions = questions.mapIndexed { index, question ->
             question.masked(hideText = hideQuestion && index == currentQuestionIndex)
         },
-        fastMoneyQuestions = emptyList(),
-        fastMoney = fastMoney?.let { fm ->
-            fm.copy(
-                questions = if (fm.revealed) {
-                    fm.questions
-                } else {
-                    fm.questions.map { it.masked(hideText = true) }
-                }
-            )
-        }
     )
 }
 

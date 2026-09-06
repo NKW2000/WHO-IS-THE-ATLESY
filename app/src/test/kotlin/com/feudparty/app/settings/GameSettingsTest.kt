@@ -1,6 +1,5 @@
 package com.feudparty.app.settings
 
-import com.feudparty.core.game.FastMoneyState
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -22,29 +21,17 @@ class GameSettingsTest {
     }
 
     @Test
-    fun `the game needs a question per round plus the fast money five`() {
-        assertEquals(
-            4 + FastMoneyState.QUESTIONS_PER_PLAYER,
-            GameSettings(rounds = 4, fastMoneyEnabled = true).questionsNeeded()
-        )
-        assertEquals(4, GameSettings(rounds = 4, fastMoneyEnabled = false).questionsNeeded())
+    fun `the game needs one question per round`() {
+        assertEquals(4, GameSettings(rounds = 4).questionsNeeded())
+        assertEquals(7, GameSettings(rounds = 7).questionsNeeded())
     }
 
     @Test
     fun `out of range values are pulled back into range`() {
-        val settings = GameSettings(
-            rounds = 99,
-            strikesToSteal = 0,
-            fastMoneyTarget = 5_000,
-            fastMoneyFirstSeconds = 1,
-            fastMoneySecondSeconds = 900
-        ).clamped()
+        val settings = GameSettings(rounds = 99, strikesToSteal = 0).clamped()
 
         assertEquals(GameSettings.MAX_ROUNDS, settings.rounds)
         assertEquals(GameSettings.MIN_STRIKES, settings.strikesToSteal)
-        assertEquals(500, settings.fastMoneyTarget)
-        assertEquals(10, settings.fastMoneyFirstSeconds)
-        assertEquals(90, settings.fastMoneySecondSeconds)
     }
 
     @Test

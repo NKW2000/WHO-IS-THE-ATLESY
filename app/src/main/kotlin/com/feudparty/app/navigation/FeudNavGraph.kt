@@ -30,9 +30,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.feudparty.app.feedback.GameStateCues
 import com.feudparty.app.feedback.PlayerMarkCues
-import com.feudparty.app.ui.FastMoneyHostScreen
-import com.feudparty.app.ui.FastMoneyPlayerScreen
-import com.feudparty.app.ui.DemoScreen
 import com.feudparty.app.ui.GameOverScreen
 import com.feudparty.app.ui.HomeScreen
 import com.feudparty.app.ui.HostGameBoardScreen
@@ -43,10 +40,8 @@ import com.feudparty.app.ui.PlayerScreen
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.viewmodel.HostViewModel
 import com.feudparty.app.viewmodel.PlayerViewModel
-import com.feudparty.app.viewmodel.DemoViewModel
 import com.feudparty.app.viewmodel.SettingsViewModel
 import com.feudparty.app.settings.SettingsRepository
-import com.feudparty.core.game.FastMoneyState
 import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.network.LanConnectionsManager
 import com.feudparty.core.network.NearbyConnectionsManager
@@ -61,7 +56,6 @@ object Routes {
     const val PLAYER_JOIN = "player_join"
     const val PLAYER_BUZZER = "player_buzzer"
     const val HOST_SETTINGS = "host_settings"
-    const val DEMO = "demo"
 }
 
 @Composable
@@ -98,27 +92,7 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                 HomeScreen(
                     onHostClick = { navController.navigate(Routes.HOST_SETUP) },
                     onJoinClick = { navController.navigate(Routes.PLAYER_JOIN) },
-                    onSettingsClick = { navController.navigate(Routes.HOST_SETTINGS) },
-                    onDemoClick = { navController.navigate(Routes.DEMO) }
-                )
-            }
-
-            composable(Routes.DEMO) {
-                val vm = demoViewModel(context)
-                val state by vm.state.collectAsStateWithLifecycle()
-                GameStateCues(state)
-
-                DemoScreen(
-                    state = state,
-                    onBuzz = vm::buzz,
-                    onCorrect = vm::judgeCorrect,
-                    onWrong = vm::judgeWrong,
-                    onNextRound = vm::nextRound,
-                    onStartFastMoneyTimer = vm::startFastMoneyTimer,
-                    onSubmitFastMoney = vm::submitFastMoneyAnswer,
-                    onRevealFastMoney = vm::revealFastMoney,
-                    onEndGame = vm::endGame,
-                    onBack = { navController.popBackStack(Routes.HOME, inclusive = false) }
+                    onSettingsClick = { navController.navigate(Routes.HOST_SETTINGS) }
                 )
             }
 
@@ -177,22 +151,12 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                     }
                 }
 
-                if (state.phase == RoundPhase.FAST_MONEY) {
-                    FastMoneyHostScreen(
-                        state = state,
-                        onStartTimer = vm::startFastMoneyTimer,
-                        onSubmit = vm::submitFastMoneyAnswer,
-                        onReveal = vm::revealFastMoney,
-                        onEndGame = vm::endGame
-                    )
-                } else {
-                    HostGameBoardScreen(
-                        state = state,
-                        onCorrect = vm::judgeCorrect,
-                        onWrong = vm::judgeWrong,
-                        onNextRound = vm::nextRound
-                    )
-                }
+                HostGameBoardScreen(
+                    state = state,
+                    onCorrect = vm::judgeCorrect,
+                    onWrong = vm::judgeWrong,
+                    onNextRound = vm::nextRound
+                )
             }
 
             composable(Routes.HOST_RESULT) {
@@ -240,9 +204,6 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                 PlayerMarkCues(mark)
                 when {
                     live != null && live.gameOver -> GameOverScreen(state = live)
-                    live != null && live.phase == RoundPhase.FAST_MONEY ->
-                        FastMoneyPlayerScreen(state = live, playerId = playerId)
-
                     else -> PlayerScreen(
                         state = live,
                         playerId = playerId,
@@ -277,24 +238,12 @@ private fun hostViewModel(owner: ViewModelStoreOwner, context: Context): HostVie
         initializer {
             val settings = SettingsRepository(context).load()
             val bank = SettingsRepository(context).questions()
-            val game = QuestionBank.randomGame(
-                rounds = settings.rounds,
-                fastMoneyCount = if (settings.fastMoneyEnabled) {
-                    FastMoneyState.QUESTIONS_PER_PLAYER
-                } else {
-                    0
-                },
-                source = bank
-            )
+            val questions = QuestionBank.randomGame(rounds = settings.rounds, source = bank)
             HostViewModel(
                 connections = connections(context, settings.lanTesting, settings.lanHost, "مضيف"),
-                questions = game.rounds,
-                fastMoneyQuestions = game.fastMoney,
+                questions = questions,
                 multipliers = settings.multipliersForRounds(),
-                strikesToSteal = settings.strikesToSteal,
-                fastMoneyTarget = settings.fastMoneyTarget,
-                fastMoneyFirstSeconds = settings.fastMoneyFirstSeconds,
-                fastMoneySecondSeconds = settings.fastMoneySecondSeconds
+                strikesToSteal = settings.strikesToSteal
             )
         }
     })
@@ -312,29 +261,6 @@ private fun connections(
 } else {
     NearbyConnectionsManagerImpl(context.applicationContext, deviceName)
 }
-
-/** التجربة بتاخد نسخة جديدة كل مرة، فما بتكمّل لعبة قديمة. */
-@Composable
-private fun demoViewModel(context: Context): DemoViewModel =
-    viewModel(factory = viewModelFactory {
-        initializer {
-            val settings = SettingsRepository(context).load()
-            val game = QuestionBank.randomGame(
-                rounds = settings.rounds,
-                fastMoneyCount = if (settings.fastMoneyEnabled) {
-                    FastMoneyState.QUESTIONS_PER_PLAYER
-                } else {
-                    0
-                },
-                source = SettingsRepository(context).questions()
-            )
-            DemoViewModel(
-                questions = game.rounds,
-                fastMoneyQuestions = game.fastMoney,
-                settings = settings
-            )
-        }
-    })
 
 @Composable
 private fun settingsViewModel(owner: ViewModelStoreOwner, context: Context): SettingsViewModel =

@@ -21,12 +21,10 @@ internal fun defaultPlayers(perTeam: Int = 3): List<Player> =
 internal fun freshState(
     questions: List<Question> = listOf(board("q1"), board("q2")),
     multipliers: List<Int> = listOf(1, 2),
-    fastMoneyQuestions: List<Question> = emptyList(),
     players: List<Player> = defaultPlayers()
 ) = GameState(
     questions = questions,
     multipliers = multipliers,
-    fastMoneyQuestions = fastMoneyQuestions,
     players = players,
     teams = mapOf(
         TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "فريق ١", connected = true),

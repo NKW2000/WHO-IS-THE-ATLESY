@@ -91,18 +91,17 @@ class BankImportTest {
     }
 
     @Test
-    fun `a game draws rounds and fast money from the imported bank without repeats`() {
+    fun `a game draws its rounds from the imported bank without repeats`() {
         val questions = (1..12).map { index ->
             (QuestionBank.parse(
                 """[{"text": "سؤال $index", "answers": [{"text": "أ", "points": 10}, {"text": "ب", "points": 5}]}]"""
             ) as BankResult.Success).questions.single().copy(id = "q$index")
         }
 
-        val game = QuestionBank.randomGame(rounds = 4, fastMoneyCount = 5, source = questions)
+        val rounds = QuestionBank.randomGame(rounds = 4, source = questions)
 
-        assertEquals(4, game.rounds.size)
-        assertEquals(5, game.fastMoney.size)
-        val ids = (game.rounds + game.fastMoney).map { it.id }
+        assertEquals(4, rounds.size)
+        val ids = rounds.map { it.id }
         assertEquals(ids.size, ids.toSet().size)
     }
 }

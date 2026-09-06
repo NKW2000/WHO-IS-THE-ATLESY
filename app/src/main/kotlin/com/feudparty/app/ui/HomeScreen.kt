@@ -43,8 +43,7 @@ import com.feudparty.app.ui.theme.FeudPartyTheme
 fun HomeScreen(
     onHostClick: () -> Unit,
     onJoinClick: () -> Unit,
-    onSettingsClick: () -> Unit = {},
-    onDemoClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {}
 ) {
     StageBackground(contentPadding = PaddingValues(horizontal = 30.dp, vertical = 24.dp)) {
         Row(
@@ -85,13 +84,6 @@ fun HomeScreen(
                 )
                 Spacer(Modifier.height(12.dp))
                 SecondaryButton(
-                    text = "تجربة على هاد الجهاز",
-                    onClick = onDemoClick,
-                    accent = FeudColors.pink,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(12.dp))
-                SecondaryButton(
                     text = "الإعدادات",
                     onClick = onSettingsClick,
                     accent = FeudColors.gold,
@@ -99,7 +91,7 @@ fun HomeScreen(
                 )
                 Spacer(Modifier.height(14.dp))
                 Text(
-                    "التجربة بتشغّل اللعبة كاملة على جهاز واحد",
+                    "جهاز للمضيف · جهاز لكل لاعب",
                     color = FeudColors.textMuted,
                     style = MaterialTheme.typography.labelLarge,
                     textAlign = TextAlign.Center,

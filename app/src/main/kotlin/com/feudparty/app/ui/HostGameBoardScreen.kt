@@ -225,11 +225,8 @@ private fun GameState.canJudge(): Boolean = when (phase) {
     else -> false
 }
 
-private fun GameState.nextButtonLabel(): String = when {
-    !isLastRound -> "الجولة الجاية"
-    fastMoneyQuestions.isNotEmpty() -> "الجولة السريعة"
-    else -> "إنهاء اللعبة"
-}
+private fun GameState.nextButtonLabel(): String =
+    if (isLastRound) "إنهاء اللعبة" else "الجولة الجاية"
 
 @Preview(showBackground = true, widthDp = 880, heightDp = 420)
 @Composable

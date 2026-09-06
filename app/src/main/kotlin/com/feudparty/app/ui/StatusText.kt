@@ -35,6 +35,5 @@ fun hostStatusText(state: GameState): String = when (state.phase) {
         "سرقة: ${state.playerName(state.turnPlayerId)} عنده جواب واحد"
 
     RoundPhase.ROUND_END -> "انتهت الجولة — انتقل للجولة الجاية"
-    RoundPhase.FAST_MONEY -> "الجولة السريعة"
     RoundPhase.GAME_OVER -> "انتهت اللعبة"
 }

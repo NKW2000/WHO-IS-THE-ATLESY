@@ -28,10 +28,6 @@ class GameEngine(initialState: GameState) {
             GameEvent.NextRound -> handleNextRound()
             is GameEvent.PlayerJoined -> handlePlayerJoined(event)
             is GameEvent.PlayerLeft -> handlePlayerLeft(event)
-            GameEvent.FastMoneyStartTimer -> withFastMoney { it.copy(timerRunning = true) }
-            GameEvent.FastMoneyTick -> handleFastMoneyTick()
-            is GameEvent.FastMoneySubmit -> handleFastMoneySubmit(event.answerIndex)
-            GameEvent.FastMoneyReveal -> handleFastMoneyReveal()
             GameEvent.EndGame -> state.copy(
                 phase = RoundPhase.GAME_OVER,
                 gameOver = true,
@@ -197,99 +193,33 @@ class GameEngine(initialState: GameState) {
 
     private fun handleNextRound(): GameState {
         val nextIndex = state.currentQuestionIndex + 1
-        if (nextIndex < state.questions.size) {
+        if (nextIndex >= state.questions.size) {
             return state.copy(
-                currentQuestionIndex = nextIndex,
-                phase = RoundPhase.FACE_OFF,
-                buzzState = BuzzState.OPEN,
-                pot = 0,
-                strikes = 0,
-                controllingTeam = null,
-                faceOffTeam = null,
-                faceOffLeader = null,
-                faceOffLeaderPoints = 0,
-                buzzedPlayerId = null,
-                turnPlayerId = null,
-                wrongPlayers = emptySet(),
-                correctPlayers = emptySet(),
-                roundWinner = null,
-                podiumIndex = state.rotatePodium()
-            )
-        }
-
-        val fastMoneyQuestions = state.fastMoneyQuestions
-            .take(FastMoneyState.QUESTIONS_PER_PLAYER)
-        if (state.fastMoney == null && fastMoneyQuestions.size == FastMoneyState.QUESTIONS_PER_PLAYER) {
-            val team = state.leadingTeam ?: TeamId.TEAM_1
-            return state.copy(
-                phase = RoundPhase.FAST_MONEY,
+                phase = RoundPhase.GAME_OVER,
+                gameOver = true,
                 buzzState = BuzzState.CLOSED,
-                strikes = 0,
                 buzzedPlayerId = null,
-                turnPlayerId = null,
-                fastMoney = FastMoneyState(
-                    questions = fastMoneyQuestions,
-                    teamId = team,
-                    target = state.fastMoneyTarget,
-                    firstPlayerSeconds = state.fastMoneyFirstSeconds,
-                    secondPlayerSeconds = state.fastMoneySecondSeconds,
-                    secondsRemaining = state.fastMoneyFirstSeconds,
-                    playerIds = state.playersOf(team).take(2).map { it.id }
-                )
+                turnPlayerId = null
             )
         }
 
         return state.copy(
-            phase = RoundPhase.GAME_OVER,
-            gameOver = true,
-            buzzState = BuzzState.CLOSED,
+            currentQuestionIndex = nextIndex,
+            phase = RoundPhase.FACE_OFF,
+            buzzState = BuzzState.OPEN,
+            pot = 0,
+            strikes = 0,
+            controllingTeam = null,
+            faceOffTeam = null,
+            faceOffLeader = null,
+            faceOffLeaderPoints = 0,
             buzzedPlayerId = null,
-            turnPlayerId = null
+            turnPlayerId = null,
+            wrongPlayers = emptySet(),
+            correctPlayers = emptySet(),
+            roundWinner = null,
+            podiumIndex = state.rotatePodium()
         )
-    }
-
-    // ------------------------------------------------------------ اللعبة السريعة
-
-    private fun handleFastMoneyTick(): GameState = withFastMoney { fm ->
-        if (!fm.timerRunning || fm.finished) {
-            fm
-        } else {
-            val remaining = fm.secondsRemaining - 1
-            if (remaining > 0) fm.copy(secondsRemaining = remaining) else fm.timeUp()
-        }
-    }
-
-    private fun handleFastMoneySubmit(answerIndex: Int?): GameState = withFastMoney { fm ->
-        val question = fm.currentQuestion
-        when {
-            fm.finished || question == null -> fm
-
-            // اللاعب التاني ما بينفع يكرر جواب اللاعب الأول — بينعاد سؤاله.
-            fm.playerIndex == 1 && answerIndex != null && answerIndex in fm.usedByPlayerOne ->
-                fm.copy(duplicateFlag = true)
-
-            else -> {
-                val points = answerIndex?.let { question.answers.getOrNull(it)?.points } ?: 0
-                fm.record(FastMoneyEntry(answerIndex = answerIndex, points = points))
-            }
-        }
-    }
-
-    private fun handleFastMoneyReveal(): GameState {
-        val fm = state.fastMoney ?: return state
-        if (fm.revealed) return state
-        val teams = state.teams.toMutableMap()
-        teams[fm.teamId]?.let { team -> teams[fm.teamId] = team.copy(score = team.score + fm.total) }
-        return state.copy(
-            fastMoney = fm.copy(revealed = true, timerRunning = false, finished = true),
-            teams = teams,
-            lastAward = Award(fm.teamId, fm.total)
-        )
-    }
-
-    private inline fun withFastMoney(block: (FastMoneyState) -> FastMoneyState): GameState {
-        val fm = state.fastMoney ?: return state
-        return state.copy(fastMoney = block(fm))
     }
 
     // --------------------------------------------------------------- اللاعبين
@@ -437,35 +367,4 @@ private fun GameState.award(team: TeamId, stolen: Boolean): GameState {
     )
 }
 
-/** انتهى وقت اللاعب — باقي أسئلته بتتسجّل «ما جاوب». */
-private fun FastMoneyState.timeUp(): FastMoneyState {
-    val startingPlayer = playerIndex
-    var current = copy(timerRunning = false, secondsRemaining = 0)
-    while (!current.finished && current.playerIndex == startingPlayer) {
-        current = current.record(FastMoneyEntry(answerIndex = null, points = 0))
-    }
-    return current
-}
 
-/** بتسجّل جواب وبتنقل للسؤال/اللاعب التالي. */
-private fun FastMoneyState.record(entry: FastMoneyEntry): FastMoneyState {
-    val updated = if (playerIndex == 0) {
-        copy(playerOne = playerOne + entry)
-    } else {
-        copy(playerTwo = playerTwo + entry)
-    }.copy(duplicateFlag = false)
-
-    val nextQuestion = questionIndex + 1
-    if (nextQuestion < questions.size) return updated.copy(questionIndex = nextQuestion)
-
-    return if (playerIndex == 0) {
-        updated.copy(
-            playerIndex = 1,
-            questionIndex = 0,
-            secondsRemaining = secondPlayerSeconds,
-            timerRunning = false
-        )
-    } else {
-        updated.copy(finished = true, timerRunning = false)
-    }
-}

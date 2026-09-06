@@ -2,12 +2,10 @@ package com.feudparty.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.feudparty.core.game.FastMoneyState
 import com.feudparty.core.game.GameEngine
 import com.feudparty.core.game.GameEvent
 import com.feudparty.core.game.GameState
 import com.feudparty.core.game.Question
-import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.game.TeamState
 import com.feudparty.core.game.maskedForPlayers
@@ -15,8 +13,6 @@ import com.feudparty.core.network.ClientMessage
 import com.feudparty.core.network.ConnectionEvent
 import com.feudparty.core.network.HostMessage
 import com.feudparty.core.network.NearbyConnectionsManager
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,12 +26,8 @@ import kotlinx.coroutines.launch
 class HostViewModel(
     private val connections: NearbyConnectionsManager,
     questions: List<Question>,
-    fastMoneyQuestions: List<Question> = emptyList(),
     multipliers: List<Int> = DEFAULT_MULTIPLIERS,
     strikesToSteal: Int = GameEngine.DEFAULT_STRIKES_TO_STEAL,
-    fastMoneyTarget: Int = FastMoneyState.TARGET,
-    fastMoneyFirstSeconds: Int = FastMoneyState.FIRST_PLAYER_SECONDS,
-    fastMoneySecondSeconds: Int = FastMoneyState.SECOND_PLAYER_SECONDS,
     private val serviceName: String = SERVICE_NAME,
     private val tickMillis: Long = 1_000L
 ) : ViewModel() {
@@ -45,10 +37,6 @@ class HostViewModel(
             questions = questions,
             multipliers = multipliers,
             strikesToSteal = strikesToSteal,
-            fastMoneyTarget = fastMoneyTarget,
-            fastMoneyFirstSeconds = fastMoneyFirstSeconds,
-            fastMoneySecondSeconds = fastMoneySecondSeconds,
-            fastMoneyQuestions = fastMoneyQuestions,
             teams = mapOf(
                 TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأحمر"),
                 TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "الفريق الأزرق")
@@ -67,8 +55,6 @@ class HostViewModel(
 
     /** كل جهاز متصل = لاعب واحد؛ منستعمل معرّف الاتصال كمعرّف اللاعب. */
     private val knownEndpoints = mutableSetOf<String>()
-
-    private var timerJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -97,42 +83,12 @@ class HostViewModel(
 
     fun nextRound() = applyAndBroadcast(GameEvent.NextRound)
 
-    // -------------------------------------------------------- الجولة السريعة
-
-    fun startFastMoneyTimer() {
-        applyAndBroadcast(GameEvent.FastMoneyStartTimer)
-        if (timerJob?.isActive == true) return
-        timerJob = viewModelScope.launch {
-            while (engine.state.fastMoney?.timerRunning == true) {
-                delay(tickMillis)
-                applyAndBroadcast(GameEvent.FastMoneyTick)
-            }
-        }
-    }
-
-    fun submitFastMoneyAnswer(answerIndex: Int?) {
-        applyAndBroadcast(GameEvent.FastMoneySubmit(answerIndex))
-        // بين لاعب ولاعب بيوقف الوقت لحد ما المضيف يشغّله من جديد.
-        if (engine.state.fastMoney?.timerRunning != true) stopTimer()
-    }
-
-    fun revealFastMoney() {
-        stopTimer()
-        applyAndBroadcast(GameEvent.FastMoneyReveal)
-    }
-
     fun endGame() {
-        stopTimer()
         applyAndBroadcast(GameEvent.EndGame)
     }
 
     fun dismissError() {
         _lastError.value = null
-    }
-
-    private fun stopTimer() {
-        timerJob?.cancel()
-        timerJob = null
     }
 
     private fun handleClientMessage(endpointId: String, message: ClientMessage) {
@@ -171,12 +127,10 @@ class HostViewModel(
         val newState = engine.apply(event)
         _uiState.value = newState
         connections.broadcastToAll(HostMessage.StateUpdate(newState.maskedForPlayers()))
-        if (newState.phase == RoundPhase.GAME_OVER) stopTimer()
     }
 
     override fun onCleared() {
         super.onCleared()
-        stopTimer()
         connections.stop()
     }
 

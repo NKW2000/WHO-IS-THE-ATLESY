@@ -108,7 +108,7 @@ class GameEngineRoundTest {
     }
 
     @Test
-    fun `next round after the last question ends the game when there is no fast money`() {
+    fun `next round after the last question ends the game`() {
         val engine = GameEngine(freshState())
         engine.apply(GameEvent.NextRound)
         val result = engine.apply(GameEvent.NextRound)

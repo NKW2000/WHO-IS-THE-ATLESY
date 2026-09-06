@@ -95,16 +95,6 @@ fun GameOverScreen(
                     )
                 }
 
-                state.fastMoney?.takeIf { it.revealed }?.let { fastMoney ->
-                    Spacer(Modifier.height(10.dp))
-                    Pill(
-                        text = "الجولة السريعة ${fastMoney.total} / ${200}" +
-                            if (fastMoney.won) " — فوز!" else "",
-                        color = if (fastMoney.won) FeudColors.lime else FeudColors.pink,
-                        textColor = if (fastMoney.won) FeudColors.ink else Color.White
-                    )
-                }
-
                 if (onBackHome != null) {
                     Spacer(Modifier.height(14.dp))
                     PrimaryButton(

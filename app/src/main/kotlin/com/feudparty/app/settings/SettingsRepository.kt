@@ -25,10 +25,6 @@ class SettingsRepository(context: Context) {
             ?.takeIf { it.isNotEmpty() }
             ?: GameSettings.DEFAULT_MULTIPLIERS,
         strikesToSteal = prefs.getInt(KEY_STRIKES, GameSettings.DEFAULT_STRIKES),
-        fastMoneyEnabled = prefs.getBoolean(KEY_FM_ENABLED, true),
-        fastMoneyTarget = prefs.getInt(KEY_FM_TARGET, GameSettings().fastMoneyTarget),
-        fastMoneyFirstSeconds = prefs.getInt(KEY_FM_FIRST, GameSettings().fastMoneyFirstSeconds),
-        fastMoneySecondSeconds = prefs.getInt(KEY_FM_SECOND, GameSettings().fastMoneySecondSeconds),
         bankName = prefs.getString(KEY_BANK_NAME, null)?.takeIf { bankFile.exists() },
         bankQuestionCount = prefs.getInt(KEY_BANK_COUNT, 0),
         lanTesting = prefs.getBoolean(KEY_LAN, false),
@@ -42,10 +38,6 @@ class SettingsRepository(context: Context) {
             .putInt(KEY_ROUNDS, safe.rounds)
             .putString(KEY_MULTIPLIERS, safe.multipliers.joinToString(","))
             .putInt(KEY_STRIKES, safe.strikesToSteal)
-            .putBoolean(KEY_FM_ENABLED, safe.fastMoneyEnabled)
-            .putInt(KEY_FM_TARGET, safe.fastMoneyTarget)
-            .putInt(KEY_FM_FIRST, safe.fastMoneyFirstSeconds)
-            .putInt(KEY_FM_SECOND, safe.fastMoneySecondSeconds)
             .putBoolean(KEY_LAN, safe.lanTesting)
             .putString(KEY_LAN_HOST, safe.lanHost)
             .apply()
@@ -95,10 +87,6 @@ class SettingsRepository(context: Context) {
         const val KEY_ROUNDS = "rounds"
         const val KEY_MULTIPLIERS = "multipliers"
         const val KEY_STRIKES = "strikes"
-        const val KEY_FM_ENABLED = "fm_enabled"
-        const val KEY_FM_TARGET = "fm_target"
-        const val KEY_FM_FIRST = "fm_first"
-        const val KEY_FM_SECOND = "fm_second"
         const val KEY_BANK_NAME = "bank_name"
         const val KEY_BANK_COUNT = "bank_count"
         const val KEY_LAN = "lan_testing"

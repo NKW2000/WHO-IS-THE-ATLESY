@@ -1,6 +1,5 @@
 package com.feudparty.app.settings
 
-import com.feudparty.core.game.FastMoneyState
 
 /**
  * إعدادات المضيف — بتتحفظ على جهازه وبتتطبّق على كل لعبة جديدة.
@@ -10,10 +9,6 @@ data class GameSettings(
     val rounds: Int = DEFAULT_ROUNDS,
     val multipliers: List<Int> = DEFAULT_MULTIPLIERS,
     val strikesToSteal: Int = DEFAULT_STRIKES,
-    val fastMoneyEnabled: Boolean = true,
-    val fastMoneyTarget: Int = FastMoneyState.TARGET,
-    val fastMoneyFirstSeconds: Int = FastMoneyState.FIRST_PLAYER_SECONDS,
-    val fastMoneySecondSeconds: Int = FastMoneyState.SECOND_PLAYER_SECONDS,
     val bankName: String? = null,
     val bankQuestionCount: Int = 0,
     /** وضع الاختبار: وصل عبر TCP بدل Nearby حتى نلعب على محاكيات. */
@@ -25,17 +20,13 @@ data class GameSettings(
         multipliers.getOrElse(index) { multipliers.lastOrNull() ?: 1 }
     }
 
-    /** عدد الأسئلة اللي لازمة للعبة وحدة. */
-    fun questionsNeeded(): Int =
-        rounds + if (fastMoneyEnabled) FastMoneyState.QUESTIONS_PER_PLAYER else 0
+    /** عدد الأسئلة اللي لازمة للعبة وحدة — سؤال لكل جولة. */
+    fun questionsNeeded(): Int = rounds
 
     fun clamped(): GameSettings = copy(
         rounds = rounds.coerceIn(MIN_ROUNDS, MAX_ROUNDS),
         multipliers = multipliers.map { it.coerceIn(1, 9) }.ifEmpty { DEFAULT_MULTIPLIERS },
-        strikesToSteal = strikesToSteal.coerceIn(MIN_STRIKES, MAX_STRIKES),
-        fastMoneyTarget = fastMoneyTarget.coerceIn(50, 500),
-        fastMoneyFirstSeconds = fastMoneyFirstSeconds.coerceIn(10, 90),
-        fastMoneySecondSeconds = fastMoneySecondSeconds.coerceIn(10, 90)
+        strikesToSteal = strikesToSteal.coerceIn(MIN_STRIKES, MAX_STRIKES)
     )
 
     companion object {

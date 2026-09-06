@@ -35,7 +35,6 @@ import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
-import com.feudparty.core.game.FastMoneyState
 import com.feudparty.core.network.LanConnectionsManager
 
 /**
@@ -107,8 +106,6 @@ fun HostSettingsScreen(
                         .verticalScroll(rememberScrollState())
                 ) {
                     RoundsSection(settings, onSettingsChange)
-                    Spacer(Modifier.height(12.dp))
-                    FastMoneySection(settings, onSettingsChange)
                     Spacer(Modifier.height(12.dp))
                     LanSection(settings, onSettingsChange)
                     Spacer(Modifier.height(12.dp))
@@ -268,62 +265,6 @@ private fun RoundsSection(settings: GameSettings, onChange: (GameSettings) -> Un
             text = "بتحتاج ${settings.questionsNeeded().ar()} سؤال باللعبة الوحدة",
             color = FeudColors.gold
         )
-    }
-}
-
-@Composable
-private fun FastMoneySection(settings: GameSettings, onChange: (GameSettings) -> Unit) {
-    SettingsCard(title = "الجولة السريعة") {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                if (settings.fastMoneyEnabled) "مفعّلة" else "مطفية",
-                color = FeudColors.text,
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.weight(1f)
-            )
-            SecondaryButton(
-                text = if (settings.fastMoneyEnabled) "طفّيها" else "فعّلها",
-                onClick = { onChange(settings.copy(fastMoneyEnabled = !settings.fastMoneyEnabled)) },
-                accent = if (settings.fastMoneyEnabled) FeudColors.pink else FeudColors.lime,
-                modifier = Modifier.width(150.dp)
-            )
-        }
-
-        if (settings.fastMoneyEnabled) {
-            Spacer(Modifier.height(10.dp))
-            Stepper(
-                label = "الهدف بالنقاط",
-                value = settings.fastMoneyTarget,
-                min = 50,
-                max = 500,
-                step = 25,
-                onChange = { onChange(settings.copy(fastMoneyTarget = it)) }
-            )
-            Spacer(Modifier.height(8.dp))
-            Stepper(
-                label = "وقت اللاعب الأول (ثانية)",
-                value = settings.fastMoneyFirstSeconds,
-                min = 10,
-                max = 90,
-                step = 5,
-                onChange = { onChange(settings.copy(fastMoneyFirstSeconds = it)) }
-            )
-            Spacer(Modifier.height(8.dp))
-            Stepper(
-                label = "وقت اللاعب التاني (ثانية)",
-                value = settings.fastMoneySecondSeconds,
-                min = 10,
-                max = 90,
-                step = 5,
-                onChange = { onChange(settings.copy(fastMoneySecondSeconds = it)) }
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "${FastMoneyState.QUESTIONS_PER_PLAYER.ar()} أسئلة لكل لاعب — زي البرنامج.",
-                color = FeudColors.textMuted,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
     }
 }
 

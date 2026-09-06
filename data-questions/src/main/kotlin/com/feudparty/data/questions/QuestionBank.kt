@@ -1,7 +1,6 @@
 package com.feudparty.data.questions
 
 import com.feudparty.core.game.Answer
-import com.feudparty.core.game.FastMoneyState
 import com.feudparty.core.game.Question
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -16,12 +15,6 @@ private data class RawQuestion(
     val text: String,
     val category: String = "عام",
     val answers: List<RawAnswer>
-)
-
-/** أسئلة لعبة وحدة: جولات عادية + أسئلة الجولة السريعة. */
-data class GameQuestions(
-    val rounds: List<Question>,
-    val fastMoney: List<Question>
 )
 
 /** نتيجة قراءة ملف بنك أسئلة من المضيف. */
@@ -131,21 +124,12 @@ object QuestionBank {
         random: Random = Random.Default
     ): List<Question> = source.shuffled(random).take(count.coerceAtMost(source.size))
 
-    /**
-     * توزيعة لعبة كاملة: أسئلة الجولات العادية + أسئلة الجولة السريعة،
-     * كلها من نفس السحبة فما بينكرر سؤال بين القسمين.
-     */
+    /** أسئلة لعبة وحدة — سؤال لكل جولة، بدون تكرار. */
     fun randomGame(
         rounds: Int,
-        fastMoneyCount: Int = FastMoneyState.QUESTIONS_PER_PLAYER,
         source: List<Question> = bundled,
         random: Random = Random.Default
-    ): GameQuestions {
-        val shuffled = source.shuffled(random)
-        val roundQuestions = shuffled.take(rounds)
-        val fastMoney = shuffled.drop(roundQuestions.size).take(fastMoneyCount)
-        return GameQuestions(rounds = roundQuestions, fastMoney = fastMoney)
-    }
+    ): List<Question> = source.shuffled(random).take(rounds)
 
     private fun readResource(): String {
         val stream = QuestionBank::class.java.classLoader
