@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.AnswerBoardColumns
+import com.feudparty.app.ui.components.Countdown
 import com.feudparty.app.ui.components.MiniScore
 import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.PrimaryButton
@@ -128,6 +129,10 @@ private fun PlayOrPassScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            if (state.choiceSecondsLeft > 0) {
+                Countdown(seconds = state.choiceSecondsLeft)
+                Spacer(Modifier.height(10.dp))
+            }
             Text(
                 "كسبتوا المواجهة!",
                 color = FeudColors.gold,
@@ -305,6 +310,11 @@ private fun PlayerBoard(
 
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val seconds = state?.let { maxOf(it.answerSecondsLeft, it.choiceSecondsLeft) } ?: 0
+                if (seconds > 0) {
+                    Countdown(seconds = seconds, size = 44.dp)
+                    Spacer(Modifier.width(12.dp))
+                }
                 if (state != null &&
                     (state.phase == RoundPhase.PLAY || state.phase == RoundPhase.STEAL)
                 ) {

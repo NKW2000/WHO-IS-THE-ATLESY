@@ -166,8 +166,10 @@ private fun AnswerSlot(
                     else -> FeudColors.ink.copy(alpha = 0.45f)
                 },
                 style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                // المضيف لازم يقرا الجواب كامل — سطرين وتصغير بدل القص.
+                maxLines = 2,
+                softWrap = true,
+                overflow = TextOverflow.Visible,
                 modifier = Modifier.weight(1f)
             )
             // اللاعب ما بيشوف قيمة الخانة قبل ما تنكشف.

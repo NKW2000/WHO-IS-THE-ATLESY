@@ -47,6 +47,7 @@ class PlayerViewModel(
 
     /** الاسم بينحفظ لحد ما يصير في اتصال، لأن اللاعب بيكتبه قبل ما نلاقي المضيف. */
     private var pendingName: String? = null
+    private var pendingTeam: TeamId? = null
 
     init {
         viewModelScope.launch {
@@ -63,8 +64,9 @@ class PlayerViewModel(
     }
 
     /** بيبلّش البحث عن المضيف وبيسجّل الاسم لبعتو أول ما نتصل. */
-    fun join(name: String) {
+    fun join(name: String, teamId: TeamId? = null) {
         pendingName = name
+        pendingTeam = teamId
         if (_status.value != ConnectionStatus.SEARCHING) {
             _status.value = ConnectionStatus.SEARCHING
             connections.startDiscovery(serviceName)
@@ -116,7 +118,24 @@ class PlayerViewModel(
     private fun flushPendingName() {
         val endpointId = hostEndpointId ?: return
         val name = pendingName ?: return
-        connections.sendToEndpoint(endpointId, ClientMessage.Join(name))
+        connections.sendToEndpoint(endpointId, ClientMessage.Join(name, pendingTeam))
+    }
+
+    /** رجوع لنفس اللعبة بعد الانقطاع — بنفس الاسم والفريق. */
+    fun rejoin() {
+        pendingName ?: return
+        _status.value = ConnectionStatus.SEARCHING
+        connections.startDiscovery(serviceName)
+        flushPendingName()
+        _lastError.value = null
+    }
+
+    /** تغيير الفريق باللوبي قبل ما تبلّش اللعبة. */
+    fun changeTeam(teamId: TeamId) {
+        val endpointId = hostEndpointId ?: return
+        val id = _playerId.value ?: return
+        pendingTeam = teamId
+        connections.sendToEndpoint(endpointId, ClientMessage.ChangeTeam(id, teamId))
     }
 
     private fun handleHostMessage(message: HostMessage) {

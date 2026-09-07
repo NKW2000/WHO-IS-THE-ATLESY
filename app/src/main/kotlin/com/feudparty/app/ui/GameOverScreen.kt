@@ -50,7 +50,8 @@ import com.feudparty.core.game.TeamState
 @Composable
 fun GameOverScreen(
     state: GameState,
-    onBackHome: (() -> Unit)? = null
+    onBackHome: (() -> Unit)? = null,
+    onBackToLobby: (() -> Unit)? = null
 ) {
     val one = state.teams[TeamId.TEAM_1]
     val two = state.teams[TeamId.TEAM_2]
@@ -95,14 +96,29 @@ fun GameOverScreen(
                     )
                 }
 
-                if (onBackHome != null) {
+                if (onBackHome != null || onBackToLobby != null) {
                     Spacer(Modifier.height(14.dp))
-                    PrimaryButton(
-                        text = "رجوع للرئيسية",
-                        onClick = onBackHome,
-                        color = FeudColors.teal,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        if (onBackToLobby != null) {
+                            PrimaryButton(
+                                text = "رجوع للوبي",
+                                onClick = onBackToLobby,
+                                color = FeudColors.lime,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (onBackHome != null && onBackToLobby != null) {
+                            Spacer(Modifier.width(12.dp))
+                        }
+                        if (onBackHome != null) {
+                            PrimaryButton(
+                                text = "الرئيسية",
+                                onClick = onBackHome,
+                                color = FeudColors.teal,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
             }
         }

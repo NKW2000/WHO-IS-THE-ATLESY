@@ -31,6 +31,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.AnswerBoardColumns
 import com.feudparty.app.ui.components.AwardBanner
+import com.feudparty.app.ui.components.Countdown
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.QuestionCard
 import com.feudparty.app.ui.components.ScoreHeader
@@ -107,6 +108,15 @@ fun HostGameBoardScreen(
                         StatusBanner(text = hostStatusText(state), accent = accent)
                         Spacer(Modifier.height(10.dp))
 
+                        val seconds = maxOf(state.answerSecondsLeft, state.choiceSecondsLeft)
+                        if (seconds > 0) {
+                            Countdown(
+                                seconds = seconds,
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                            )
+                            Spacer(Modifier.height(10.dp))
+                        }
+
                         AwardBanner(state)
 
                         TurnRail(
@@ -126,9 +136,16 @@ fun HostGameBoardScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                         PrimaryButton(
-                            text = state.nextButtonLabel(),
+                            text = if (state.phase == RoundPhase.ROUND_END &&
+                                !state.boardFullyRevealed()
+                            ) {
+                                "اكشف الباقي"
+                            } else {
+                                state.nextButtonLabel()
+                            },
                             onClick = onNextRound,
-                            enabled = state.phase == RoundPhase.ROUND_END,
+                            enabled = state.phase == RoundPhase.ROUND_END &&
+                                state.boardFullyRevealed(),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -208,8 +225,14 @@ private fun markLabel(mark: PlayerMark): String = when (mark) {
 private fun GameState.canJudge(): Boolean = when (phase) {
     RoundPhase.FACE_OFF -> buzzedTeam() != null
     RoundPhase.FACE_OFF_SECOND, RoundPhase.PLAY, RoundPhase.STEAL -> true
+    // بعد نهاية الجولة الخانات بتضل تنضغط حتى يكشف الباقي وحدة وحدة.
+    RoundPhase.ROUND_END -> true
     else -> false
 }
+
+/** ما بينتقل للجولة الجاية إلا لما يكشف كل اللوح. */
+private fun GameState.boardFullyRevealed(): Boolean =
+    currentQuestion?.answers?.all { it.revealed } ?: true
 
 private fun GameState.nextButtonLabel(): String =
     if (isLastRound) "إنهاء اللعبة" else "الجولة الجاية"

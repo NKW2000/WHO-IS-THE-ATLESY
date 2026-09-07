@@ -27,5 +27,11 @@ sealed class GameEvent {
 
     data class PlayerLeft(val playerId: String) : GameEvent()
 
+    /** المضيف أو اللاعب نفسه بيغيّر فريقه قبل ما تبلّش اللعبة. */
+    data class PlayerMoved(val playerId: String, val teamId: TeamId) : GameEvent()
+
+    /** ثانية مرقت — بتنقص من وقت الجواب أو وقت القرار. */
+    object Tick : GameEvent()
+
     object EndGame : GameEvent()
 }

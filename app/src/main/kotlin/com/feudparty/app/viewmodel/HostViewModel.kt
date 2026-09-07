@@ -13,6 +13,8 @@ import com.feudparty.core.network.ClientMessage
 import com.feudparty.core.network.ConnectionEvent
 import com.feudparty.core.network.HostMessage
 import com.feudparty.core.network.NearbyConnectionsManager
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,6 +79,24 @@ class HostViewModel(
         connections.startAdvertising(serviceName)
     }
 
+    /** بعد ما تبلّش اللعبة ما بيضل حدا يغيّر فريقه. */
+    private var started = false
+
+    /** عدّاد الثواني بيمشي بجهاز المضيف بس. */
+    private var clockJob: Job? = null
+
+    fun startGame() {
+        started = true
+        startClock()
+    }
+
+    /** المضيف بينقل لاعب لفريق تاني — بس قبل ما تبلّش اللعبة. */
+    fun movePlayer(playerId: String, teamId: TeamId) {
+        if (started) return
+        applyAndBroadcast(GameEvent.PlayerMoved(playerId, teamId))
+        connections.sendToEndpoint(playerId, HostMessage.Assigned(playerId, teamId))
+    }
+
     fun judgeCorrect(answerIndex: Int) = applyAndBroadcast(GameEvent.JudgeCorrect(answerIndex))
 
     fun judgeWrong() = applyAndBroadcast(GameEvent.JudgeWrong)
@@ -84,7 +104,24 @@ class HostViewModel(
     fun nextRound() = applyAndBroadcast(GameEvent.NextRound)
 
     fun endGame() {
+        clockJob?.cancel()
+        clockJob = null
         applyAndBroadcast(GameEvent.EndGame)
+    }
+
+    /** عدّاد الثواني — بيمشي بجهاز المضيف وبينبثّ للكل مع الحالة. */
+    private fun startClock() {
+        if (clockJob?.isActive == true) return
+        clockJob = viewModelScope.launch {
+            while (true) {
+                delay(tickMillis)
+                val current = engine.state
+                if (current.gameOver) break
+                if (current.answerSecondsLeft > 0 || current.choiceSecondsLeft > 0) {
+                    applyAndBroadcast(GameEvent.Tick)
+                }
+            }
+        }
     }
 
     fun dismissError() {
@@ -93,7 +130,18 @@ class HostViewModel(
 
     private fun handleClientMessage(endpointId: String, message: ClientMessage) {
         when (message) {
-            is ClientMessage.Join -> addPlayer(endpointId, message.playerName)
+            is ClientMessage.Join -> addPlayer(endpointId, message.playerName, message.teamId)
+
+            is ClientMessage.ChangeTeam -> {
+                // تغيير الفريق مسموح بس قبل ما تبلّش اللعبة.
+                if (endpointId in knownEndpoints && !started) {
+                    applyAndBroadcast(GameEvent.PlayerMoved(endpointId, message.teamId))
+                    connections.sendToEndpoint(
+                        endpointId,
+                        HostMessage.Assigned(endpointId, message.teamId)
+                    )
+                }
+            }
             is ClientMessage.Buzz -> {
                 // منعتمد على معرّف الجهاز، مش على اللي الجهاز بيدّعيه.
                 if (endpointId !in knownEndpoints) return
@@ -108,9 +156,10 @@ class HostViewModel(
         }
     }
 
-    private fun addPlayer(endpointId: String, name: String) {
+    private fun addPlayer(endpointId: String, name: String, wanted: TeamId? = null) {
         val existing = engine.state.player(endpointId)
-        val teamId = existing?.teamId ?: smallerTeam()
+        // اللاعب بيختار فريقه؛ إذا ما اختار منحطه بالفريق الأقل عدداً.
+        val teamId = wanted ?: existing?.teamId ?: smallerTeam()
         knownEndpoints += endpointId
         connections.sendToEndpoint(endpointId, HostMessage.Assigned(endpointId, teamId))
         applyAndBroadcast(GameEvent.PlayerJoined(endpointId, name, teamId))
@@ -137,6 +186,7 @@ class HostViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        clockJob?.cancel()
         connections.stop()
     }
 

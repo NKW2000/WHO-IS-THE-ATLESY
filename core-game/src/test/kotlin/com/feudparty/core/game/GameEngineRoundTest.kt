@@ -64,13 +64,21 @@ class GameEngineRoundTest {
     }
 
     @Test
-    fun `round end reveals every answer on the board`() {
+    fun `the host reveals what is left one answer at a time after the round ends`() {
         val engine = GameEngine(freshState())
-        engine.giveControlTo(TeamId.TEAM_1)
+        engine.giveControlTo(TeamId.TEAM_1) // كشف الجواب الأول
         repeat(3) { engine.wrong() }
-        val result = engine.wrong()
+        val ended = engine.wrong()
 
-        assertTrue(result.currentQuestion!!.answers.all { it.revealed })
+        assertEquals(RoundPhase.ROUND_END, ended.phase)
+        // اللوح ما بينكشف لحاله.
+        assertEquals(1, ended.currentQuestion!!.answers.count { it.revealed })
+
+        val afterOne = engine.correct(2)
+        assertTrue(afterOne.currentQuestion!!.answers[2].revealed)
+        // الكشف بعد الجولة ما بيزيد نقاط ولا بيغيّر الفائز.
+        assertEquals(40, afterOne.score(TeamId.TEAM_1))
+        assertEquals(TeamId.TEAM_1, afterOne.roundWinner)
     }
 
     @Test
@@ -150,5 +158,50 @@ class GameEngineRoundTest {
         val next = engine.apply(GameEvent.NextRound)
         assertEquals(RoundPhase.FACE_OFF, next.phase)
         assertEquals(1, next.currentQuestionIndex)
+    }
+
+    @Test
+    fun `the answer clock runs out as a wrong answer`() {
+        val engine = GameEngine(freshState())
+        engine.giveControlTo(TeamId.TEAM_1)
+        val limit = engine.state.answerLimitSeconds
+        assertEquals(limit, engine.state.answerSecondsLeft)
+
+        repeat(limit) { engine.apply(GameEvent.Tick) }
+
+        assertEquals(1, engine.state.strikes)
+        // ودور اللاعب اللي بعده بلّش بعدّاد جديد.
+        assertEquals(limit, engine.state.answerSecondsLeft)
+    }
+
+    @Test
+    fun `the five second choice runs out as playing the board`() {
+        val engine = GameEngine(freshState())
+        engine.buzzPodium(TeamId.TEAM_1)
+        engine.correct(0)
+        assertEquals(CHOICE_SECONDS, engine.state.choiceSecondsLeft)
+
+        repeat(CHOICE_SECONDS) { engine.apply(GameEvent.Tick) }
+
+        assertEquals(RoundPhase.PLAY, engine.state.phase)
+        assertEquals(TeamId.TEAM_1, engine.state.controllingTeam)
+    }
+
+    @Test
+    fun `two players missing the face-off reopens the buzzer for the same pair`() {
+        val onePerTeam = listOf(
+            Player("a1", "أ", TeamId.TEAM_1, seat = 1),
+            Player("b1", "ب", TeamId.TEAM_2, seat = 1)
+        )
+        val engine = GameEngine(freshState(players = onePerTeam))
+        engine.buzzPodium(TeamId.TEAM_1)
+        engine.wrong()
+        val reopened = engine.wrong()
+
+        assertEquals(RoundPhase.FACE_OFF, reopened.phase)
+        assertEquals(BuzzState.OPEN, reopened.buzzState)
+        // الاتنين رجعوا جاهزين — ما في «استنى لاعبين تانيين».
+        assertEquals(setOf("a1", "b1"), reopened.armedPlayerIds())
+        assertTrue(reopened.wrongPlayers.isEmpty())
     }
 }

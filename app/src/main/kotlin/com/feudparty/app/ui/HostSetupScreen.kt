@@ -47,6 +47,7 @@ import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
 import com.feudparty.core.game.Player
 import com.feudparty.core.game.TeamId
+import com.feudparty.core.game.other
 import com.feudparty.core.game.TeamState
 
 /**
@@ -60,7 +61,8 @@ fun HostSetupScreen(
     advertising: Boolean,
     minPerTeam: Int,
     onStartHosting: () -> Unit,
-    onBeginGame: () -> Unit
+    onBeginGame: () -> Unit,
+    onMovePlayer: (String, TeamId) -> Unit = { _, _ -> }
 ) {
     val ready = TeamId.entries.all { team ->
         players.count { it.teamId == team && it.connected } >= minPerTeam
@@ -97,6 +99,7 @@ fun HostSetupScreen(
                         team = teams[teamId],
                         teamId = teamId,
                         players = players.filter { it.teamId == teamId },
+                        onMovePlayer = onMovePlayer,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -159,6 +162,7 @@ private fun TeamColumn(
     team: TeamState?,
     teamId: TeamId,
     players: List<Player>,
+    onMovePlayer: (String, TeamId) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val color = teamId.color()
@@ -207,7 +211,11 @@ private fun TeamColumn(
             // قائمة كسولة — تضل داخل الشاشة مهما زاد العدد.
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(players) { player ->
-                    PlayerRow(player = player, teamId = teamId)
+                    PlayerRow(
+                        player = player,
+                        teamId = teamId,
+                        onMove = { onMovePlayer(player.id, teamId.other()) }
+                    )
                     Spacer(Modifier.height(6.dp))
                 }
             }
@@ -216,7 +224,7 @@ private fun TeamColumn(
 }
 
 @Composable
-private fun PlayerRow(player: Player, teamId: TeamId) {
+private fun PlayerRow(player: Player, teamId: TeamId, onMove: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -232,6 +240,21 @@ private fun PlayerRow(player: Player, teamId: TeamId) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
+        // نقل اللاعب للفريق التاني قبل ما تبلّش اللعبة.
+        CartoonSurface(
+            color = FeudColors.gold,
+            borderWidth = 3.dp,
+            corner = 10.dp,
+            shadow = 3.dp,
+            onClick = onMove
+        ) {
+            Text(
+                "بدّل ⇄",
+                color = FeudColors.ink,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+            )
+        }
     }
 }
 

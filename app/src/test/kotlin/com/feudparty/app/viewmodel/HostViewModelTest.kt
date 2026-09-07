@@ -176,20 +176,17 @@ class HostViewModelTest {
     }
 
     @Test
-    fun `the question reaches players only after somebody buzzes`() = runTest(dispatcher) {
+    fun `the question never reaches a player device`() = runTest(dispatcher) {
         val vm = viewModel()
         testScheduler.advanceUntilIdle()
         join("ep-a", "ep-b")
-        testScheduler.advanceUntilIdle()
-
-        val beforeBuzz = (connections.broadcasts.last() as HostMessage.StateUpdate).state
-        assertEquals("", beforeBuzz.currentQuestion!!.text)
-
         buzz("ep-a")
         testScheduler.advanceUntilIdle()
+        vm.judgeCorrect(0)
 
-        val afterBuzz = (connections.broadcasts.last() as HostMessage.StateUpdate).state
-        assertEquals("سؤال١", afterBuzz.currentQuestion!!.text)
+        val sent = (connections.broadcasts.last() as HostMessage.StateUpdate).state
+        assertEquals("", sent.currentQuestion!!.text)
+        assertEquals("سؤال١", vm.uiState.value.currentQuestion!!.text)
     }
 
     @Test

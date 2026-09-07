@@ -29,6 +29,8 @@ class GameEngine(initialState: GameState) {
             GameEvent.NextRound -> handleNextRound()
             is GameEvent.PlayerJoined -> handlePlayerJoined(event)
             is GameEvent.PlayerLeft -> handlePlayerLeft(event)
+            is GameEvent.PlayerMoved -> handlePlayerMoved(event)
+            GameEvent.Tick -> handleTick()
             GameEvent.EndGame -> state.copy(
                 phase = RoundPhase.GAME_OVER,
                 gameOver = true,
@@ -56,7 +58,8 @@ class GameEngine(initialState: GameState) {
                 state.copy(
                     buzzState = locked,
                     faceOffTeam = player.teamId,
-                    buzzedPlayerId = player.id
+                    buzzedPlayerId = player.id,
+                    answerSecondsLeft = state.answerLimitSeconds
                 )
             }
 
@@ -97,6 +100,8 @@ class GameEngine(initialState: GameState) {
             RoundPhase.FACE_OFF_SECOND -> faceOffCorrect(answerIndex, answer, first = false)
             RoundPhase.PLAY -> playCorrect(answerIndex, answer)
             RoundPhase.STEAL -> stealCorrect(answerIndex, answer)
+            // بعد ما تنتهي الجولة المضيف بيكشف الباقي بدون نقاط.
+            RoundPhase.ROUND_END -> reveal(answerIndex)
             else -> state
         }
     }
@@ -161,7 +166,8 @@ class GameEngine(initialState: GameState) {
                     phase = RoundPhase.FACE_OFF_SECOND,
                     buzzState = BuzzState.CLOSED,
                     faceOffTeam = team.other(),
-                    buzzedPlayerId = null
+                    buzzedPlayerId = null,
+                    answerSecondsLeft = state.answerLimitSeconds
                 )
             }
 
@@ -172,11 +178,15 @@ class GameEngine(initialState: GameState) {
                     marked.offerChoice(leader)
                 } else {
                     // الاتنين غلطوا — منرجّع الزر مفتوح لنفس السؤال.
+                    // ما في لاعبين تانيين ينزلوا عالمنصة — منرجّع الزر
+                    // لنفس الاتنين على نفس السؤال بدل ما تعلق اللعبة.
                     marked.copy(
                         phase = RoundPhase.FACE_OFF,
                         buzzState = BuzzState.OPEN,
                         faceOffTeam = null,
-                        buzzedPlayerId = null
+                        buzzedPlayerId = null,
+                        answerSecondsLeft = 0,
+                        wrongPlayers = emptySet()
                     )
                 }
             }
@@ -195,6 +205,37 @@ class GameEngine(initialState: GameState) {
 
             else -> state
         }
+    }
+
+    /**
+     * ثانية مرقت. وقت القرار لما يخلص بيلعب الفريق الفائز، ووقت الجواب
+     * لما يخلص بينحسب خطأ زي أي جواب غلط.
+     */
+    private fun handleTick(): GameState = when {
+        state.choiceSecondsLeft > 0 -> {
+            val left = state.choiceSecondsLeft - 1
+            if (left > 0) {
+                state.copy(choiceSecondsLeft = left)
+            } else {
+                // ما قرر بالوقت — منعتبرها «نلعب».
+                state.copy(choiceSecondsLeft = 0).let {
+                    state = it
+                    handleChoice(play = true)
+                }
+            }
+        }
+
+        state.answerSecondsLeft > 0 -> {
+            val left = state.answerSecondsLeft - 1
+            if (left > 0) {
+                state.copy(answerSecondsLeft = left)
+            } else {
+                state = state.copy(answerSecondsLeft = 0)
+                handleWrong()
+            }
+        }
+
+        else -> state
     }
 
     // ---------------------------------------------------------- انتقال الجولات
@@ -252,9 +293,7 @@ class GameEngine(initialState: GameState) {
                 }
             }
         }
-        val teams = state.teams.toMutableMap()
-        teams[event.teamId]?.let { teams[event.teamId] = it.copy(connected = true) }
-        return state.copy(players = players, teams = teams)
+        return state.copy(players = players).renumbered().withTeamsConnected()
     }
 
     private fun handlePlayerLeft(event: GameEvent.PlayerLeft): GameState {
@@ -269,6 +308,16 @@ class GameEngine(initialState: GameState) {
         return state.copy(players = players, teams = teams)
     }
 
+    /** نقل لاعب لفريق تاني — وبعدها منرقّم الفريقين من جديد. */
+    private fun handlePlayerMoved(event: GameEvent.PlayerMoved): GameState {
+        val player = state.player(event.playerId) ?: return state
+        if (player.teamId == event.teamId) return state
+        val moved = state.players.map {
+            if (it.id == event.playerId) it.copy(teamId = event.teamId) else it
+        }
+        return state.copy(players = moved).renumbered().withTeamsConnected()
+    }
+
     // ----------------------------------------------------------------- مساعدات
 
     private fun reveal(index: Int): GameState = state.mapCurrentQuestion { question ->
@@ -280,6 +329,28 @@ class GameEngine(initialState: GameState) {
     companion object {
         const val DEFAULT_STRIKES_TO_STEAL = 3
     }
+}
+
+/** بيرقّم لاعبين كل فريق من ١ بترتيب انضمامهم. */
+private fun GameState.renumbered(): GameState = copy(
+    players = players.let { all ->
+        val counters = mutableMapOf<TeamId, Int>()
+        all.map { player ->
+            val next = (counters[player.teamId] ?: 0) + 1
+            counters[player.teamId] = next
+            player.copy(seat = next)
+        }
+    }
+)
+
+/** حالة اتصال الفريق = في لاعب متصل واحد عالأقل. */
+private fun GameState.withTeamsConnected(): GameState {
+    val updated = teams.toMutableMap()
+    TeamId.entries.forEach { teamId ->
+        val any = players.any { it.teamId == teamId && it.connected }
+        updated[teamId]?.let { updated[teamId] = it.copy(connected = any) }
+    }
+    return copy(teams = updated)
 }
 
 private fun GameState.mapCurrentQuestion(transform: (Question) -> Question): GameState {
@@ -300,14 +371,16 @@ private fun GameState.markWrong(playerId: String?): GameState =
     if (playerId == null) this
     else copy(wrongPlayers = wrongPlayers + playerId, correctPlayers = correctPlayers - playerId)
 
-/** الفائز بالمواجهة بيستنى قرار: يلعب أو يمرّر. */
+/** الفائز بالمواجهة بيستنى قرار: يلعب أو يمرّر — وعنده ٥ ثواني. */
 private fun GameState.offerChoice(winner: TeamId): GameState = copy(
     phase = RoundPhase.PLAY_OR_PASS,
     faceOffWinner = winner,
     faceOffTeam = null,
     buzzState = BuzzState.CLOSED,
     buzzedPlayerId = null,
-    turnPlayerId = podiumPlayer(winner)?.id
+    turnPlayerId = podiumPlayer(winner)?.id,
+    choiceSecondsLeft = CHOICE_SECONDS,
+    answerSecondsLeft = 0
 )
 
 /** بداية مرحلة اللعب: الدور بينتقل للاعب اللي بعد لاعب المنصة. */
@@ -338,6 +411,8 @@ private fun GameState.advanceTurn(team: TeamId): GameState {
         turnIndex = turnIndex + (team to nextIndex),
         turnPlayerId = nextPlayer.id,
         buzzedPlayerId = null,
+        answerSecondsLeft = answerLimitSeconds,
+        choiceSecondsLeft = 0,
         // أول ما يرجع دوره بترجع شاشته حيادية.
         wrongPlayers = wrongPlayers - nextPlayer.id,
         correctPlayers = correctPlayers - nextPlayer.id
@@ -353,6 +428,8 @@ private fun GameState.openSteal(controlling: TeamId): GameState {
         buzzState = BuzzState.CLOSED,
         buzzedPlayerId = null,
         turnPlayerId = podium?.id,
+        answerSecondsLeft = answerLimitSeconds,
+        choiceSecondsLeft = 0,
         turnIndex = if (podium == null) turnIndex else turnIndex + (thief to podiumIndexOf(thief)),
         wrongPlayers = if (podium == null) wrongPlayers else wrongPlayers - podium.id,
         correctPlayers = if (podium == null) correctPlayers else correctPlayers - podium.id
@@ -382,16 +459,17 @@ private fun GameState.award(team: TeamId, stolen: Boolean): GameState {
     val points = pot * multiplier
     val updatedTeams = teams.toMutableMap()
     updatedTeams[team]?.let { updatedTeams[team] = it.copy(score = it.score + points) }
-    return mapCurrentQuestion { question ->
-        question.copy(answers = question.answers.map { it.copy(revealed = true) })
-    }.copy(
+    // اللوح ما بينكشف لحاله — المضيف بيكشف الباقي خانة خانة.
+    return copy(
         teams = updatedTeams,
         phase = RoundPhase.ROUND_END,
         buzzState = BuzzState.CLOSED,
         buzzedPlayerId = null,
         turnPlayerId = null,
         roundWinner = team,
-        lastAward = Award(team, points, stolen)
+        lastAward = Award(team, points, stolen),
+        answerSecondsLeft = 0,
+        choiceSecondsLeft = 0
     )
 }
 

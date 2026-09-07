@@ -133,6 +133,12 @@ data class GameState(
     val multipliers: List<Int> = listOf(1, 1, 2, 3),
     /** عدد الأخطاء اللي بتفتح السرقة — ٣ زي البرنامج. */
     val strikesToSteal: Int = 3,
+    /** كم ثانية للاعب يجاوب قبل ما ينحسب عليه خطأ. */
+    val answerLimitSeconds: Int = DEFAULT_ANSWER_SECONDS,
+    /** الوقت الباقي للجواب — صفر يعني ما في عدّاد شغّال. */
+    val answerSecondsLeft: Int = 0,
+    /** الوقت الباقي لقرار «نلعب أو نمرّر». */
+    val choiceSecondsLeft: Int = 0,
     val gameOver: Boolean = false
 ) {
     val currentQuestion: Question? get() = questions.getOrNull(currentQuestionIndex)
@@ -218,6 +224,12 @@ data class GameState(
     }
 }
 
+/** ثواني قرار «نلعب أو نمرّر». */
+const val CHOICE_SECONDS = 5
+
+/** الوقت الافتراضي للجواب. */
+const val DEFAULT_ANSWER_SECONDS = 10
+
 fun GameState.buzzedTeam(): TeamId? = when (buzzState) {
     BuzzState.LOCKED_TEAM_1 -> TeamId.TEAM_1
     BuzzState.LOCKED_TEAM_2 -> TeamId.TEAM_2
@@ -225,19 +237,13 @@ fun GameState.buzzedTeam(): TeamId? = when (buzzState) {
 }
 
 /**
- * نسخة الحالة اللي بتنبعت لأجهزة اللاعبين.
- *
- * نص السؤال بيضل مخفي **بس** والزر مفتوح بالمواجهة — هاي اللحظة اللي
- * السرعة فيها بتفرق، وما بدنا حدا يقرا قبل ما يسمع. أول ما حدا يضغط
- * بينكشف السؤال للكل حتى يقدروا يتابعوا اللوح. نصوص الأجوبة المخفية ما
- * بتطلع من جهاز المضيف أبداً.
+ * نسخة الحالة اللي بتنبعت لأجهزة اللاعبين: بدون نص السؤال وبدون نصوص
+ * الأجوبة المخفية. اللاعب بيسمع السؤال من المضيف، وبيشوف خانات مرقّمة بس.
  */
 fun GameState.maskedForPlayers(): GameState {
-    val hideQuestion = phase == RoundPhase.FACE_OFF && buzzState == BuzzState.OPEN
     return copy(
-        questions = questions.mapIndexed { index, question ->
-            question.masked(hideText = hideQuestion && index == currentQuestionIndex)
-        },
+        // نص السؤال ما بيوصل ولا جهاز لاعب — بيسمعوه من المضيف بس.
+        questions = questions.map { it.masked(hideText = true) },
     )
 }
 

@@ -14,7 +14,12 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.feudparty.app.ui.components.ConfirmDialog
+import com.feudparty.app.ui.theme.FeudColors
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
@@ -38,7 +43,6 @@ import com.feudparty.app.ui.HostSetupScreen
 import com.feudparty.app.ui.PlayerJoinScreen
 import com.feudparty.app.ui.PlayerScreen
 import com.feudparty.app.ui.ScoreboardScreen
-import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.viewmodel.HostViewModel
 import com.feudparty.app.viewmodel.PlayerViewModel
 import com.feudparty.app.viewmodel.SettingsViewModel
@@ -128,7 +132,11 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                     advertising = advertising,
                     minPerTeam = HostViewModel.MIN_PLAYERS_PER_TEAM,
                     onStartHosting = vm::startHosting,
-                    onBeginGame = { navController.navigate(Routes.HOST_BOARD) }
+                    onMovePlayer = vm::movePlayer,
+                    onBeginGame = {
+                        vm.startGame()
+                        navController.navigate(Routes.HOST_BOARD)
+                    }
                 )
             }
 
@@ -136,6 +144,8 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                 val vm = hostViewModel(activityOwner, context)
                 val state by vm.uiState.collectAsStateWithLifecycle()
                 GameStateCues(state)
+                var confirmExit by remember { mutableStateOf(false) }
+                BackHandler { confirmExit = true }
                 ErrorSnackbar(
                     vm.lastError.collectAsStateWithLifecycle().value,
                     snackbarHostState,
@@ -160,6 +170,22 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                         onNextRound = vm::nextRound
                     )
                 }
+
+                if (confirmExit) {
+                    ConfirmDialog(
+                        title = "تطلع من اللعبة؟",
+                        message = "اللعبة شغّالة — إذا طلعت بتنتهي عند كل اللاعبين.",
+                        confirmText = "اطلع",
+                        dismissText = "كمّل اللعب",
+                        onConfirm = {
+                            confirmExit = false
+                            navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.HOME) { inclusive = true }
+                            }
+                        },
+                        onDismiss = { confirmExit = false }
+                    )
+                }
             }
 
             composable(Routes.HOST_RESULT) {
@@ -170,6 +196,11 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                     onBackHome = {
                         navController.navigate(Routes.HOME) {
                             popUpTo(Routes.HOME) { inclusive = true }
+                        }
+                    },
+                    onBackToLobby = {
+                        navController.navigate(Routes.HOST_SETUP) {
+                            popUpTo(Routes.HOME)
                         }
                     }
                 )
@@ -183,8 +214,8 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                     vm::dismissError
                 )
 
-                PlayerJoinScreen(onJoinConfirmed = { name ->
-                    vm.join(name)
+                PlayerJoinScreen(onJoinConfirmed = { name, teamId ->
+                    vm.join(name, teamId)
                     navController.navigate(Routes.PLAYER_BUZZER)
                 })
             }
@@ -200,6 +231,12 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                     snackbarHostState,
                     vm::dismissError
                 )
+
+                var showLeft by remember { mutableStateOf(false) }
+                BackHandler { showLeft = true }
+                LaunchedEffect(status) {
+                    if (status == PlayerViewModel.ConnectionStatus.DISCONNECTED) showLeft = true
+                }
 
                 val live = state
                 val mark = vm.mark()
@@ -217,6 +254,30 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                         status = status,
                         onBuzz = vm::onBuzzTapped,
                         onChoose = vm::choose
+                    )
+                }
+
+                if (showLeft) {
+                    ConfirmDialog(
+                        title = if (status == PlayerViewModel.ConnectionStatus.DISCONNECTED) {
+                            "انقطعت عن اللعبة"
+                        } else {
+                            "تطلع من اللعبة؟"
+                        },
+                        message = "بتقدر ترجع لنفس اللعبة، أو تطلع وتبلّش من جديد.",
+                        confirmText = "ارجع لللعبة",
+                        dismissText = "اطلع وابدأ من جديد",
+                        confirmColor = FeudColors.lime,
+                        onConfirm = {
+                            showLeft = false
+                            vm.rejoin()
+                        },
+                        onDismiss = {
+                            showLeft = false
+                            navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.HOME) { inclusive = true }
+                            }
+                        }
                     )
                 }
             }

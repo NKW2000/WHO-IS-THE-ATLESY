@@ -26,25 +26,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.CartoonSurface
+import com.feudparty.app.ui.components.color
+import com.feudparty.app.ui.components.inkColor
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.QuestionTile
 import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.theme.DisplayFont
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
+import com.feudparty.core.game.TeamId
 
 /**
  * انضمام لاعب — خطوة وحدة بس: اكتب اسمك واضغط. الاسم بيتكتب بحقل كبير
  * كريمي عشان يبان من بعيد، والزر بيكبر لما يصير في اسم.
  */
 @Composable
-fun PlayerJoinScreen(onJoinConfirmed: (String) -> Unit) {
+fun PlayerJoinScreen(
+    teamNames: Map<TeamId, String> = defaultTeamNames,
+    onJoinConfirmed: (String, TeamId) -> Unit
+) {
     var name by remember { mutableStateOf("") }
-    val ready = name.isNotBlank()
+    var team by remember { mutableStateOf<TeamId?>(null) }
+    val ready = name.isNotBlank() && team != null
 
     StageBackground(contentPadding = PaddingValues(horizontal = 34.dp, vertical = 20.dp)) {
         Row(
@@ -62,7 +70,7 @@ fun PlayerJoinScreen(onJoinConfirmed: (String) -> Unit) {
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "المضيف بيحطك بفريق، وجهازك بيصير زرّك.",
+                    "اختار فريقك، وجهازك بيصير زرّك.",
                     color = FeudColors.textMuted,
                     style = MaterialTheme.typography.bodyLarge
                 )
@@ -90,9 +98,14 @@ fun PlayerJoinScreen(onJoinConfirmed: (String) -> Unit) {
                             fontFamily = DisplayFont,
                             color = FeudColors.ink
                         ),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        // كيبورد عادي بسطر واحد — بدون وضع الشاشة المقسومة.
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Done,
+                            keyboardType = KeyboardType.Text,
+                            autoCorrect = false
+                        ),
                         keyboardActions = KeyboardActions(
-                            onDone = { if (ready) onJoinConfirmed(name.trim()) }
+                            onDone = { team?.let { if (ready) onJoinConfirmed(name.trim(), it) } }
                         ),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -105,11 +118,36 @@ fun PlayerJoinScreen(onJoinConfirmed: (String) -> Unit) {
                     )
                 }
 
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(14.dp))
+
+                Text(
+                    "اختار فريقك",
+                    color = FeudColors.gold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    TeamId.entries.forEachIndexed { index, teamId ->
+                        if (index > 0) Spacer(Modifier.width(12.dp))
+                        TeamChoice(
+                            name = teamNames[teamId] ?: "فريق",
+                            teamId = teamId,
+                            selected = team == teamId,
+                            onClick = { team = teamId },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(14.dp))
 
                 PrimaryButton(
-                    text = if (ready) "يلا نلعب" else "اكتب اسمك",
-                    onClick = { onJoinConfirmed(name.trim()) },
+                    text = when {
+                        name.isBlank() -> "اكتب اسمك"
+                        team == null -> "اختار فريق"
+                        else -> "يلا نلعب"
+                    },
+                    onClick = { team?.let { onJoinConfirmed(name.trim(), it) } },
                     enabled = ready,
                     color = FeudColors.lime,
                     modifier = Modifier.fillMaxWidth()
@@ -135,10 +173,41 @@ fun PlayerJoinScreen(onJoinConfirmed: (String) -> Unit) {
     }
 }
 
+/** زر فريق — بيضوي لما ينتخب. */
+@Composable
+private fun TeamChoice(
+    name: String,
+    teamId: TeamId,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    CartoonSurface(
+        modifier = modifier,
+        color = if (selected) teamId.color() else FeudColors.ink.copy(alpha = 0.4f),
+        corner = 16.dp,
+        shadow = 6.dp,
+        onClick = onClick
+    ) {
+        Text(
+            name,
+            color = if (selected) teamId.inkColor() else FeudColors.textMuted,
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp)
+        )
+    }
+}
+
+internal val defaultTeamNames = mapOf(
+    TeamId.TEAM_1 to "الفريق الأحمر",
+    TeamId.TEAM_2 to "الفريق الأزرق"
+)
+
 @Preview(showBackground = true, widthDp = 880, heightDp = 420)
 @Composable
 private fun PlayerJoinScreenPreview() {
     FeudPartyTheme {
-        Box { PlayerJoinScreen(onJoinConfirmed = {}) }
+        Box { PlayerJoinScreen(onJoinConfirmed = { _, _ -> }) }
     }
 }

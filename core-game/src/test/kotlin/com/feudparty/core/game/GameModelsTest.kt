@@ -51,13 +51,13 @@ class GameModelsTest {
     }
 
     @Test
-    fun `the question appears once somebody buzzes, the hidden answers never do`() {
+    fun `the question never reaches a player, revealed answers do`() {
         val engine = GameEngine(freshState())
         engine.buzzPodium(TeamId.TEAM_1)
         val masked = engine.correct(0).maskedForPlayers()
         val question = masked.currentQuestion!!
 
-        assertEquals("سؤال q1", question.text)
+        assertEquals("", question.text)
         assertEquals("الأول", question.answers[0].text)
         assertTrue(question.answers.drop(1).all { it.text.isEmpty() })
         // النقاط بتضل ظاهرة — اللوح بيعرض قيمة كل خانة مخفية.

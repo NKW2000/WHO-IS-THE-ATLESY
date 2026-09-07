@@ -13,7 +13,12 @@ private val json = Json { ignoreUnknownKeys = true }
 sealed class ClientMessage {
     @Serializable
     @SerialName("join")
-    data class Join(val playerName: String) : ClientMessage()
+    data class Join(val playerName: String, val teamId: TeamId? = null) : ClientMessage()
+
+    /** اللاعب بيغيّر فريقه قبل ما تبلّش اللعبة. */
+    @Serializable
+    @SerialName("team")
+    data class ChangeTeam(val playerId: String, val teamId: TeamId) : ClientMessage()
 
     @Serializable
     @SerialName("buzz")
