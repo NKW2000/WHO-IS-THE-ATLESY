@@ -16,6 +16,9 @@ class FakeNearbyConnectionsManager : NearbyConnectionsManager {
 
     var advertisingAs: String? = null
         private set
+    var advertisedName: String? = null
+        private set
+    val connectRequests = mutableListOf<String>()
     var discoveringAs: String? = null
         private set
     var stopped = false
@@ -25,12 +28,17 @@ class FakeNearbyConnectionsManager : NearbyConnectionsManager {
     val directHostMessages = mutableListOf<Pair<String, HostMessage>>()
     val clientMessages = mutableListOf<Pair<String, ClientMessage>>()
 
-    override fun startAdvertising(serviceName: String) {
+    override fun startAdvertising(serviceName: String, displayName: String?) {
         advertisingAs = serviceName
+        advertisedName = displayName
     }
 
     override fun startDiscovery(serviceName: String) {
         discoveringAs = serviceName
+    }
+
+    override fun connectTo(endpointId: String) {
+        connectRequests += endpointId
     }
 
     override fun sendToEndpoint(endpointId: String, message: ClientMessage) {

@@ -377,7 +377,7 @@ private fun GameState.markWrong(playerId: String?): GameState =
     if (playerId == null) this
     else copy(wrongPlayers = wrongPlayers + playerId, correctPlayers = correctPlayers - playerId)
 
-/** الفائز بالمواجهة بيستنى قرار: يلعب أو يمرّر — وعنده ٥ ثواني. */
+/** الفائز بالمواجهة بيستنى قرار: يلعب أو يمرّر — بالوقت اللي حطّه المضيف. */
 private fun GameState.offerChoice(winner: TeamId): GameState = copy(
     phase = RoundPhase.PLAY_OR_PASS,
     faceOffWinner = winner,
@@ -385,7 +385,7 @@ private fun GameState.offerChoice(winner: TeamId): GameState = copy(
     buzzState = BuzzState.CLOSED,
     buzzedPlayerId = null,
     turnPlayerId = podiumPlayer(winner)?.id,
-    choiceSecondsLeft = CHOICE_SECONDS,
+    choiceSecondsLeft = choiceLimitSeconds,
     answerSecondsLeft = 0
 )
 

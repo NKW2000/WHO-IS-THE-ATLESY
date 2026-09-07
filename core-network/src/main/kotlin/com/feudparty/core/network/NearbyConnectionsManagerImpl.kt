@@ -86,10 +86,11 @@ class NearbyConnectionsManagerImpl(
         }
     }
 
-    override fun startAdvertising(serviceName: String) {
+    override fun startAdvertising(serviceName: String, displayName: String?) {
         role = Role.HOST
         val options = AdvertisingOptions.Builder().setStrategy(strategy).build()
-        client.startAdvertising(localName, serviceName, connectionLifecycleCallback, options)
+        val name = displayName?.takeIf { it.isNotBlank() } ?: localName
+        client.startAdvertising(name, serviceName, connectionLifecycleCallback, options)
             .addOnFailureListener { emit(ConnectionEvent.Error("تعذّر بدء البث: ${it.message}")) }
     }
 
@@ -97,17 +98,24 @@ class NearbyConnectionsManagerImpl(
         role = Role.CLIENT
         val options = DiscoveryOptions.Builder().setStrategy(strategy).build()
         val endpointCallback = object : EndpointDiscoveryCallback() {
+            // ما منتصل لحالنا: منعرض الغرفة واللاعب بيختار.
             override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
-                client.requestConnection(localName, endpointId, connectionLifecycleCallback)
-                    .addOnFailureListener {
-                        emit(ConnectionEvent.Error("تعذّر طلب الاتصال: ${it.message}"))
-                    }
+                emit(ConnectionEvent.RoomFound(endpointId, info.endpointName))
             }
 
-            override fun onEndpointLost(endpointId: String) = Unit
+            override fun onEndpointLost(endpointId: String) {
+                emit(ConnectionEvent.RoomLost(endpointId))
+            }
         }
         client.startDiscovery(serviceName, endpointCallback, options)
             .addOnFailureListener { emit(ConnectionEvent.Error("تعذّر البحث عن اللعبة: ${it.message}")) }
+    }
+
+    override fun connectTo(endpointId: String) {
+        client.requestConnection(localName, endpointId, connectionLifecycleCallback)
+            .addOnFailureListener {
+                emit(ConnectionEvent.Error("تعذّر طلب الاتصال: ${it.message}"))
+            }
     }
 
     override fun sendToEndpoint(endpointId: String, message: ClientMessage) {

@@ -13,7 +13,11 @@ data class GameSettings(
     val strikesToSteal: Int = DEFAULT_STRIKES,
     /** كم ثانية عند اللاعب ليجاوب قبل ما ينحسب عليه خطأ. */
     val answerSeconds: Int = DEFAULT_ANSWER_SECONDS,
+    /** كم ثانية لقرار «نلعب أو نمرّر». */
+    val choiceSeconds: Int = DEFAULT_CHOICE_SECONDS,
     val teamNames: Map<TeamId, String> = DEFAULT_TEAM_NAMES,
+    /** اسم الغرفة اللي بيشوفه اللاعبين لما يدوّروا على لعبة. */
+    val roomName: String = DEFAULT_ROOM_NAME,
     val bankName: String? = null,
     val bankQuestionCount: Int = 0
 ) {
@@ -30,6 +34,8 @@ data class GameSettings(
         multipliers = multipliers.map { it.coerceIn(1, 9) }.ifEmpty { DEFAULT_MULTIPLIERS },
         strikesToSteal = strikesToSteal.coerceIn(MIN_STRIKES, MAX_STRIKES),
         answerSeconds = answerSeconds.coerceIn(MIN_ANSWER_SECONDS, MAX_ANSWER_SECONDS),
+        choiceSeconds = choiceSeconds.coerceIn(MIN_CHOICE_SECONDS, MAX_CHOICE_SECONDS),
+        roomName = roomName.trim().take(MAX_TEAM_NAME).ifBlank { DEFAULT_ROOM_NAME },
         teamNames = TeamId.entries.associateWith { id ->
             teamNames[id]?.trim()?.take(MAX_TEAM_NAME)?.ifBlank { null }
                 ?: DEFAULT_TEAM_NAMES.getValue(id)
@@ -50,7 +56,11 @@ data class GameSettings(
         const val MIN_ANSWER_SECONDS = 5
         const val MAX_ANSWER_SECONDS = 60
         const val DEFAULT_ANSWER_SECONDS = 10
+        const val MIN_CHOICE_SECONDS = 3
+        const val MAX_CHOICE_SECONDS = 30
+        const val DEFAULT_CHOICE_SECONDS = 5
         const val MAX_TEAM_NAME = 18
+        const val DEFAULT_ROOM_NAME = "غرفة مين الأطليسي"
         val DEFAULT_TEAM_NAMES = mapOf(
             TeamId.TEAM_1 to "الفريق الأخضر",
             TeamId.TEAM_2 to "الفريق الأزرق"

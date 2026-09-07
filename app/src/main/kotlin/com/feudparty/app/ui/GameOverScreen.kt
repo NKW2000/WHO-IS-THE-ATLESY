@@ -34,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.CartoonSurface
+import com.feudparty.app.ui.components.Fireworks
 import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.StageBackground
@@ -67,7 +68,7 @@ fun GameOverScreen(
                 Spacer(Modifier.height(6.dp))
                 CartoonSurface(color = FeudColors.gold, corner = 20.dp, shadow = 8.dp) {
                     Text(
-                        winnerName?.let { "فاز $it 🎉" } ?: "تعادل!",
+                        winnerName?.let { "فاز $it" } ?: "تعادل!",
                         color = FeudColors.ink,
                         style = MaterialTheme.typography.headlineLarge,
                         textAlign = TextAlign.Center,
@@ -123,6 +124,8 @@ fun GameOverScreen(
             }
         }
         Confetti()
+        // ألعاب نارية فوق القصاصات — نفس ألوان اللعبة وحدودها الحبرية.
+        Fireworks()
     }
 }
 

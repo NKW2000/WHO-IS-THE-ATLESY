@@ -48,14 +48,6 @@ fun QuestionCard(
                 modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (category != null) {
-                    Text(
-                        "$category · جولة ${round.ar()}/${totalRounds.ar()}",
-                        color = FeudColors.ink.copy(alpha = 0.55f),
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    Spacer(Modifier.height(4.dp))
-                }
                 Text(
                     question,
                     color = FeudColors.ink,

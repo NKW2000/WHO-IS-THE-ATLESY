@@ -56,6 +56,7 @@ fun HostSettingsScreen(
     onContinue: () -> Unit
 ) {
     var renaming by remember { mutableStateOf<TeamId?>(null) }
+    var renamingRoom by remember { mutableStateOf(false) }
 
     StageBackground(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -92,6 +93,8 @@ fun HostSettingsScreen(
             // كل شي بيوقع بشاشة وحدة — ما في تمرير بشاشة إعدادات.
             Row(modifier = Modifier.weight(1f)) {
                 Column(modifier = Modifier.weight(1f)) {
+                    RoomSection(settings) { renamingRoom = true }
+                    Spacer(Modifier.height(10.dp))
                     TeamsSection(settings) { renaming = it }
                     Spacer(Modifier.height(10.dp))
                     SecondaryButton(
@@ -111,6 +114,19 @@ fun HostSettingsScreen(
         }
     }
 
+    if (renamingRoom) {
+        NamePromptDialog(
+            title = "اسم الغرفة",
+            initial = settings.roomName,
+            maxLength = GameSettings.MAX_TEAM_NAME,
+            onConfirm = { name ->
+                onSettingsChange(settings.copy(roomName = name))
+                renamingRoom = false
+            },
+            onDismiss = { renamingRoom = false }
+        )
+    }
+
     renaming?.let { teamId ->
         NamePromptDialog(
             title = "اسم الفريق",
@@ -124,6 +140,40 @@ fun HostSettingsScreen(
             },
             onDismiss = { renaming = null }
         )
+    }
+}
+
+/** اسم الغرفة — هو اللي بيبيّن باللستة عند اللاعبين. */
+@Composable
+private fun RoomSection(settings: GameSettings, onRename: () -> Unit) {
+    SettingsCard(title = "الغرفة") {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CartoonSurface(
+                modifier = Modifier.weight(1f),
+                color = FeudColors.gold,
+                borderWidth = 3.dp,
+                corner = 12.dp,
+                shadow = 4.dp
+            ) {
+                Text(
+                    settings.roomName,
+                    color = FeudColors.ink,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            SecondaryButton(
+                text = "غيّر الاسم",
+                onClick = onRename,
+                accent = FeudColors.teal,
+                modifier = Modifier.width(170.dp)
+            )
+        }
     }
 }
 
@@ -221,6 +271,14 @@ private fun RoundsSection(settings: GameSettings, onChange: (GameSettings) -> Un
             max = GameSettings.MAX_ANSWER_SECONDS,
             step = 5,
             onChange = { onChange(settings.copy(answerSeconds = it)) }
+        )
+        Spacer(Modifier.height(4.dp))
+        Stepper(
+            label = "ثواني قرار «نلعب أو نمرّر»",
+            value = settings.choiceSeconds,
+            min = GameSettings.MIN_CHOICE_SECONDS,
+            max = GameSettings.MAX_CHOICE_SECONDS,
+            onChange = { onChange(settings.copy(choiceSeconds = it)) }
         )
         Spacer(Modifier.height(4.dp))
         Stepper(

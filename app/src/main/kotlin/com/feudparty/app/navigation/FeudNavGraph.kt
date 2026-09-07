@@ -40,12 +40,14 @@ import com.feudparty.app.feedback.GameStateCues
 import com.feudparty.app.feedback.PlayerMarkCues
 import com.feudparty.app.ui.GameOverScreen
 import com.feudparty.app.ui.HomeScreen
+import com.feudparty.app.ui.IntroScreen
 import com.feudparty.app.ui.HostGameBoardScreen
 import com.feudparty.app.ui.BankSettingsScreen
 import com.feudparty.app.ui.HostSettingsScreen
 import com.feudparty.app.ui.HostSetupScreen
 import com.feudparty.app.ui.PlayerJoinScreen
 import com.feudparty.app.ui.PlayerScreen
+import com.feudparty.app.ui.RoomListScreen
 import com.feudparty.app.ui.ScoreboardScreen
 import com.feudparty.app.viewmodel.HostViewModel
 import com.feudparty.app.viewmodel.PlayerViewModel
@@ -56,11 +58,13 @@ import com.feudparty.core.network.NearbyConnectionsManagerImpl
 import com.feudparty.data.questions.QuestionBank
 
 object Routes {
+    const val INTRO = "intro"
     const val HOME = "home"
     const val HOST_SETUP = "host_setup"
     const val HOST_BOARD = "host_board"
     const val HOST_RESULT = "host_result"
     const val PLAYER_JOIN = "player_join"
+    const val PLAYER_ROOMS = "player_rooms"
     const val PLAYER_BUZZER = "player_buzzer"
     const val HOST_SETTINGS = "host_settings"
     const val BANK_SETTINGS = "bank_settings"
@@ -75,6 +79,8 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
         "ما في ViewModelStoreOwner"
     }
     val snackbarHostState = remember { SnackbarHostState() }
+    // اسم اللاعب بينكتب بشاشة الانضمام وبينعرض بلستة الغرف.
+    var playerName by remember { mutableStateOf("") }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -89,7 +95,7 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
 
         NavHost(
             navController = navController,
-            startDestination = Routes.HOME,
+            startDestination = Routes.INTRO,
             // المحتوى بيضل بعيد عن النتش وحواف الشاشة، والخلفية بتكمّل تحتهم.
             modifier = Modifier
                 .padding(padding)
@@ -99,6 +105,14 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
             popEnterTransition = { slideInHorizontally(slide) { -it / 4 } + fadeIn(fade) },
             popExitTransition = { slideOutHorizontally(slide) { it } + fadeOut(fade) }
         ) {
+            composable(Routes.INTRO) {
+                IntroScreen(onDone = {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.INTRO) { inclusive = true }
+                    }
+                })
+            }
+
             composable(Routes.HOME) {
                 // «استضافة» بتفوت على إعدادات المضيف أول إشي: أسماء
                 // الفرق، الجولات، الوقت، والأخطاء — وبعدها اللوبي.
@@ -244,9 +258,38 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                 )
 
                 PlayerJoinScreen(onJoinConfirmed = { name ->
+                    // الاسم أول، وبعدين بيختار الغرفة من اللستة.
                     vm.join(name)
-                    navController.navigate(Routes.PLAYER_BUZZER)
+                    playerName = name
+                    navController.navigate(Routes.PLAYER_ROOMS)
                 })
+            }
+
+            composable(Routes.PLAYER_ROOMS) {
+                val vm = playerViewModel(activityOwner, context)
+                val rooms by vm.rooms.collectAsStateWithLifecycle()
+                val status by vm.status.collectAsStateWithLifecycle()
+                ErrorSnackbar(
+                    vm.lastError.collectAsStateWithLifecycle().value,
+                    snackbarHostState,
+                    vm::dismissError
+                )
+
+                // أول ما نتصل بغرفة، بنفوت على شاشة اللعب.
+                LaunchedEffect(status) {
+                    if (status == PlayerViewModel.ConnectionStatus.CONNECTED) {
+                        navController.navigate(Routes.PLAYER_BUZZER) {
+                            popUpTo(Routes.PLAYER_ROOMS) { inclusive = true }
+                        }
+                    }
+                }
+
+                RoomListScreen(
+                    playerName = playerName,
+                    rooms = rooms,
+                    onPick = { vm.enterRoom(it.endpointId) },
+                    onBack = { navController.popBackStack() }
+                )
             }
 
             composable(Routes.PLAYER_BUZZER) {
@@ -344,7 +387,8 @@ private fun hostViewModel(owner: ViewModelStoreOwner, context: Context): HostVie
             HostViewModel(
                 connections = NearbyConnectionsManagerImpl(context.applicationContext, "مضيف"),
                 // كل لعبة بتقرأ الإعدادات من جديد وبتسحب أسئلة جديدة.
-                newGame = { repository.newGameState() }
+                newGame = { repository.newGameState() },
+                roomName = { repository.load().roomName }
             )
         }
     })

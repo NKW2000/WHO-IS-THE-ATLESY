@@ -31,6 +31,9 @@ class HostViewModel(
     multipliers: List<Int> = DEFAULT_MULTIPLIERS,
     strikesToSteal: Int = GameEngine.DEFAULT_STRIKES_TO_STEAL,
     answerLimitSeconds: Int = DEFAULT_ANSWER_SECONDS,
+    choiceLimitSeconds: Int = com.feudparty.core.game.CHOICE_SECONDS,
+    /** اسم الغرفة بلستة اللاعبين — بينقرأ كل مرة نبلّش بث. */
+    private val roomName: () -> String = { DEFAULT_ROOM_NAME },
     teamNames: Map<TeamId, String> = DEFAULT_TEAM_NAMES,
     /**
      * حالة بداية لعبة جديدة. بتنستدعى كل مرة بيبلّش فيها المضيف لعبة، فكل
@@ -42,6 +45,7 @@ class HostViewModel(
             multipliers = multipliers,
             strikesToSteal = strikesToSteal,
             answerLimitSeconds = answerLimitSeconds,
+            choiceLimitSeconds = choiceLimitSeconds,
             teams = TeamId.entries.associateWith { id ->
                 TeamState(id, teamNames[id] ?: DEFAULT_TEAM_NAMES.getValue(id))
             }
@@ -98,7 +102,7 @@ class HostViewModel(
     fun startHosting() {
         if (_advertising.value) return
         _advertising.value = true
-        connections.startAdvertising(serviceName)
+        connections.startAdvertising(serviceName, roomName())
     }
 
     /** بعد ما تبلّش اللعبة ما بيضل حدا يغيّر فريقه. */
@@ -226,6 +230,8 @@ class HostViewModel(
             TeamId.TEAM_1 to "الفريق الأخضر",
             TeamId.TEAM_2 to "الفريق الأزرق"
         )
+
+        const val DEFAULT_ROOM_NAME = "غرفة مين الأطليسي"
 
         /** أقل عدد لاعبين لكل فريق حتى تبلّش اللعبة. */
         const val MIN_PLAYERS_PER_TEAM = 1

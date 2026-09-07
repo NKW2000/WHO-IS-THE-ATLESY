@@ -85,21 +85,22 @@ fun NameKeypad(
                 .weight(1f),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Key(
-                label = "مسح ⌫",
-                color = FeudColors.pink,
-                textColor = Color.White,
-                modifier = Modifier.weight(2.5f),
-                onClick = onBackspace
-            )
-            Key(label = "مسافة", modifier = Modifier.weight(5f)) { onKey(" ") }
+            // تمام عالشمال، مسافة بالنص تماماً، ومسح عاليمين.
             Key(
                 label = doneText,
                 color = if (doneEnabled) FeudColors.lime else FeudColors.panelDark,
                 textColor = if (doneEnabled) FeudColors.ink else FeudColors.outlineSoft,
                 enabled = doneEnabled,
-                modifier = Modifier.weight(3.5f),
+                modifier = Modifier.weight(3f),
                 onClick = onDone
+            )
+            Key(label = "مسافة", modifier = Modifier.weight(5f)) { onKey(" ") }
+            Key(
+                label = "مسح ⌫",
+                color = FeudColors.pink,
+                textColor = Color.White,
+                modifier = Modifier.weight(3f),
+                onClick = onBackspace
             )
         }
     }

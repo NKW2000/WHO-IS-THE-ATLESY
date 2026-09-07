@@ -27,6 +27,9 @@ class PlayerViewModel(
 
     enum class ConnectionStatus { IDLE, SEARCHING, CONNECTED, DISCONNECTED }
 
+    /** غرفة مضيف ظاهرة بالجوار. */
+    data class Room(val endpointId: String, val name: String)
+
     private val _gameState = MutableStateFlow<GameState?>(null)
     val gameState: StateFlow<GameState?> = _gameState.asStateFlow()
 
@@ -39,6 +42,10 @@ class PlayerViewModel(
 
     private val _status = MutableStateFlow(ConnectionStatus.IDLE)
     val status: StateFlow<ConnectionStatus> = _status.asStateFlow()
+
+    /** الغرف اللي لقيناها — اللاعب بيختار وحدة منهن. */
+    private val _rooms = MutableStateFlow<List<Room>>(emptyList())
+    val rooms: StateFlow<List<Room>> = _rooms.asStateFlow()
 
     private val _lastError = MutableStateFlow<String?>(null)
     val lastError: StateFlow<String?> = _lastError.asStateFlow()
@@ -53,6 +60,15 @@ class PlayerViewModel(
         viewModelScope.launch {
             connections.events.collect { event ->
                 when (event) {
+                    is ConnectionEvent.RoomFound -> {
+                        _rooms.value = (_rooms.value.filterNot { it.endpointId == event.endpointId } +
+                            Room(event.endpointId, event.name)).sortedBy { it.name }
+                    }
+
+                    is ConnectionEvent.RoomLost -> {
+                        _rooms.value = _rooms.value.filterNot { it.endpointId == event.endpointId }
+                    }
+
                     is ConnectionEvent.EndpointConnected -> onConnected(event.endpointId)
                     is ConnectionEvent.EndpointDisconnected -> onDisconnected(event.endpointId)
                     is ConnectionEvent.HostMessageReceived -> handleHostMessage(event.message)
@@ -63,15 +79,21 @@ class PlayerViewModel(
         }
     }
 
-    /** بيبلّش البحث عن المضيف وبيسجّل الاسم لبعتو أول ما نتصل. */
+    /** بيسجّل الاسم وبيبلّش يدوّر على الغرف — بدون ما يتصل بوحدة. */
     fun join(name: String, teamId: TeamId? = null) {
         pendingName = name
         pendingTeam = teamId
-        if (_status.value != ConnectionStatus.SEARCHING) {
+        if (_status.value != ConnectionStatus.CONNECTED) {
             _status.value = ConnectionStatus.SEARCHING
             connections.startDiscovery(serviceName)
         }
         flushPendingName()
+    }
+
+    /** اللاعب اختار غرفة من اللستة. */
+    fun enterRoom(endpointId: String) {
+        if (_status.value == ConnectionStatus.CONNECTED) return
+        connections.connectTo(endpointId)
     }
 
     fun onBuzzTapped() {
@@ -125,6 +147,7 @@ class PlayerViewModel(
     fun rejoin() {
         pendingName ?: return
         _status.value = ConnectionStatus.SEARCHING
+        _rooms.value = emptyList()
         connections.startDiscovery(serviceName)
         flushPendingName()
         _lastError.value = null

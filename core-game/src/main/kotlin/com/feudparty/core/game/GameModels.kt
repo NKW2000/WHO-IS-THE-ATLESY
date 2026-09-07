@@ -135,6 +135,8 @@ data class GameState(
     val strikesToSteal: Int = 3,
     /** كم ثانية للاعب يجاوب قبل ما ينحسب عليه خطأ. */
     val answerLimitSeconds: Int = DEFAULT_ANSWER_SECONDS,
+    /** كم ثانية للفائز بالمواجهة ليقرّر: يلعب أو يمرّر. */
+    val choiceLimitSeconds: Int = CHOICE_SECONDS,
     /** الوقت الباقي للجواب — صفر يعني ما في عدّاد شغّال. */
     val answerSecondsLeft: Int = 0,
     /** الوقت الباقي لقرار «نلعب أو نمرّر». */

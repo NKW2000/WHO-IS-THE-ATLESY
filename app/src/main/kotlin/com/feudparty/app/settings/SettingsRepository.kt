@@ -29,6 +29,8 @@ class SettingsRepository(context: Context) {
             ?: GameSettings.DEFAULT_MULTIPLIERS,
         strikesToSteal = prefs.getInt(KEY_STRIKES, GameSettings.DEFAULT_STRIKES),
         answerSeconds = prefs.getInt(KEY_ANSWER_SECONDS, GameSettings.DEFAULT_ANSWER_SECONDS),
+        choiceSeconds = prefs.getInt(KEY_CHOICE_SECONDS, GameSettings.DEFAULT_CHOICE_SECONDS),
+        roomName = prefs.getString(KEY_ROOM_NAME, null).orEmpty(),
         teamNames = mapOf(
             TeamId.TEAM_1 to prefs.getString(KEY_TEAM_1, null).orEmpty(),
             TeamId.TEAM_2 to prefs.getString(KEY_TEAM_2, null).orEmpty()
@@ -44,6 +46,8 @@ class SettingsRepository(context: Context) {
             .putString(KEY_MULTIPLIERS, safe.multipliers.joinToString(","))
             .putInt(KEY_STRIKES, safe.strikesToSteal)
             .putInt(KEY_ANSWER_SECONDS, safe.answerSeconds)
+            .putInt(KEY_CHOICE_SECONDS, safe.choiceSeconds)
+            .putString(KEY_ROOM_NAME, safe.roomName)
             .putString(KEY_TEAM_1, safe.teamName(TeamId.TEAM_1))
             .putString(KEY_TEAM_2, safe.teamName(TeamId.TEAM_2))
             .apply()
@@ -66,6 +70,7 @@ class SettingsRepository(context: Context) {
             multipliers = settings.multipliersForRounds(),
             strikesToSteal = settings.strikesToSteal,
             answerLimitSeconds = settings.answerSeconds,
+            choiceLimitSeconds = settings.choiceSeconds,
             teams = TeamId.entries.associateWith { id ->
                 TeamState(id, settings.teamName(id))
             }
@@ -108,6 +113,8 @@ class SettingsRepository(context: Context) {
         const val KEY_MULTIPLIERS = "multipliers"
         const val KEY_STRIKES = "strikes"
         const val KEY_ANSWER_SECONDS = "answer_seconds"
+        const val KEY_CHOICE_SECONDS = "choice_seconds"
+        const val KEY_ROOM_NAME = "room_name"
         const val KEY_TEAM_1 = "team_1_name"
         const val KEY_TEAM_2 = "team_2_name"
         const val KEY_BANK_NAME = "bank_name"

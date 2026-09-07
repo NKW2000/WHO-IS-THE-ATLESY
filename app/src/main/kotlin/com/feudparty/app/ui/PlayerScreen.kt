@@ -1,17 +1,24 @@
 package com.feudparty.app.ui
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,24 +26,30 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.AnswerBoardGrid
+import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.Countdown
 import com.feudparty.app.ui.components.Pill
@@ -266,50 +279,124 @@ private fun PlayOrPassScreen(
 ) {
     val other = state.teams[teamId?.other()]?.name ?: "الفريق التاني"
 
-    Box(modifier = Modifier.fillMaxSize().background(FeudColors.stage).padding(20.dp)) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            if (state.choiceSecondsLeft > 0) {
-                Countdown(seconds = state.choiceSecondsLeft)
+    // البابين بيفتحوا من حافة الشاشة لحد ما يلزقوا ببلوك الوقت بالنص.
+    var opened by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { opened = true }
+    val slide by animateFloatAsState(
+        targetValue = if (opened) 0f else 1f,
+        animationSpec = tween(durationMillis = 520, easing = FastOutSlowInEasing),
+        label = "doors"
+    )
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FeudColors.ink)
+    ) {
+        val gateWidth = 132.dp
+        val doorWidth = (maxWidth - gateWidth) / 2
+
+        Row(modifier = Modifier.fillMaxSize()) {
+            // بالـ RTL أول عنصر بيكون عاليمين: الأخضر «نلعب».
+            Door(
+                title = "نلعب",
+                subtitle = "اللوح إلنا — بنكمّل نجاوب لآخر جواب",
+                color = FeudColors.team1,
+                ink = FeudColors.team1Ink,
+                width = doorWidth,
+                offset = doorWidth * slide,
+                onClick = { onChoose(true) }
+            )
+
+            // البوابة: الوقت والسؤال — البابين بيسكّروا عليها تماماً.
+            Column(
+                modifier = Modifier
+                    .width(gateWidth)
+                    .fillMaxHeight()
+                    .background(FeudColors.stage)
+                    // حدّ حبر على الجهتين — نفس حدود باقي التطبيق، وبيخلّي
+                    // البابين يسكّروا على البوابة بشكل نظيف.
+                    .border(
+                        width = 5.dp,
+                        color = FeudColors.ink
+                    )
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    "كسبتوا!",
+                    color = FeudColors.gold,
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
+                )
                 Spacer(Modifier.height(10.dp))
-            }
-            Text(
-                "كسبتوا المواجهة!",
-                color = FeudColors.gold,
-                style = MaterialTheme.typography.displaySmall,
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "بدكم تلعبوا اللوح ولا تمرّروه لـ$other؟",
-                color = FeudColors.text,
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(22.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                PrimaryButton(
-                    text = "نلعب",
-                    onClick = { onChoose(true) },
-                    color = FeudColors.lime,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(Modifier.width(16.dp))
-                SecondaryButton(
-                    text = "نمرّرها",
-                    onClick = { onChoose(false) },
-                    accent = FeudColors.pink,
-                    modifier = Modifier.weight(1f)
+                Countdown(seconds = state.choiceSecondsLeft, size = 64.dp)
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "تلعبوا ولا تمرّروا؟",
+                    color = FeudColors.text,
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center
                 )
             }
+
+            Door(
+                title = "نمرّرها",
+                subtitle = "$other بيلعب اللوح، وإحنا منستنى السرقة",
+                color = FeudColors.pink,
+                ink = FeudColors.ink,
+                width = doorWidth,
+                offset = -doorWidth * slide,
+                onClick = { onChoose(false) }
+            )
         }
     }
 }
 
-/** الشاشة كلها زر — وميض كريمي/أسود، وأي لمسة بأي مكان بتحتسب. */
+/** نصف الشاشة كزر: لون كامل، عنوان كبير، وسطر بيشرح شو بيصير إذا اخترته. */
+@Composable
+private fun Door(
+    title: String,
+    subtitle: String,
+    color: Color,
+    ink: Color,
+    width: Dp,
+    offset: Dp,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .width(width)
+            .fillMaxHeight()
+            .offset(x = offset)
+            .background(color)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 22.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                title,
+                color = ink,
+                style = MaterialTheme.typography.displaySmall,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                subtitle,
+                color = ink.copy(alpha = 0.8f),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+/**
+ * الشاشة كلها زر. الخلفية ثابتة (بنفسجي المسرح) وبس الزر بينبض وحواليه
+ * حلقة بتتوسّع — مشدود للعين بدون وميض أبيض/أسود بيوجعها.
+ */
 @Composable
 private fun FullScreenBuzzer(
     seat: Int?,
@@ -317,31 +404,29 @@ private fun FullScreenBuzzer(
     onBuzz: () -> Unit
 ) {
     val haptics = LocalHapticFeedback.current
-    val blink = rememberInfiniteTransition(label = "blink")
-    val phase by blink.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
+    val transition = rememberInfiniteTransition(label = "buzzer")
+    val pulse by transition.animateFloat(
+        initialValue = 0.97f,
+        targetValue = 1.05f,
         animationSpec = infiniteRepeatable(
-            animation = tween(280, easing = LinearEasing),
+            animation = tween(760, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "blinkPhase"
-    )
-    val pulse by blink.animateFloat(
-        initialValue = 0.94f,
-        targetValue = 1.06f,
-        animationSpec = infiniteRepeatable(tween(560), RepeatMode.Reverse),
         label = "pulse"
     )
+    val halo by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1400, easing = LinearEasing)),
+        label = "halo"
+    )
 
-    val background = if (phase > 0.5f) FeudColors.cream else FeudColors.ink
-    val foreground = if (background.luminance() > 0.45f) FeudColors.ink else FeudColors.cream
     val interaction = remember { MutableInteractionSource() }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(background)
+            .background(FeudColors.stage)
             .clickable(
                 interactionSource = interaction,
                 indication = null
@@ -351,29 +436,51 @@ private fun FullScreenBuzzer(
             },
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "اضغط!",
-                color = foreground,
-                style = MaterialTheme.typography.displayLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.scale(pulse)
+        // حلقة بتكبر وبتخفّ — نبضة رادار حوالين الزر.
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val base = size.minDimension * 0.24f
+            drawCircle(
+                color = FeudColors.gold.copy(alpha = (1f - halo) * 0.35f),
+                radius = base * (1f + halo * 0.9f),
+                style = Stroke(width = 10f)
             )
-            Spacer(Modifier.height(6.dp))
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CartoonSurface(
+                modifier = Modifier.scale(pulse),
+                color = FeudColors.gold,
+                borderWidth = 6.dp,
+                corner = 200.dp,
+                shadow = 10.dp
+            ) {
+                Box(
+                    modifier = Modifier.size(190.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "اضغط!",
+                        color = FeudColors.ink,
+                        style = MaterialTheme.typography.displaySmall,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+            Spacer(Modifier.height(14.dp))
             Text(
                 when {
                     seat != null && opponent != null -> "رقم ${seat.ar()} — وش لوش مع $opponent"
                     seat != null -> "رقم ${seat.ar()}"
                     else -> "الشاشة كلها زر"
                 },
-                color = foreground.copy(alpha = 0.75f),
-                style = MaterialTheme.typography.titleMedium
+                color = FeudColors.textSoft,
+                style = MaterialTheme.typography.titleSmall,
+                textAlign = TextAlign.Center
             )
         }
     }
 }
 
-/** اللوح: السؤال والخانات، ولون الحالة على كل الخلفية. */
 @Composable
 private fun PlayerBoard(
     state: GameState?,

@@ -79,6 +79,7 @@ fun HostGameBoardScreen(
                     ) {
                         if (seconds > 0) Countdown(seconds = seconds, size = 44.dp)
                     }
+
                     // بطاقة السؤال جوّا Box: هي بتستعمل AnimatedVisibility
                     // اللي بتاكل الـ weight وبتاخد كل العرض إذا حطيناه عليها.
                     Box(
@@ -93,10 +94,20 @@ fun HostGameBoardScreen(
                             modifier = Modifier.widthIn(max = 620.dp)
                         )
                     }
-                    Spacer(Modifier.width(SIDE_SLOT))
+                    // الأخطاء بالزاوية الشمال، مقابل الوقت.
+                    Box(
+                        modifier = Modifier.width(SIDE_SLOT),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        StrikeRow(
+                            strikes = state.strikes,
+                            total = state.strikesToSteal,
+                            size = 26.dp
+                        )
+                    }
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(14.dp))
 
                 AnswerBoardGrid(
                     answers = state.currentQuestion?.answers.orEmpty(),
@@ -109,32 +120,32 @@ fun HostGameBoardScreen(
                 Spacer(Modifier.height(8.dp))
 
                 // تحت: مين عم يجاوب وكم خطأ عليه، وزر الغلط.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TurnChip(state = state, modifier = Modifier.weight(1f))
-                    Spacer(Modifier.width(12.dp))
-                    StrikeRow(
-                        strikes = state.strikes,
-                        total = state.strikesToSteal,
-                        size = 30.dp
+                // تحت: زر الغلط بالنص، والدور عالجنب، والجولة الجاية عالطرف
+                // التاني — الأخطاء فوق عالشمال مع الوقت.
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    TurnChip(
+                        state = state,
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .width(300.dp)
                     )
-                    Spacer(Modifier.width(12.dp))
                     SecondaryButton(
                         text = "غلط ✕",
                         onClick = onWrong,
                         enabled = canJudge,
                         accent = FeudColors.strike,
-                        modifier = Modifier.width(180.dp)
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .width(200.dp)
                     )
                     if (state.phase == RoundPhase.ROUND_END) {
-                        Spacer(Modifier.width(12.dp))
                         PrimaryButton(
                             text = if (revealedAll) state.nextButtonLabel() else "اكشف الباقي",
                             onClick = onNextRound,
                             enabled = revealedAll,
-                            modifier = Modifier.width(240.dp)
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .width(240.dp)
                         )
                     }
                 }

@@ -3,26 +3,34 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- الظل الصلب تحت العلامة -->
-    <group android:translateX="5" android:translateY="5">
+    <!-- شارة العلامة: قرص ذهبي بحدّ حبر سميك وظل صلب، وجوّاته علامة سؤال
+         كريمية — نفس الشارة اللي بالمقدمة وبالوردمارك. -->
+    <path
+        android:fillColor="#140626"
+        android:pathData="M57,58m-31,0a31,31 0,1 1,62 0a31,31 0,1 1,-62 0" />
+    <path
+        android:fillColor="#FFD23F"
+        android:strokeColor="#140626"
+        android:strokeWidth="6"
+        android:pathData="M54,54m-31,0a31,31 0,1 1,62 0a31,31 0,1 1,-62 0" />
+    <group android:translateX="1.5" android:translateY="1.5">
         <path
-            android:pathData="M36,40 A18,18 0 1 1 72,40 C72,53 54,53 54,66"
+            android:pathData="M42,45 A12.5,12.5 0 1 1 67,45 C67,54 54.5,54.5 54.5,63"
             android:strokeColor="#140626"
-            android:strokeWidth="13"
+            android:strokeWidth="11"
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
         <path
             android:fillColor="#140626"
-            android:pathData="M54,79m-7.5,0a7.5,7.5 0,1 1,15 0a7.5,7.5 0,1 1,-15 0" />
+            android:pathData="M54.5,72m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
     </group>
-    <!-- العلامة نفسها -->
     <path
-        android:pathData="M36,40 A18,18 0 1 1 72,40 C72,53 54,53 54,66"
-        android:strokeColor="#2BE0D6"
-        android:strokeWidth="13"
+        android:pathData="M42,45 A12.5,12.5 0 1 1 67,45 C67,54 54.5,54.5 54.5,63"
+        android:strokeColor="#FFF6E5"
+        android:strokeWidth="11"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
     <path
-        android:fillColor="#2BE0D6"
-        android:pathData="M54,79m-7.5,0a7.5,7.5 0,1 1,15 0a7.5,7.5 0,1 1,-15 0" />
+        android:fillColor="#FFF6E5"
+        android:pathData="M54.5,72m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
 </vector>

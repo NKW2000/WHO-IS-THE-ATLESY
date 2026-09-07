@@ -55,13 +55,7 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Wordmark()
-                Spacer(Modifier.height(18.dp))
-                Pill(
-                    text = "جهاز للمضيف · جهاز لكل لاعب · بدون إنترنت",
-                    color = FeudColors.ink.copy(alpha = 0.55f),
-                    textColor = FeudColors.text
-                )
+                Wordmark(showTags = false)
             }
 
             Spacer(Modifier.width(26.dp))

@@ -26,6 +26,8 @@ import com.feudparty.app.ui.HomeScreen
 import com.feudparty.app.ui.HostGameBoardScreen
 import com.feudparty.app.ui.HostSettingsScreen
 import com.feudparty.app.ui.HostSetupScreen
+import com.feudparty.app.ui.IntroScreen
+import com.feudparty.app.ui.RoomListScreen
 import com.feudparty.app.ui.PlayerJoinScreen
 import com.feudparty.app.ui.PlayerScreen
 import com.feudparty.app.ui.ScoreboardScreen
@@ -105,6 +107,7 @@ private fun demoScreens(
     settings: GameSettings,
     onSettings: (GameSettings) -> Unit
 ): List<DemoScreen> = listOf(
+    DemoScreen("المقدمة") { IntroScreen(onDone = {}) },
     DemoScreen("الرئيسية") {
         HomeScreen(onHostClick = {}, onJoinClick = {}, onSettingsClick = {})
     },
@@ -167,6 +170,18 @@ private fun demoScreens(
         )
     },
     DemoScreen("انضمام لاعب") { PlayerJoinScreen(onJoinConfirmed = {}) },
+    DemoScreen("لستة الغرف") {
+        RoomListScreen(
+            playerName = "عبد الرحمن",
+            rooms = listOf(
+                PlayerViewModel.Room("a", "غرفة العيلة"),
+                PlayerViewModel.Room("b", "سهرة الجمعة"),
+                PlayerViewModel.Room("c", "غرفة الشباب")
+            ),
+            onPick = {},
+            onBack = {}
+        )
+    },
     DemoScreen("لوبي اللاعب") {
         PlayerScreen(
             state = demoState(matchStarted = false, revealed = 0),

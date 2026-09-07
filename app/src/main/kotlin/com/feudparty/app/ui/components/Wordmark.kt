@@ -71,6 +71,8 @@ fun Wordmark(
                         fontSize = nameSize.sp,
                         lineHeight = (nameSize * 1.15f).sp
                     ),
+                    maxLines = 1,
+                    softWrap = false,
                     modifier = Modifier.padding(horizontal = 26.dp, vertical = 10.dp)
                 )
             }

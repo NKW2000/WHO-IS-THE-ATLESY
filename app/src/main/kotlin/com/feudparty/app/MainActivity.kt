@@ -9,8 +9,9 @@ import android.os.Build
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -23,6 +24,7 @@ import com.feudparty.app.feedback.ProvideGameFeedback
 import com.feudparty.app.navigation.FeudNavGraph
 import com.feudparty.app.permissions.NearbyPermissions
 import com.feudparty.app.ui.PermissionExplanationScreen
+import com.feudparty.app.ui.theme.FeudBrushes
 import com.feudparty.app.ui.theme.FeudPartyTheme
 
 class MainActivity : ComponentActivity() {
@@ -72,7 +74,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             FeudPartyTheme {
                 ProvideGameFeedback {
-                Surface(modifier = Modifier.fillMaxSize()) {
+                // الخلفية بترسم على كل الشاشة — تحت النتش كمان — والمحتوى
+                // لحاله هو اللي بيضل بالمنطقة الآمنة.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(FeudBrushes.stage)
+                ) {
                     if (permissionsGranted) {
                         FeudNavGraph()
                     } else {
