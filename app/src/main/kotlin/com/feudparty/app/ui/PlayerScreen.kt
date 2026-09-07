@@ -412,22 +412,25 @@ private fun PlayerBoard(
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // فوق بالنص: الأخطاء والوقت — الشغلتين اللي لازم يشوفهن اللاعب
-            // بلمحة عين وهو بيسمع السؤال.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            // فوق: الأخطاء بالنص تماماً، والوقت بالزاوية اليمين.
+            Box(modifier = Modifier.fillMaxWidth()) {
                 if (state != null &&
                     (state.phase == RoundPhase.PLAY || state.phase == RoundPhase.STEAL)
                 ) {
-                    StrikeRow(strikes = state.strikes, total = state.strikesToSteal, size = 30.dp)
+                    StrikeRow(
+                        strikes = state.strikes,
+                        total = state.strikesToSteal,
+                        size = 30.dp,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
                 val seconds = state?.let { maxOf(it.answerSecondsLeft, it.choiceSecondsLeft) } ?: 0
                 if (seconds > 0) {
-                    Spacer(Modifier.width(14.dp))
-                    Countdown(seconds = seconds, size = 40.dp)
+                    Countdown(
+                        seconds = seconds,
+                        size = 40.dp,
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    )
                 }
             }
 

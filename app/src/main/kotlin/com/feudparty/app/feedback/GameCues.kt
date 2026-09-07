@@ -1,6 +1,7 @@
 package com.feudparty.app.feedback
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -37,6 +38,30 @@ fun GameStateCues(state: GameState?) {
         lastRevealed = revealed
         lastStrikes = state.strikes
         lastAward = award
+    }
+}
+
+/**
+ * دقّات الساعة بآخر [from] ثواني من وقت الجواب. بتبلّش مرة وحدة لما يوصل
+ * العدّاد لخمسة، وبتسكت إذا انحكم على الجواب قبل ما يخلص الوقت.
+ */
+@Composable
+fun CountdownCues(seconds: Int, from: Int = 5) {
+    val feedback = LocalGameFeedback.current ?: return
+    var stream by remember { mutableStateOf<Int?>(null) }
+
+    DisposableEffect(feedback) {
+        onDispose { stream?.let(feedback::stopStream) }
+    }
+
+    LaunchedEffect(seconds) {
+        when {
+            seconds in 1..from && stream == null -> stream = feedback.startClock()
+            seconds !in 1..from -> {
+                stream?.let(feedback::stopStream)
+                stream = null
+            }
+        }
     }
 }
 

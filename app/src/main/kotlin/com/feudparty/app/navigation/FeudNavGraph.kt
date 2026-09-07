@@ -35,6 +35,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.feudparty.app.feedback.CountdownCues
 import com.feudparty.app.feedback.GameStateCues
 import com.feudparty.app.feedback.PlayerMarkCues
 import com.feudparty.app.ui.GameOverScreen
@@ -169,6 +170,7 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                 val vm = hostViewModel(activityOwner, context)
                 val state by vm.uiState.collectAsStateWithLifecycle()
                 GameStateCues(state)
+                CountdownCues(maxOf(state.answerSecondsLeft, state.choiceSecondsLeft))
                 var confirmExit by remember { mutableStateOf(false) }
                 BackHandler { confirmExit = true }
                 ErrorSnackbar(
@@ -268,6 +270,9 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                 val live = state
                 val mark = vm.mark()
                 GameStateCues(live)
+                CountdownCues(
+                    live?.let { maxOf(it.answerSecondsLeft, it.choiceSecondsLeft) } ?: 0
+                )
                 PlayerMarkCues(
                     mark = mark,
                     faceOff = live?.phase == RoundPhase.FACE_OFF ||

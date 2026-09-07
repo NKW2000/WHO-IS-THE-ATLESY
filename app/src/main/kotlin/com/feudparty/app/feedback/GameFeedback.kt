@@ -18,7 +18,7 @@ import com.feudparty.app.R
  * نوع التنبيه — كل واحد له صوت ونمط اهتزاز.
  * الستريكات تلاتة، وكل وحدة إلها صوتها زي البرنامج.
  */
-enum class Cue { REVEAL, STRIKE_1, STRIKE_2, STRIKE_3, WRONG, WIN, BUZZ }
+enum class Cue { REVEAL, STRIKE_1, STRIKE_2, STRIKE_3, WRONG, WIN, BUZZ, CLOCK }
 
 /**
  * الصوت والاهتزاز مع بعض. لعبة بتنلعب بغرفة فيها ناس، فالتنبيه لازم
@@ -45,7 +45,8 @@ class GameFeedback(context: Context) {
         Cue.STRIKE_3 to soundPool.load(appContext, R.raw.sfx_strike3, 1),
         Cue.WRONG to soundPool.load(appContext, R.raw.sfx_wrong, 1),
         Cue.WIN to soundPool.load(appContext, R.raw.sfx_win, 1),
-        Cue.BUZZ to soundPool.load(appContext, R.raw.sfx_press, 1)
+        Cue.BUZZ to soundPool.load(appContext, R.raw.sfx_press, 1),
+        Cue.CLOCK to soundPool.load(appContext, R.raw.sfx_clock, 1)
     )
 
     /** صوت الخطأ حسب رقمه: الأول، التاني، التالت. */
@@ -70,12 +71,23 @@ class GameFeedback(context: Context) {
         vibrate(cue)
     }
 
+    /**
+     * دقّات آخر خمس ثواني. بترجّع رقم المجرى حتى نقدر نسكّتها إذا اللاعب
+     * جاوب قبل ما يخلص الوقت.
+     */
+    fun startClock(): Int? = sounds[Cue.CLOCK]?.let { soundPool.play(it, 1f, 1f, 2, 0, 1f) }
+
+    fun stopStream(streamId: Int) {
+        soundPool.stop(streamId)
+    }
+
     private fun vibrate(cue: Cue) {
         val vibrator = vibrator?.takeIf { it.hasVibrator() } ?: return
         // نمط مميّز لكل حدث — الغلط ضربتين، الفوز ثلاث نبضات.
         val timings = when (cue) {
             Cue.REVEAL -> longArrayOf(0, 28)
             Cue.BUZZ -> longArrayOf(0, 18)
+            Cue.CLOCK -> longArrayOf(0, 0)
             Cue.STRIKE_1 -> longArrayOf(0, 60)
             Cue.STRIKE_2 -> longArrayOf(0, 60, 70, 60)
             Cue.STRIKE_3 -> longArrayOf(0, 70, 70, 70, 70, 140)
