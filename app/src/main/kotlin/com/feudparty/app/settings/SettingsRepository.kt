@@ -3,6 +3,7 @@ package com.feudparty.app.settings
 import android.content.Context
 import android.net.Uri
 import com.feudparty.core.game.Question
+import com.feudparty.core.game.TeamId
 import com.feudparty.data.questions.BankResult
 import com.feudparty.data.questions.QuestionBank
 import java.io.File
@@ -25,6 +26,11 @@ class SettingsRepository(context: Context) {
             ?.takeIf { it.isNotEmpty() }
             ?: GameSettings.DEFAULT_MULTIPLIERS,
         strikesToSteal = prefs.getInt(KEY_STRIKES, GameSettings.DEFAULT_STRIKES),
+        answerSeconds = prefs.getInt(KEY_ANSWER_SECONDS, GameSettings.DEFAULT_ANSWER_SECONDS),
+        teamNames = mapOf(
+            TeamId.TEAM_1 to prefs.getString(KEY_TEAM_1, null).orEmpty(),
+            TeamId.TEAM_2 to prefs.getString(KEY_TEAM_2, null).orEmpty()
+        ),
         bankName = prefs.getString(KEY_BANK_NAME, null)?.takeIf { bankFile.exists() },
         bankQuestionCount = prefs.getInt(KEY_BANK_COUNT, 0)
     ).clamped()
@@ -35,6 +41,9 @@ class SettingsRepository(context: Context) {
             .putInt(KEY_ROUNDS, safe.rounds)
             .putString(KEY_MULTIPLIERS, safe.multipliers.joinToString(","))
             .putInt(KEY_STRIKES, safe.strikesToSteal)
+            .putInt(KEY_ANSWER_SECONDS, safe.answerSeconds)
+            .putString(KEY_TEAM_1, safe.teamName(TeamId.TEAM_1))
+            .putString(KEY_TEAM_2, safe.teamName(TeamId.TEAM_2))
             .apply()
     }
 
@@ -82,6 +91,9 @@ class SettingsRepository(context: Context) {
         const val KEY_ROUNDS = "rounds"
         const val KEY_MULTIPLIERS = "multipliers"
         const val KEY_STRIKES = "strikes"
+        const val KEY_ANSWER_SECONDS = "answer_seconds"
+        const val KEY_TEAM_1 = "team_1_name"
+        const val KEY_TEAM_2 = "team_2_name"
         const val KEY_BANK_NAME = "bank_name"
         const val KEY_BANK_COUNT = "bank_count"
     }

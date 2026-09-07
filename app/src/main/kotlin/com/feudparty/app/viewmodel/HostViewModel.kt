@@ -30,6 +30,8 @@ class HostViewModel(
     questions: List<Question>,
     multipliers: List<Int> = DEFAULT_MULTIPLIERS,
     strikesToSteal: Int = GameEngine.DEFAULT_STRIKES_TO_STEAL,
+    answerLimitSeconds: Int = DEFAULT_ANSWER_SECONDS,
+    teamNames: Map<TeamId, String> = DEFAULT_TEAM_NAMES,
     private val serviceName: String = SERVICE_NAME,
     private val tickMillis: Long = 1_000L
 ) : ViewModel() {
@@ -39,10 +41,10 @@ class HostViewModel(
             questions = questions,
             multipliers = multipliers,
             strikesToSteal = strikesToSteal,
-            teams = mapOf(
-                TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأخضر"),
-                TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "الفريق الأزرق")
-            )
+            answerLimitSeconds = answerLimitSeconds,
+            teams = TeamId.entries.associateWith { id ->
+                TeamState(id, teamNames[id] ?: DEFAULT_TEAM_NAMES.getValue(id))
+            }
         )
     )
 
@@ -196,6 +198,14 @@ class HostViewModel(
 
         /** مضاعفات جولات البرنامج: عادي، عادي، ×٢، ×٣ وبعدها بتضل ×٣. */
         val DEFAULT_MULTIPLIERS = listOf(1, 1, 2, 3)
+
+        /** ثواني الجواب الافتراضية، ونفسها المكتوبة بالمحرّك. */
+        const val DEFAULT_ANSWER_SECONDS = com.feudparty.core.game.DEFAULT_ANSWER_SECONDS
+
+        val DEFAULT_TEAM_NAMES = mapOf(
+            TeamId.TEAM_1 to "الفريق الأخضر",
+            TeamId.TEAM_2 to "الفريق الأزرق"
+        )
 
         /** أقل عدد لاعبين لكل فريق حتى تبلّش اللعبة. */
         const val MIN_PLAYERS_PER_TEAM = 1

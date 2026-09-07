@@ -40,20 +40,19 @@ fun GameStateCues(state: GameState?) {
     }
 }
 
-/** تنبيهات خاصة بجهاز اللاعب: ضغطته، وحكم المضيف عليه. */
+/**
+ * صوت البزر — بس بالمواجهة، لأنه هناك السرعة هي اللعبة. بمرحلة اللعب
+ * اللمسة مجرد إشارة للمضيف إنك عم تجاوب، فما بدها صوت. الصح والغلط
+ * بيجوا من [GameStateCues] مرة وحدة، حتى ما ينعاد الصوت مرتين.
+ */
 @Composable
-fun PlayerMarkCues(mark: PlayerMark) {
+fun PlayerMarkCues(mark: PlayerMark, faceOff: Boolean) {
     val feedback = LocalGameFeedback.current ?: return
     var last by remember { mutableStateOf(mark) }
 
-    LaunchedEffect(mark) {
+    LaunchedEffect(mark, faceOff) {
         if (mark != last) {
-            when (mark) {
-                PlayerMark.BUZZED -> feedback.play(Cue.BUZZ)
-                PlayerMark.CORRECT -> feedback.play(Cue.REVEAL)
-                PlayerMark.WRONG -> feedback.play(Cue.WRONG)
-                else -> Unit
-            }
+            if (mark == PlayerMark.BUZZED && faceOff) feedback.play(Cue.BUZZ)
             last = mark
         }
     }

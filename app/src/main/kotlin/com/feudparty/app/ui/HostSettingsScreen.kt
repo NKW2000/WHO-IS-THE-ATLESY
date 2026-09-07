@@ -19,6 +19,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,16 +33,21 @@ import androidx.compose.ui.unit.dp
 import com.feudparty.app.settings.GameSettings
 import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.GoldDivider
+import com.feudparty.app.ui.components.NamePromptDialog
+import com.feudparty.app.ui.components.color
+import com.feudparty.app.ui.components.inkColor
 import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
+import com.feudparty.core.game.TeamId
 
 /**
- * إعدادات المضيف: بنك الأسئلة، عدد الجولات ومضاعفاتها، عدد الأخطاء،
- * وإعدادات الجولة السريعة. كلها بتتطبّق على اللعبة الجاية.
+ * إعدادات المضيف — أول شاشة بيشوفها لما يضغط «استضافة لعبة»: أسماء
+ * الفريقين، بنك الأسئلة، عدد الجولات ومضاعفاتها، وقت الجواب، وعدد
+ * الأخطاء اللي بتفتح السرقة. بعدها بيكمّل عاللوبي.
  */
 @Composable
 fun HostSettingsScreen(
@@ -48,8 +57,10 @@ fun HostSettingsScreen(
     onSettingsChange: (GameSettings) -> Unit,
     onImportBank: (android.net.Uri, String) -> Unit,
     onClearBank: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onContinue: (() -> Unit)? = null
 ) {
+    var renaming by remember { mutableStateOf<TeamId?>(null) }
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -67,16 +78,27 @@ fun HostSettingsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "الإعدادات",
+                    "إعدادات اللعبة",
                     color = FeudColors.gold,
                     style = MaterialTheme.typography.headlineSmall
                 )
-                SecondaryButton(
-                    text = "رجوع",
-                    onClick = onBack,
-                    accent = FeudColors.teal,
-                    modifier = Modifier.width(160.dp)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SecondaryButton(
+                        text = "رجوع",
+                        onClick = onBack,
+                        accent = FeudColors.teal,
+                        modifier = Modifier.width(150.dp)
+                    )
+                    if (onContinue != null) {
+                        Spacer(Modifier.width(12.dp))
+                        PrimaryButton(
+                            text = "كمّل للوبي",
+                            onClick = onContinue,
+                            color = FeudColors.lime,
+                            modifier = Modifier.width(200.dp)
+                        )
+                    }
+                }
             }
             Spacer(Modifier.height(8.dp))
             GoldDivider(Modifier.fillMaxWidth())
@@ -88,6 +110,8 @@ fun HostSettingsScreen(
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
                 ) {
+                    TeamsSection(settings) { renaming = it }
+                    Spacer(Modifier.height(12.dp))
                     BankSection(
                         settings = settings,
                         message = bankMessage,
@@ -115,6 +139,64 @@ fun HostSettingsScreen(
                 }
             }
         }
+    }
+
+    renaming?.let { teamId ->
+        NamePromptDialog(
+            title = "اسم الفريق",
+            initial = settings.teamName(teamId),
+            maxLength = GameSettings.MAX_TEAM_NAME,
+            onConfirm = { name ->
+                onSettingsChange(
+                    settings.copy(teamNames = settings.teamNames + (teamId to name))
+                )
+                renaming = null
+            },
+            onDismiss = { renaming = null }
+        )
+    }
+}
+
+/** أسماء الفريقين — المضيف بيسمّيهم قبل ما يفوتوا اللاعبين. */
+@Composable
+private fun TeamsSection(settings: GameSettings, onRename: (TeamId) -> Unit) {
+    SettingsCard(title = "الفريقين") {
+        TeamId.entries.forEachIndexed { index, teamId ->
+            if (index > 0) Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CartoonSurface(
+                    modifier = Modifier.weight(1f),
+                    color = teamId.color(),
+                    borderWidth = 3.dp,
+                    corner = 12.dp,
+                    shadow = 4.dp
+                ) {
+                    Text(
+                        settings.teamName(teamId),
+                        color = teamId.inkColor(),
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                SecondaryButton(
+                    text = "غيّر الاسم",
+                    onClick = { onRename(teamId) },
+                    accent = FeudColors.gold,
+                    modifier = Modifier.width(170.dp)
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(
+            "اللاعب بيختار فريقه لما يفوت، وبيقدر يبدّله من اللوبي قبل ما تبلّش اللعبة.",
+            color = FeudColors.textMuted,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 
@@ -223,6 +305,15 @@ private fun RoundsSection(settings: GameSettings, onChange: (GameSettings) -> Un
                 }
             }
         }
+        Spacer(Modifier.height(4.dp))
+        Stepper(
+            label = "ثواني الجواب",
+            value = settings.answerSeconds,
+            min = GameSettings.MIN_ANSWER_SECONDS,
+            max = GameSettings.MAX_ANSWER_SECONDS,
+            step = 5,
+            onChange = { onChange(settings.copy(answerSeconds = it)) }
+        )
         Spacer(Modifier.height(4.dp))
         Stepper(
             label = "عدد الأخطاء اللي بتفتح السرقة",

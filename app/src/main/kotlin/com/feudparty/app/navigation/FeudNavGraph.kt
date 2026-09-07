@@ -92,10 +92,11 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
             popExitTransition = { slideOutHorizontally(slide) { it } + fadeOut(fade) }
         ) {
             composable(Routes.HOME) {
+                // «استضافة» بتفوت على إعدادات المضيف أول إشي: أسماء
+                // الفرق، الجولات، الوقت، والأخطاء — وبعدها اللوبي.
                 HomeScreen(
-                    onHostClick = { navController.navigate(Routes.HOST_SETUP) },
-                    onJoinClick = { navController.navigate(Routes.PLAYER_JOIN) },
-                    onSettingsClick = { navController.navigate(Routes.HOST_SETTINGS) }
+                    onHostClick = { navController.navigate(Routes.HOST_SETTINGS) },
+                    onJoinClick = { navController.navigate(Routes.PLAYER_JOIN) }
                 )
             }
 
@@ -112,7 +113,8 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                     onSettingsChange = vm::update,
                     onImportBank = vm::importBank,
                     onClearBank = vm::clearBank,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onContinue = { navController.navigate(Routes.HOST_SETUP) }
                 )
             }
 
@@ -241,7 +243,11 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                 val live = state
                 val mark = vm.mark()
                 GameStateCues(live)
-                PlayerMarkCues(mark)
+                PlayerMarkCues(
+                    mark = mark,
+                    faceOff = live?.phase == RoundPhase.FACE_OFF ||
+                        live?.phase == RoundPhase.FACE_OFF_SECOND
+                )
                 when {
                     live != null && live.gameOver -> GameOverScreen(state = live)
                     live != null && live.phase == RoundPhase.SCOREBOARD ->
@@ -311,7 +317,9 @@ private fun hostViewModel(owner: ViewModelStoreOwner, context: Context): HostVie
                 connections = NearbyConnectionsManagerImpl(context.applicationContext, "مضيف"),
                 questions = questions,
                 multipliers = settings.multipliersForRounds(),
-                strikesToSteal = settings.strikesToSteal
+                strikesToSteal = settings.strikesToSteal,
+                answerLimitSeconds = settings.answerSeconds,
+                teamNames = settings.teamNames
             )
         }
     })

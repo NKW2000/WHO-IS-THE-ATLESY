@@ -109,6 +109,55 @@ fun AnswerBoardColumns(
     }
 }
 
+/**
+ * اللوح كشبكة — تلات خانات بالسطر. بياخد كل الارتفاع المتاح وبيوزّعه على
+ * السطور، فما بيضل فراغ تحت ولا بيحتاج تمرير.
+ */
+@Composable
+fun AnswerBoardGrid(
+    answers: List<Answer>,
+    modifier: Modifier = Modifier,
+    columns: Int = 3,
+    revealHiddenText: Boolean = false,
+    showHiddenPoints: Boolean = true,
+    enabledSlots: Boolean = false,
+    spacing: Dp = 10.dp,
+    onSlotClick: ((Int) -> Unit)? = null
+) {
+    val rows = answers.chunked(columns)
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(spacing)
+    ) {
+        rows.forEachIndexed { rowIndex, row ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(spacing)
+            ) {
+                row.forEachIndexed { columnIndex, answer ->
+                    val index = rowIndex * columns + columnIndex
+                    AnswerSlot(
+                        position = index + 1,
+                        answer = answer,
+                        revealHiddenText = revealHiddenText,
+                        showHiddenPoints = showHiddenPoints,
+                        enabled = enabledSlots && !answer.revealed && onSlotClick != null,
+                        height = null,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        onClick = { onSlotClick?.invoke(index) }
+                    )
+                }
+                // سطر ناقص: منترك مكان الخانات الفاضية حتى يضل العرض ثابت.
+                repeat(columns - row.size) { Box(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
 @Composable
 private fun AnswerSlot(
     position: Int,
@@ -116,7 +165,8 @@ private fun AnswerSlot(
     revealHiddenText: Boolean,
     showHiddenPoints: Boolean,
     enabled: Boolean,
-    height: Dp,
+    height: Dp?,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     // الانقلاب: الخانة بتلف على محورها الأفقي أول ما تنكشف.
@@ -128,9 +178,9 @@ private fun AnswerSlot(
     val revealed = answer.revealed
 
     CartoonSurface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(height)
+            .then(if (height != null) Modifier.height(height) else Modifier)
             .graphicsLayer {
                 // بس المكشوفة بتتحرك؛ المخفية ثابتة.
                 if (revealed) {
