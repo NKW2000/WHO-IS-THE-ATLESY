@@ -35,7 +35,7 @@ import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
-import com.feudparty.app.ui.components.Wordmark
+import com.feudparty.app.ui.components.BrandLogo
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
 
@@ -55,7 +55,8 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Wordmark(showTags = false)
+                // علامة التصميم نفسها: الشارة، الاسم بطبقاته، والشريط.
+                BrandLogo(em = 40.dp)
             }
 
             Spacer(Modifier.width(26.dp))
