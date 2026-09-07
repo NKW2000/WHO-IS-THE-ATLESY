@@ -40,7 +40,7 @@ class HostViewModel(
             multipliers = multipliers,
             strikesToSteal = strikesToSteal,
             teams = mapOf(
-                TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأحمر"),
+                TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأخضر"),
                 TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "الفريق الأزرق")
             )
         )
@@ -87,6 +87,7 @@ class HostViewModel(
 
     fun startGame() {
         started = true
+        applyAndBroadcast(GameEvent.StartGame)
         startClock()
     }
 

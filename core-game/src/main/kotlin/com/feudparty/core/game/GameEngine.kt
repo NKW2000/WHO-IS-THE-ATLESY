@@ -30,6 +30,7 @@ class GameEngine(initialState: GameState) {
             is GameEvent.PlayerJoined -> handlePlayerJoined(event)
             is GameEvent.PlayerLeft -> handlePlayerLeft(event)
             is GameEvent.PlayerMoved -> handlePlayerMoved(event)
+            GameEvent.StartGame -> state.copy(matchStarted = true)
             GameEvent.Tick -> handleTick()
             GameEvent.EndGame -> state.copy(
                 phase = RoundPhase.GAME_OVER,

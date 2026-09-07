@@ -49,7 +49,7 @@ class PlayerViewModelTest {
             Player("p-b", "ليلى", TeamId.TEAM_2, seat = 1)
         ),
         teams = mapOf(
-            TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأحمر"),
+            TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأخضر"),
             TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "الفريق الأزرق")
         )
     )

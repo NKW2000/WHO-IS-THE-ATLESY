@@ -163,7 +163,7 @@ private fun ScoreboardScreenPreview() {
             state = GameState(
                 questions = listOf(Question("q", "س", emptyList(), "عام")),
                 teams = mapOf(
-                    TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأحمر", 140),
+                    TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأخضر", 140),
                     TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "الفريق الأزرق", 95)
                 ),
                 lastAward = com.feudparty.core.game.Award(TeamId.TEAM_1, 140)

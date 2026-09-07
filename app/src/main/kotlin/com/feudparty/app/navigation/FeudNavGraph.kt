@@ -253,7 +253,8 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                         mark = mark,
                         status = status,
                         onBuzz = vm::onBuzzTapped,
-                        onChoose = vm::choose
+                        onChoose = vm::choose,
+                        onChangeTeam = vm::changeTeam
                     )
                 }
 

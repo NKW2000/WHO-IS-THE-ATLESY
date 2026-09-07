@@ -195,4 +195,67 @@ class GameEnginePlayersTest {
         engine.correct(1)
         assertEquals("a1", engine.state.turnPlayerId)
     }
+
+    @Test
+    fun `a team that loses everybody mid round does not freeze the game`() {
+        val engine = GameEngine(freshState())
+        engine.giveControlTo(TeamId.TEAM_1)
+        listOf("a1", "a2", "a3").forEach { engine.apply(GameEvent.PlayerLeft(it)) }
+
+        // ما ضل حدا يضغط، بس المضيف لسا بيقدر يحكم ويكمّل الجولة.
+        val afterWrong = engine.wrong()
+        assertEquals(RoundPhase.PLAY, afterWrong.phase)
+
+        engine.wrong()
+        val steal = engine.wrong()
+        assertEquals(RoundPhase.STEAL, steal.phase)
+        assertEquals("b1", steal.turnPlayerId)
+
+        val ended = engine.correct(1)
+        assertEquals(RoundPhase.ROUND_END, ended.phase)
+        assertEquals(TeamId.TEAM_2, ended.roundWinner)
+    }
+
+    @Test
+    fun `one player per team plays a whole round`() {
+        val solo = listOf(
+            Player("a1", "وحيد", TeamId.TEAM_1, seat = 1),
+            Player("b1", "وحيدة", TeamId.TEAM_2, seat = 1)
+        )
+        val engine = GameEngine(freshState(players = solo))
+
+        assertEquals(setOf("a1", "b1"), engine.state.armedPlayerIds())
+        engine.buzzPodium(TeamId.TEAM_1)
+        engine.correct(0)
+        engine.choosePlay()
+
+        // نفس اللاعب بيضل دوره لأنه ما في غيره بالفريق.
+        assertEquals("a1", engine.state.turnPlayerId)
+        engine.correct(1)
+        assertEquals("a1", engine.state.turnPlayerId)
+        repeat(3) { engine.wrong() }
+        assertEquals(RoundPhase.STEAL, engine.state.phase)
+        assertEquals("b1", engine.state.turnPlayerId)
+    }
+
+    @Test
+    fun `moving a player renumbers both teams`() {
+        val engine = GameEngine(freshState())
+        val moved = engine.apply(GameEvent.PlayerMoved("a2", TeamId.TEAM_2))
+
+        assertEquals(listOf(1, 2), moved.playersOf(TeamId.TEAM_1).map { it.seat })
+        assertEquals(listOf("a1", "a3"), moved.playersOf(TeamId.TEAM_1).map { it.id })
+        assertEquals(listOf(1, 2, 3, 4), moved.playersOf(TeamId.TEAM_2).map { it.seat })
+        assertTrue(moved.playersOf(TeamId.TEAM_2).any { it.id == "a2" })
+    }
+
+    @Test
+    fun `the match start flag reaches the players`() {
+        val engine = GameEngine(freshState())
+        assertFalse(engine.state.matchStarted)
+
+        val started = engine.apply(GameEvent.StartGame)
+        assertTrue(started.matchStarted)
+        assertTrue(started.maskedForPlayers().matchStarted)
+    }
 }

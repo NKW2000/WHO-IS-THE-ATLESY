@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.AnswerBoardColumns
+import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.Countdown
 import com.feudparty.app.ui.components.MiniScore
 import com.feudparty.app.ui.components.Pill
@@ -77,9 +78,21 @@ fun PlayerScreen(
     mark: PlayerMark,
     status: ConnectionStatus,
     onBuzz: () -> Unit,
-    onChoose: (Boolean) -> Unit = {}
+    onChoose: (Boolean) -> Unit = {},
+    onChangeTeam: (TeamId) -> Unit = {}
 ) {
     val connected = status == ConnectionStatus.CONNECTED
+
+    // قبل ما يبلّش المضيف: اللاعب بيشوف رقمه وفريقه، وبيقدر يبدّل فريق.
+    if (connected && state != null && !state.matchStarted && !state.gameOver) {
+        PlayerLobbyScreen(
+            state = state,
+            playerId = playerId,
+            teamId = teamId,
+            onChangeTeam = onChangeTeam
+        )
+        return
+    }
 
     // الفائز بالمواجهة بيقرر من جهازه: نلعب أو نمرّر.
     if (connected &&
@@ -111,6 +124,118 @@ fun PlayerScreen(
             status = status,
             onBuzz = onBuzz
         )
+    }
+}
+
+/**
+ * لوبي اللاعب: اسمه ورقمه وفريقه، ومين معه بالفريق، وزر يبدّل فيه فريقه
+ * قبل ما تبلّش اللعبة.
+ */
+@Composable
+private fun PlayerLobbyScreen(
+    state: GameState,
+    playerId: String?,
+    teamId: TeamId?,
+    onChangeTeam: (TeamId) -> Unit
+) {
+    val me = state.player(playerId)
+    val other = teamId?.other()
+
+    Box(modifier = Modifier.fillMaxSize().background(FeudColors.stage).padding(20.dp)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (me != null) {
+                    SeatBadge(seat = me.seat, size = 34.dp)
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        me.name,
+                        color = FeudColors.cream,
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "بانتظار المضيف يبلّش",
+                    color = FeudColors.gold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                TeamId.entries.forEachIndexed { index, id ->
+                    if (index > 0) Spacer(Modifier.width(12.dp))
+                    TeamRoster(
+                        state = state,
+                        teamId = id,
+                        mine = id == teamId,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            if (other != null) {
+                Spacer(Modifier.height(14.dp))
+                SecondaryButton(
+                    text = "بدّل لـ ${state.teams[other]?.name ?: "الفريق التاني"}",
+                    onClick = { onChangeTeam(other) },
+                    accent = other.color(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
+/** أسماء فريق مرتّبة برقم كل لاعب. */
+@Composable
+private fun TeamRoster(
+    state: GameState,
+    teamId: TeamId,
+    mine: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val team = state.teams[teamId]
+    CartoonSurface(
+        modifier = modifier,
+        color = if (mine) teamId.color() else FeudColors.stageAlt,
+        corner = 18.dp,
+        shadow = 7.dp
+    ) {
+        Column(modifier = Modifier.fillMaxSize().padding(14.dp)) {
+            Text(
+                team?.name ?: "فريق",
+                color = if (mine) teamId.inkColor() else FeudColors.textSoft,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(8.dp))
+            state.playersOf(teamId).forEach { player ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 3.dp)
+                ) {
+                    SeatBadge(seat = player.seat, size = 24.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        player.name,
+                        color = if (mine) teamId.inkColor() else FeudColors.cream,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1
+                    )
+                }
+            }
+            if (state.playersOf(teamId).isEmpty()) {
+                Text(
+                    "لسا ما فات حدا",
+                    color = FeudColors.textMuted,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
     }
 }
 

@@ -281,7 +281,7 @@ private fun HostSetupScreenPreview() {
     FeudPartyTheme {
         HostSetupScreen(
             teams = mapOf(
-                TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأحمر", connected = true),
+                TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأخضر", connected = true),
                 TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "الفريق الأزرق", connected = true)
             ),
             players = listOf(

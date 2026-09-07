@@ -223,7 +223,8 @@ private fun markLabel(mark: PlayerMark): String = when (mark) {
 
 /** المضيف بيقدر يحكم بس لما يكون في لاعب مستنّي حكم. */
 private fun GameState.canJudge(): Boolean = when (phase) {
-    RoundPhase.FACE_OFF -> buzzedTeam() != null
+    // إذا ما ضل حدا يقدر يضغط (كلهم انقطعوا) المضيف بيكمّل بإيده.
+    RoundPhase.FACE_OFF -> buzzedTeam() != null || armedPlayerIds().isEmpty()
     RoundPhase.FACE_OFF_SECOND, RoundPhase.PLAY, RoundPhase.STEAL -> true
     // بعد نهاية الجولة الخانات بتضل تنضغط حتى يكشف الباقي وحدة وحدة.
     RoundPhase.ROUND_END -> true
@@ -263,7 +264,7 @@ private fun HostGameBoardScreenPreview() {
                     Player("b1", "ليلى", TeamId.TEAM_2, seat = 1)
                 ),
                 teams = mapOf(
-                    TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأحمر", 140, connected = true),
+                    TeamId.TEAM_1 to TeamState(TeamId.TEAM_1, "الفريق الأخضر", 140, connected = true),
                     TeamId.TEAM_2 to TeamState(TeamId.TEAM_2, "الفريق الأزرق", 95, connected = true)
                 ),
                 phase = RoundPhase.PLAY,

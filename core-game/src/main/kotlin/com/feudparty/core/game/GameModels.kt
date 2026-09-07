@@ -139,6 +139,8 @@ data class GameState(
     val answerSecondsLeft: Int = 0,
     /** الوقت الباقي لقرار «نلعب أو نمرّر». */
     val choiceSecondsLeft: Int = 0,
+    /** صارت اللعبة تمشي — قبلها اللاعب بيقدر يبدّل فريقه. */
+    val matchStarted: Boolean = false,
     val gameOver: Boolean = false
 ) {
     val currentQuestion: Question? get() = questions.getOrNull(currentQuestionIndex)
