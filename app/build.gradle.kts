@@ -20,8 +20,8 @@ android {
         applicationId = "com.feudparty.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     signingConfigs {
@@ -37,6 +37,16 @@ android {
     }
 
     buildTypes {
+        // نسخة الديمو: بتفتح معرض الشاشات بدل اللعبة، وبتتركّب جنب
+        // النسخة العادية (معرّف مختلف) فبتقدر تجرّب الواجهات بجهاز واحد.
+        create("demo") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".demo"
+            versionNameSuffix = "-demo"
+            isMinifyEnabled = false
+            matchingFallbacks += listOf("debug")
+        }
+
         release {
             isMinifyEnabled = false
             // بدون مفتاح إصدار منوقّع بمفتاح الـ debug حتى يضل الـ APK
@@ -69,6 +79,7 @@ android {
     sourceSets {
         getByName("main").java.srcDir("src/main/kotlin")
         getByName("test").java.srcDir("src/test/kotlin")
+        getByName("demo").java.srcDir("src/demo/kotlin")
     }
 
     packaging {
@@ -93,6 +104,7 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
+    add("demoImplementation", "androidx.compose.ui:ui-tooling")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")

@@ -1,0 +1,65 @@
+name: Release
+
+# كل وسم بصيغة v* بيبني النسختين وبينشرهن كـ Release على GitHub.
+# بتقدر كمان تشغّله بإيدك من تبويب Actions.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests
+        run: ./gradlew test --no-daemon
+
+      - name: Build release and demo APKs
+        run: ./gradlew assembleRelease assembleDemo --no-daemon
+
+      - name: Name the artifacts after the tag
+        id: names
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          [ -z "$version" ] && version="$(date +%Y%m%d-%H%M)"
+          mkdir -p artifacts
+          cp app/build/outputs/apk/release/app-release.apk \
+            "artifacts/meen-al-atlasy-$version.apk"
+          cp app/build/outputs/apk/demo/app-demo.apk \
+            "artifacts/meen-al-atlasy-$version-demo.apk"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Keep the APKs on the run
+        uses: actions/upload-artifact@v4
+        with:
+          name: apks-${{ steps.names.outputs.version }}
+          path: artifacts/*.apk
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.apk
+          generate_release_notes: true
+          body: |
+            نسختين بهاد الإصدار:
+
+            - `meen-al-atlasy-${{ steps.names.outputs.version }}.apk` — اللعبة. ركّبها على جهاز المضيف وعلى جهاز كل لاعب.
+            - `meen-al-atlasy-${{ steps.names.outputs.version }}-demo.apk` — الديمو: معرض الشاشات بجهاز واحد، بدون شبكة. بتنركّب جنب اللعبة.
+
+            > الـ APK موقّع بمفتاح تجربة، فأول تركيب بدّه تسمح بـ«مصادر غير معروفة».
