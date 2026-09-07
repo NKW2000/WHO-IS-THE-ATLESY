@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.AnswerBoardGrid
 import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.Countdown
-import com.feudparty.app.ui.components.MiniScore
 import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.SecondaryButton
@@ -413,31 +412,46 @@ private fun PlayerBoard(
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            TopBar(state, playerId, teamId, status, onBackground)
-            Spacer(Modifier.height(10.dp))
+            // فوق بالنص: الأخطاء والوقت — الشغلتين اللي لازم يشوفهن اللاعب
+            // بلمحة عين وهو بيسمع السؤال.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (state != null &&
+                    (state.phase == RoundPhase.PLAY || state.phase == RoundPhase.STEAL)
+                ) {
+                    StrikeRow(strikes = state.strikes, total = state.strikesToSteal, size = 30.dp)
+                }
+                val seconds = state?.let { maxOf(it.answerSecondsLeft, it.choiceSecondsLeft) } ?: 0
+                if (seconds > 0) {
+                    Spacer(Modifier.width(14.dp))
+                    Countdown(seconds = seconds, size = 40.dp)
+                }
+            }
 
             val question = state?.currentQuestion
             val questionText = question?.text.orEmpty()
             if (questionText.isNotBlank()) {
+                Spacer(Modifier.height(6.dp))
                 Text(
                     text = questionText,
                     color = onBackground,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(Modifier.height(8.dp))
             }
 
             // اللوح بيبان للكل حتى وهو السؤال مخفي: رقم الخانة بس، بدون
             // نص وبدون نقاط، لحد ما المضيف يكشفها.
             if (question != null) {
-                // الخانات بتتقسّم الارتفاع المتاح بينها، فما بيضل فراغ تحت.
                 AnswerBoardGrid(
                     answers = question.answers,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(vertical = 4.dp),
+                        .padding(vertical = 6.dp),
                     revealHiddenText = false,
                     showHiddenPoints = false
                 )
@@ -445,70 +459,65 @@ private fun PlayerBoard(
                 Box(modifier = Modifier.weight(1f))
             }
 
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val seconds = state?.let { maxOf(it.answerSecondsLeft, it.choiceSecondsLeft) } ?: 0
-                if (seconds > 0) {
-                    Countdown(seconds = seconds, size = 44.dp)
-                    Spacer(Modifier.width(12.dp))
-                }
-                if (state != null &&
-                    (state.phase == RoundPhase.PLAY || state.phase == RoundPhase.STEAL)
-                ) {
-                    StrikeRow(strikes = state.strikes, size = 30.dp)
-                    Spacer(Modifier.width(12.dp))
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    Text(
-                        statusLine(mark, state, teamId, status),
-                        color = onBackground,
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
+            // تحت: بلوك واحد بيقول مين عم يلعب برقمه، وشو المطلوب منّك.
+            // نقاط الفرق مش هون — بتبيّن بشاشة النتيجة بين الجولات.
+            TurnBlock(
+                state = state,
+                playerId = playerId,
+                teamId = teamId,
+                mark = mark,
+                status = status
+            )
         }
     }
 }
 
+/** بلوك الدور: رقم اللاعب اللي عليه الدور واسمه، وتحته سطر الحالة. */
 @Composable
-private fun TopBar(
+private fun TurnBlock(
     state: GameState?,
     playerId: String?,
     teamId: TeamId?,
-    status: ConnectionStatus,
-    onBackground: Color
+    mark: PlayerMark,
+    status: ConnectionStatus
 ) {
     val me = state?.player(playerId)
-    Row(
+    val current = state?.player(state.turnPlayerId ?: state.buzzedPlayerId) ?: me
+    val color = (current?.teamId ?: teamId)?.color() ?: FeudColors.gold
+    val ink = (current?.teamId ?: teamId)?.inkColor() ?: FeudColors.ink
+
+    CartoonSurface(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        color = color,
+        borderWidth = 3.dp,
+        corner = 14.dp,
+        shadow = 5.dp
     ) {
-        if (teamId != null && me != null) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SeatBadge(seat = me.seat, size = 26.dp)
-                Spacer(Modifier.width(8.dp))
-                Pill(
-                    text = me.name,
-                    color = teamId.color(),
-                    textColor = teamId.inkColor()
-                )
-            }
-        } else {
-            Text(
-                connectionLabel(status),
-                color = onBackground,
-                style = MaterialTheme.typography.titleSmall
-            )
-        }
-        if (state != null) {
-            Row(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
-                MiniScore(state, TeamId.TEAM_1, Modifier.weight(1f))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (current != null) {
+                SeatBadge(seat = current.seat, size = 28.dp)
                 Spacer(Modifier.width(10.dp))
-                MiniScore(state, TeamId.TEAM_2, Modifier.weight(1f))
+                Text(
+                    if (current.id == playerId) "دورك" else "دور ${current.name}",
+                    color = ink,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1
+                )
+                Spacer(Modifier.width(12.dp))
             }
+            Text(
+                statusLine(mark, state, teamId, status),
+                color = ink,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.End,
+                maxLines = 2,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
