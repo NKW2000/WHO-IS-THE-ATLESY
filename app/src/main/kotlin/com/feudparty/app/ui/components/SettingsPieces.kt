@@ -29,9 +29,9 @@ fun SettingsCard(title: String, content: @Composable () -> Unit) {
         corner = 18.dp,
         shadow = 6.dp
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(title, color = FeudColors.gold, style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(10.dp))
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(title, color = FeudColors.gold, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
             content()
         }
     }

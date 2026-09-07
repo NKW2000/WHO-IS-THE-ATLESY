@@ -94,21 +94,27 @@ fun HostSettingsScreen(
             Row(modifier = Modifier.weight(1f)) {
                 Column(modifier = Modifier.weight(1f)) {
                     RoomSection(settings) { renamingRoom = true }
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(8.dp))
                     TeamsSection(settings) { renaming = it }
-                    Spacer(Modifier.height(10.dp))
+                }
+
+                Spacer(Modifier.width(10.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    RoundsSection(settings, onSettingsChange)
+                }
+
+                Spacer(Modifier.width(10.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    TimingSection(settings, onSettingsChange)
+                    Spacer(Modifier.height(8.dp))
                     SecondaryButton(
                         text = "رجوع للإعدادات الافتراضية",
                         onClick = { onSettingsChange(GameSettings()) },
                         accent = FeudColors.pink,
                         modifier = Modifier.fillMaxWidth()
                     )
-                }
-
-                Spacer(Modifier.width(14.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    RoundsSection(settings, onSettingsChange)
                 }
             }
         }
@@ -147,32 +153,53 @@ fun HostSettingsScreen(
 @Composable
 private fun RoomSection(settings: GameSettings, onRename: () -> Unit) {
     SettingsCard(title = "الغرفة") {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            CartoonSurface(
-                modifier = Modifier.weight(1f),
-                color = FeudColors.gold,
-                borderWidth = 3.dp,
-                corner = 12.dp,
-                shadow = 4.dp
-            ) {
-                Text(
-                    settings.roomName,
-                    color = FeudColors.ink,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                )
-            }
-            Spacer(Modifier.width(10.dp))
-            SecondaryButton(
-                text = "غيّر الاسم",
-                onClick = onRename,
-                accent = FeudColors.teal,
-                modifier = Modifier.width(170.dp)
+        NameField(
+            name = settings.roomName,
+            color = FeudColors.gold,
+            ink = FeudColors.ink,
+            onRename = onRename
+        )
+    }
+}
+
+/** اسم بسطر واحد وجنبه زر قلم صغير — بيوفّر ارتفاع وما بينقص الاسم. */
+@Composable
+private fun NameField(
+    name: String,
+    color: Color,
+    ink: Color,
+    onRename: () -> Unit
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        CartoonSurface(
+            modifier = Modifier.weight(1f),
+            color = color,
+            borderWidth = 3.dp,
+            corner = 12.dp,
+            shadow = 4.dp
+        ) {
+            Text(
+                name,
+                color = ink,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
             )
+        }
+        Spacer(Modifier.width(8.dp))
+        CartoonSurface(
+            color = FeudColors.teal,
+            borderWidth = 3.dp,
+            corner = 12.dp,
+            shadow = 4.dp,
+            onClick = onRename
+        ) {
+            Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                Text("✎", color = FeudColors.ink, style = MaterialTheme.typography.titleMedium)
+            }
         }
     }
 }
@@ -182,41 +209,14 @@ private fun RoomSection(settings: GameSettings, onRename: () -> Unit) {
 private fun TeamsSection(settings: GameSettings, onRename: (TeamId) -> Unit) {
     SettingsCard(title = "الفريقين") {
         TeamId.entries.forEachIndexed { index, teamId ->
-            if (index > 0) Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CartoonSurface(
-                    modifier = Modifier.weight(1f),
-                    color = teamId.color(),
-                    borderWidth = 3.dp,
-                    corner = 12.dp,
-                    shadow = 4.dp
-                ) {
-                    Text(
-                        settings.teamName(teamId),
-                        color = teamId.inkColor(),
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
-                    )
-                }
-                Spacer(Modifier.width(10.dp))
-                SecondaryButton(
-                    text = "غيّر الاسم",
-                    onClick = { onRename(teamId) },
-                    accent = FeudColors.gold,
-                    modifier = Modifier.width(170.dp)
-                )
-            }
+            if (index > 0) Spacer(Modifier.height(8.dp))
+            NameField(
+                name = settings.teamName(teamId),
+                color = teamId.color(),
+                ink = teamId.inkColor(),
+                onRename = { onRename(teamId) }
+            )
         }
-        Spacer(Modifier.height(10.dp))
-        Text(
-            "اللاعب بيختار فريقه لما يفوت، وبيقدر يبدّله من اللوبي قبل ما تبلّش اللعبة.",
-            color = FeudColors.textMuted,
-            style = MaterialTheme.typography.bodyMedium
-        )
     }
 }
 
@@ -230,7 +230,7 @@ private fun RoundsSection(settings: GameSettings, onChange: (GameSettings) -> Un
             max = GameSettings.MAX_ROUNDS,
             onChange = { onChange(settings.copy(rounds = it)) }
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
         Text(
             "مضاعف كل جولة",
             color = FeudColors.gold,
@@ -240,10 +240,10 @@ private fun RoundsSection(settings: GameSettings, onChange: (GameSettings) -> Un
         val perRound = settings.multipliersForRounds()
         Column {
             perRound.chunked(4).forEachIndexed { rowIndex, chunk ->
-                Row(modifier = Modifier.padding(bottom = 8.dp)) {
+                Row(modifier = Modifier.padding(bottom = 6.dp)) {
                     chunk.forEachIndexed { columnIndex, multiplier ->
                         val index = rowIndex * 4 + columnIndex
-                        if (columnIndex > 0) Spacer(Modifier.width(8.dp))
+                        if (columnIndex > 0) Spacer(Modifier.width(6.dp))
                         MultiplierChip(
                             round = index + 1,
                             multiplier = multiplier,
@@ -257,13 +257,24 @@ private fun RoundsSection(settings: GameSettings, onChange: (GameSettings) -> Un
                         )
                     }
                     repeat(4 - chunk.size) {
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(6.dp))
                         Box(Modifier.weight(1f))
                     }
                 }
             }
         }
         Spacer(Modifier.height(4.dp))
+        Pill(
+            text = "بتحتاج ${settings.questionsNeeded().ar()} سؤال باللعبة الوحدة",
+            color = FeudColors.gold
+        )
+    }
+}
+
+/** التوقيت والأخطاء — عمود لحاله حتى يوصله المضيف بدون تمرير. */
+@Composable
+private fun TimingSection(settings: GameSettings, onChange: (GameSettings) -> Unit) {
+    SettingsCard(title = "الوقت والأخطاء") {
         Stepper(
             label = "ثواني الجواب",
             value = settings.answerSeconds,
@@ -272,26 +283,21 @@ private fun RoundsSection(settings: GameSettings, onChange: (GameSettings) -> Un
             step = 5,
             onChange = { onChange(settings.copy(answerSeconds = it)) }
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(6.dp))
         Stepper(
-            label = "ثواني قرار «نلعب أو نمرّر»",
+            label = "ثواني «العب أو تمرير»",
             value = settings.choiceSeconds,
             min = GameSettings.MIN_CHOICE_SECONDS,
             max = GameSettings.MAX_CHOICE_SECONDS,
             onChange = { onChange(settings.copy(choiceSeconds = it)) }
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(6.dp))
         Stepper(
-            label = "عدد الأخطاء اللي بتفتح السرقة",
+            label = "أخطاء تفتح السرقة",
             value = settings.strikesToSteal,
             min = GameSettings.MIN_STRIKES,
             max = GameSettings.MAX_STRIKES,
             onChange = { onChange(settings.copy(strikesToSteal = it)) }
-        )
-        Spacer(Modifier.height(10.dp))
-        Pill(
-            text = "بتحتاج ${settings.questionsNeeded().ar()} سؤال باللعبة الوحدة",
-            color = FeudColors.gold
         )
     }
 }

@@ -3,24 +3,30 @@
     android:height="192dp"
     android:viewportWidth="192"
     android:viewportHeight="192">
-    <group android:translateX="8" android:translateY="8">
+    <!-- نفس شارة العلامة: قرص ذهبي بحدّ حبر وعلامة سؤال كريمية مايلة. -->
+    <path
+        android:fillColor="#FFD23F"
+        android:strokeColor="#140626"
+        android:strokeWidth="11"
+        android:pathData="M96,96m-58,0a58,58 0,1 1,116 0a58,58 0,1 1,-116 0" />
+    <group android:pivotX="96" android:pivotY="96" android:rotation="-7">
         <path
-            android:pathData="M72,80 A24,24 0 1 1 120,80 C120,98 96,98 96,114"
+            android:pathData="M76,81 A20.5,20.5 0 1 1 117,81 C117,96 96.5,97 96.5,110"
             android:strokeColor="#140626"
-            android:strokeWidth="17"
+            android:strokeWidth="27"
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
         <path
             android:fillColor="#140626"
-            android:pathData="M96,132m-9.5,0a9.5,9.5 0,1 1,19 0a9.5,9.5 0,1 1,-19 0" />
+            android:pathData="M96.5,126m-13,0a13,13 0,1 1,26 0a13,13 0,1 1,-26 0" />
+        <path
+            android:pathData="M76,81 A20.5,20.5 0 1 1 117,81 C117,96 96.5,97 96.5,110"
+            android:strokeColor="#FFF6E5"
+            android:strokeWidth="16"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="#FFF6E5"
+            android:pathData="M96.5,126m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
     </group>
-    <path
-        android:pathData="M72,80 A24,24 0 1 1 120,80 C120,98 96,98 96,114"
-        android:strokeColor="#2BE0D6"
-        android:strokeWidth="17"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-    <path
-        android:fillColor="#2BE0D6"
-        android:pathData="M96,132m-9.5,0a9.5,9.5 0,1 1,19 0a9.5,9.5 0,1 1,-19 0" />
 </vector>

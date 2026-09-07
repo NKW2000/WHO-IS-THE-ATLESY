@@ -9,20 +9,33 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.feudparty.app.ui.components.BrandBadge
 import com.feudparty.app.ui.components.CartoonSurface
+import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.GoldDivider
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
@@ -45,10 +58,11 @@ fun RoomListScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                BrandBadge(em = 40.dp)
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "أي غرفة؟",
                         color = FeudColors.gold,
@@ -57,14 +71,23 @@ fun RoomListScreen(
                     Text(
                         "أهلاً $playerName — اختار الغرفة اللي بدك تفوت فيها",
                         color = FeudColors.textMuted,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+                // عدّاد الغرف — بيضل يدوّر طول ما اللستة مفتوحة.
+                Pill(
+                    text = if (rooms.isEmpty()) "عم ندوّر..." else "${rooms.size.ar()} غرفة قريبة",
+                    color = if (rooms.isEmpty()) FeudColors.stageAlt else FeudColors.lime,
+                    textColor = if (rooms.isEmpty()) FeudColors.textMuted else FeudColors.ink
+                )
+                Spacer(Modifier.width(12.dp))
                 SecondaryButton(
                     text = "رجوع",
                     onClick = onBack,
                     accent = FeudColors.teal,
-                    modifier = Modifier.width(150.dp)
+                    modifier = Modifier.width(140.dp)
                 )
             }
 
@@ -73,17 +96,13 @@ fun RoomListScreen(
             Spacer(Modifier.height(10.dp))
 
             if (rooms.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        "عم ندوّر على غرف قريبة...\nخلّي المضيف يفتح اللعبة ويبلّش البث",
-                        color = FeudColors.textSoft,
-                        style = MaterialTheme.typography.titleSmall,
-                        textAlign = TextAlign.Center
-                    )
-                }
+                SearchingState(modifier = Modifier.fillMaxSize())
             } else {
-                LazyColumn(
+                // عمودين — أكتر غرف بتبان بدون تمرير.
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(rooms, key = { it.endpointId }) { room ->
@@ -101,28 +120,74 @@ private fun RoomRow(room: PlayerViewModel.Room, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         color = FeudColors.stageAlt,
         borderWidth = 3.dp,
-        corner = 14.dp,
+        corner = 16.dp,
         shadow = 5.dp,
         onClick = onClick
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            BrandBadge(em = 30.dp)
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    room.name,
+                    color = FeudColors.text,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    "غرفة قريبة · جاهزة",
+                    color = FeudColors.textMuted,
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+            Pill(text = "فوت", color = FeudColors.lime, textColor = FeudColors.ink)
+        }
+    }
+}
+
+/** حالة البحث: نقط بتنبض وسطر بيقول شو لازم يصير. */
+@Composable
+private fun SearchingState(modifier: Modifier = Modifier) {
+    val pulse = rememberInfiniteTransition(label = "searching")
+    val scale by pulse.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(tween(760), RepeatMode.Reverse),
+        label = "pulse"
+    )
+
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf(FeudColors.gold, FeudColors.teal, FeudColors.pink)
+                    .forEachIndexed { index, color ->
+                        Box(
+                            modifier = Modifier
+                                .scale(if (index % 2 == 0) scale else 2f - scale)
+                                .size(14.dp)
+                                .background(color, CircleShape)
+                        )
+                    }
+            }
+            Spacer(Modifier.height(14.dp))
             Text(
-                room.name,
+                "عم ندوّر على غرف قريبة",
                 color = FeudColors.text,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
+                style = MaterialTheme.typography.titleMedium
             )
+            Spacer(Modifier.height(4.dp))
             Text(
-                "فوت",
-                color = FeudColors.lime,
-                style = MaterialTheme.typography.titleSmall
+                "خلّي المضيف يفتح اللعبة ويضغط «ابدأ الاستضافة»، وتأكد إنه " +
+                    "البلوتوث والواي فاي شغّالين عند الاتنين",
+                color = FeudColors.textMuted,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center
             )
         }
     }
