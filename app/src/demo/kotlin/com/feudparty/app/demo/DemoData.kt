@@ -35,7 +35,8 @@ internal fun demoState(
         "يغسلوا وجّهم" to 16,
         "يصلّوا" to 9,
         "يفتحوا الشباك" to 5,
-        "يرجعوا يناموا" to 2
+        "يرجعوا يناموا" to 2,
+        "يفتحوا التلفزيون" to 2
     ).mapIndexed { index, (text, points) ->
         val open = index < revealed
         Answer(

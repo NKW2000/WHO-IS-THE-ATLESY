@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -110,21 +111,24 @@ fun AnswerBoardColumns(
 }
 
 /**
- * اللوح كشبكة — تلات خانات بالسطر. بياخد كل الارتفاع المتاح وبيوزّعه على
- * السطور، فما بيضل فراغ تحت ولا بيحتاج تمرير.
+ * اللوح كشبكة — تلات خانات بالسطر. عدد الخانات ثابت ([slots]) مهما كان
+ * عدد الأجوبة: السؤال اللي أجوبته أقل بيضل لوحه كامل والخانات الزايدة
+ * بتضل فاضية، زي لوح البرنامج. بياخد كل الارتفاع المتاح فما بيحتاج تمرير.
  */
 @Composable
 fun AnswerBoardGrid(
     answers: List<Answer>,
     modifier: Modifier = Modifier,
     columns: Int = 3,
+    slots: Int = 9,
     revealHiddenText: Boolean = false,
     showHiddenPoints: Boolean = true,
     enabledSlots: Boolean = false,
-    spacing: Dp = 10.dp,
+    spacing: Dp = 8.dp,
     onSlotClick: ((Int) -> Unit)? = null
 ) {
-    val rows = answers.chunked(columns)
+    val padded: List<Answer?> = List(maxOf(slots, answers.size)) { answers.getOrNull(it) }
+    val rows = padded.chunked(columns)
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(spacing)
@@ -138,23 +142,45 @@ fun AnswerBoardGrid(
             ) {
                 row.forEachIndexed { columnIndex, answer ->
                     val index = rowIndex * columns + columnIndex
-                    AnswerSlot(
-                        position = index + 1,
-                        answer = answer,
-                        revealHiddenText = revealHiddenText,
-                        showHiddenPoints = showHiddenPoints,
-                        enabled = enabledSlots && !answer.revealed && onSlotClick != null,
-                        height = null,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                        onClick = { onSlotClick?.invoke(index) }
-                    )
+                    if (answer == null) {
+                        EmptySlot(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        )
+                    } else {
+                        AnswerSlot(
+                            position = index + 1,
+                            answer = answer,
+                            revealHiddenText = revealHiddenText,
+                            showHiddenPoints = showHiddenPoints,
+                            enabled = enabledSlots && !answer.revealed && onSlotClick != null,
+                            height = null,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            onClick = { onSlotClick?.invoke(index) }
+                        )
+                    }
                 }
                 // سطر ناقص: منترك مكان الخانات الفاضية حتى يضل العرض ثابت.
                 repeat(columns - row.size) { Box(Modifier.weight(1f)) }
             }
         }
+    }
+}
+
+/** خانة ما إلها جواب بهاد السؤال — بتضل فاضية حتى يضل اللوح بنفس الشكل. */
+@Composable
+private fun EmptySlot(modifier: Modifier = Modifier) {
+    CartoonSurface(
+        modifier = modifier.fillMaxWidth(),
+        color = FeudColors.panelDark,
+        borderWidth = 3.dp,
+        corner = 14.dp,
+        shadow = 4.dp
+    ) {
+        Box(modifier = Modifier.fillMaxSize())
     }
 }
 
@@ -189,9 +215,9 @@ private fun AnswerSlot(
                 }
             },
         color = if (revealed) FeudColors.team1 else FeudColors.cream,
-        borderWidth = 4.dp,
-        corner = 16.dp,
-        shadow = 5.dp,
+        borderWidth = 3.dp,
+        corner = 14.dp,
+        shadow = 4.dp,
         onClick = if (enabled) onClick else null,
         enabled = enabled
     ) {
@@ -199,11 +225,11 @@ private fun AnswerSlot(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 9.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             SlotNumber(position = position, revealed = revealed)
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(8.dp))
             Text(
                 text = when {
                     revealed -> answer.text
@@ -215,8 +241,8 @@ private fun AnswerSlot(
                     revealHiddenText -> FeudColors.ink
                     else -> FeudColors.ink.copy(alpha = 0.45f)
                 },
-                style = MaterialTheme.typography.titleMedium,
-                // المضيف لازم يقرا الجواب كامل — سطرين وتصغير بدل القص.
+                style = MaterialTheme.typography.titleSmall,
+                // المضيف لازم يقرا الجواب كامل — سطرين بدل القص.
                 maxLines = 2,
                 softWrap = true,
                 overflow = TextOverflow.Visible,
@@ -227,12 +253,8 @@ private fun AnswerSlot(
                 Text(
                     answer.points.ar(),
                     color = if (revealed) FeudColors.cream else FeudColors.pink,
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleMedium
                 )
-            }
-            if (enabled || revealed) {
-                Spacer(Modifier.width(10.dp))
-                JudgeChip(revealed = revealed)
             }
         }
     }
@@ -242,7 +264,7 @@ private fun AnswerSlot(
 private fun SlotNumber(position: Int, revealed: Boolean) {
     Box(
         modifier = Modifier
-            .size(30.dp)
+            .size(26.dp)
             .background(
                 if (revealed) FeudColors.team1Ink else FeudColors.gold,
                 RoundedCornerShape(9.dp)
@@ -254,27 +276,6 @@ private fun SlotNumber(position: Int, revealed: Boolean) {
             position.ar(),
             color = if (revealed) FeudColors.lime else FeudColors.ink,
             style = MaterialTheme.typography.labelMedium
-        )
-    }
-}
-
-/** زر «صح» عند المضيف — بيصير علامة ✓ بعد الكشف. */
-@Composable
-private fun JudgeChip(revealed: Boolean) {
-    Box(
-        modifier = Modifier
-            .background(
-                if (revealed) FeudColors.lime else FeudColors.pink,
-                RoundedCornerShape(10.dp)
-            )
-            .border(3.dp, FeudColors.ink, RoundedCornerShape(10.dp))
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-    ) {
-        Text(
-            if (revealed) "✓" else "صح",
-            color = if (revealed) FeudColors.team1Ink else Color.White,
-            style = MaterialTheme.typography.titleSmall,
-            textAlign = TextAlign.Center
         )
     }
 }

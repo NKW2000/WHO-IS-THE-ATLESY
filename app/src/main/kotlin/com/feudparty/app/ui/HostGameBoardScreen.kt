@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,10 +26,8 @@ import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.QuestionCard
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
-import com.feudparty.app.ui.components.StatusBanner
 import com.feudparty.app.ui.components.StrikeFlash
 import com.feudparty.app.ui.components.StrikeRow
-import com.feudparty.app.ui.components.accentFor
 import com.feudparty.app.ui.components.color
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
@@ -46,10 +45,14 @@ import com.feudparty.core.game.buzzedTeam
  * لوحة المضيف (أفقية) — بس هون بينحكم صح/غلط، وبس من هون بتتغير الحالة.
  * الكشف بيصير بالضغط على خانة الجواب نفسها.
  *
- * الترتيب: الوقت عالجنب، السؤال بالنص فوق، الأجوبة شبكة تلاتة بالسطر،
- * وتحت مين دوره وكم خطأ عليه مع زر الغلط. النقاط ما بتبيّن هون — بتبيّن
- * بشاشة النتيجة بين الجولات.
+ * الترتيب: الوقت عالجنب، السؤال بنص الشاشة تماماً، الأجوبة شبكة ٣×٣
+ * (تسع خانات دايماً)، وتحت مين دوره وكم خطأ عليه مع زر الغلط. ما في زر
+ * «صح»: المضيف بيدوس على خانة الجواب نفسها فبتنقلب خضرا. النقاط ما
+ * بتبيّن هون — بتبيّن بشاشة النتيجة بين الجولات.
  */
+/** عرض الزاوية اللي فيها الوقت — ونفسه بالطرف التاني حتى يتوسّط السؤال. */
+private val SIDE_SLOT = 88.dp
+
 @Composable
 fun HostGameBoardScreen(
     state: GameState,
@@ -58,43 +61,42 @@ fun HostGameBoardScreen(
     onNextRound: () -> Unit
 ) {
     val canJudge = state.canJudge()
-    val accent = accentFor(state.activeTeam)
     val revealedAll = state.boardFullyRevealed()
     val seconds = maxOf(state.answerSecondsLeft, state.choiceSecondsLeft)
 
     Box {
         StageBackground(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // فوق: الوقت عاليمين، السؤال بالنص، والحالة عالطرف التاني.
+                // فوق: السؤال بنص الشاشة، والوقت عالجنب بمساحة مساوية
+                // للمساحة المقابلة، فبيضل السؤال متوسّط تماماً.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
-                        modifier = Modifier.width(96.dp),
+                        modifier = Modifier.width(SIDE_SLOT),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (seconds > 0) Countdown(seconds = seconds)
+                        if (seconds > 0) Countdown(seconds = seconds, size = 44.dp)
                     }
                     // بطاقة السؤال جوّا Box: هي بتستعمل AnimatedVisibility
                     // اللي بتاكل الـ weight وبتاخد كل العرض إذا حطيناه عليها.
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
                         QuestionCard(
                             round = state.currentQuestionIndex + 1,
                             totalRounds = state.questions.size,
                             category = state.currentQuestion?.category,
-                            question = state.currentQuestion?.text ?: "—"
+                            question = state.currentQuestion?.text ?: "—",
+                            modifier = Modifier.widthIn(max = 620.dp)
                         )
                     }
-                    Box(
-                        modifier = Modifier.width(200.dp).padding(start = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        StatusBanner(text = hostStatusText(state), accent = accent)
-                    }
+                    Spacer(Modifier.width(SIDE_SLOT))
                 }
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(8.dp))
 
                 AnswerBoardGrid(
                     answers = state.currentQuestion?.answers.orEmpty(),
@@ -104,7 +106,7 @@ fun HostGameBoardScreen(
                     onSlotClick = onCorrect
                 )
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(8.dp))
 
                 // تحت: مين عم يجاوب وكم خطأ عليه، وزر الغلط.
                 Row(
@@ -116,7 +118,7 @@ fun HostGameBoardScreen(
                     StrikeRow(
                         strikes = state.strikes,
                         total = state.strikesToSteal,
-                        size = 34.dp
+                        size = 30.dp
                     )
                     Spacer(Modifier.width(12.dp))
                     SecondaryButton(

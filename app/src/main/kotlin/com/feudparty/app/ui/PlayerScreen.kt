@@ -12,7 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,7 +36,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.feudparty.app.ui.components.AnswerBoardColumns
+import com.feudparty.app.ui.components.AnswerBoardGrid
 import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.Countdown
 import com.feudparty.app.ui.components.MiniScore
@@ -434,21 +433,14 @@ private fun PlayerBoard(
             // نص وبدون نقاط، لحد ما المضيف يكشفها.
             if (question != null) {
                 // الخانات بتتقسّم الارتفاع المتاح بينها، فما بيضل فراغ تحت.
-                BoxWithConstraints(
+                AnswerBoardGrid(
+                    answers = question.answers,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(vertical = 4.dp)
-                ) {
-                    val rows = (question.answers.size + 1) / 2
-                    val spacing = 10.dp
-                    val slot = ((maxHeight - spacing * (rows - 1)) / rows).coerceAtLeast(44.dp)
-                    AnswerBoardColumns(
-                        answers = question.answers,
-                        revealHiddenText = false,
-                        showHiddenPoints = false,
-                        slotHeight = slot
-                    )
-                }
+                        .padding(vertical = 4.dp),
+                    revealHiddenText = false,
+                    showHiddenPoints = false
+                )
             } else {
                 Box(modifier = Modifier.weight(1f))
             }

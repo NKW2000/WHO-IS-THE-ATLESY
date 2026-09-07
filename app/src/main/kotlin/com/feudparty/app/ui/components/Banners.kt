@@ -26,7 +26,11 @@ import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.core.game.GameState
 import com.feudparty.core.game.TeamId
 
-/** بطاقة السؤال — لوح كريمي عريض زي شاشة البرنامج. */
+/**
+ * بطاقة السؤال — لوح كريمي زي شاشة البرنامج. عرضها بقد نصّها (مع سقف
+ * حتى ما تتمدّد على كل الشاشة بالأسئلة الطويلة)، فبتنتوسّط تماماً جوّا
+ * المساحة اللي بتنعطى لها.
+ */
 @Composable
 fun QuestionCard(
     round: Int,
@@ -39,8 +43,11 @@ fun QuestionCard(
         visible = true,
         enter = slideInHorizontally(tween(320)) { it / 4 } + fadeIn(tween(260))
     ) {
-        GoldPanel(modifier = modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
+        GoldPanel(modifier = modifier) {
+            Column(
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 if (category != null) {
                     Text(
                         "$category · جولة ${round.ar()}/${totalRounds.ar()}",
@@ -54,7 +61,7 @@ fun QuestionCard(
                     color = FeudColors.ink,
                     style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
+                    maxLines = 2
                 )
             }
         }
