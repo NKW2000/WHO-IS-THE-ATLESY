@@ -143,7 +143,7 @@ private fun Podium(name: String, score: Int, teamId: TeamId, height: Dp) {
             verticalArrangement = Arrangement.Center
         ) {
             Text(name, color = teamId.inkColor(), style = MaterialTheme.typography.titleLarge)
-            Text("$score", color = Color.White, style = MaterialTheme.typography.displayMedium)
+            Text(score.ar(), color = Color.White, style = MaterialTheme.typography.displayMedium)
         }
     }
 }

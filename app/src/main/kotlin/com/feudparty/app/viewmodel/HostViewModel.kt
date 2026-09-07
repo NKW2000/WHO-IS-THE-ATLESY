@@ -27,16 +27,16 @@ import kotlinx.coroutines.launch
  */
 class HostViewModel(
     private val connections: NearbyConnectionsManager,
-    questions: List<Question>,
+    questions: List<Question> = emptyList(),
     multipliers: List<Int> = DEFAULT_MULTIPLIERS,
     strikesToSteal: Int = GameEngine.DEFAULT_STRIKES_TO_STEAL,
     answerLimitSeconds: Int = DEFAULT_ANSWER_SECONDS,
     teamNames: Map<TeamId, String> = DEFAULT_TEAM_NAMES,
-    private val serviceName: String = SERVICE_NAME,
-    private val tickMillis: Long = 1_000L
-) : ViewModel() {
-
-    private val engine = GameEngine(
+    /**
+     * حالة بداية لعبة جديدة. بتنستدعى كل مرة بيبلّش فيها المضيف لعبة، فكل
+     * لعبة بتاخد أسئلة جديدة وإعدادات محدّثة وما بتورث لاعبين قدام.
+     */
+    private val newGame: () -> GameState = {
         GameState(
             questions = questions,
             multipliers = multipliers,
@@ -46,7 +46,12 @@ class HostViewModel(
                 TeamState(id, teamNames[id] ?: DEFAULT_TEAM_NAMES.getValue(id))
             }
         )
-    )
+    },
+    private val serviceName: String = SERVICE_NAME,
+    private val tickMillis: Long = 1_000L
+) : ViewModel() {
+
+    private val engine = GameEngine(newGame())
 
     private val _uiState = MutableStateFlow(engine.state)
     val uiState: StateFlow<GameState> = _uiState.asStateFlow()
@@ -73,6 +78,21 @@ class HostViewModel(
                 }
             }
         }
+    }
+
+    /**
+     * لعبة جديدة: بنسكّر الاتصالات القديمة وبنرجع الحالة من الصفر. بدونها
+     * بيرجع المضيف على نفس اللوبي القديم بنفس اللاعبين والنقاط.
+     */
+    fun resetSession() {
+        clockJob?.cancel()
+        clockJob = null
+        started = false
+        knownEndpoints.clear()
+        connections.stop()
+        _advertising.value = false
+        engine.reset(newGame())
+        _uiState.value = engine.state
     }
 
     fun startHosting() {

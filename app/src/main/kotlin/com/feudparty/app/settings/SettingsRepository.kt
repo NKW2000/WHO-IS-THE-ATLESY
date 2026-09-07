@@ -2,7 +2,9 @@ package com.feudparty.app.settings
 
 import android.content.Context
 import android.net.Uri
+import com.feudparty.core.game.GameState
 import com.feudparty.core.game.Question
+import com.feudparty.core.game.TeamState
 import com.feudparty.core.game.TeamId
 import com.feudparty.data.questions.BankResult
 import com.feudparty.data.questions.QuestionBank
@@ -54,6 +56,20 @@ class SettingsRepository(context: Context) {
             is BankResult.Success -> result.questions
             is BankResult.Failure -> QuestionBank.load()
         }
+    }
+
+    /** حالة بداية للعبة جديدة: أسئلة مسحوبة عشوائي وإعدادات المضيف الحالية. */
+    fun newGameState(): GameState {
+        val settings = load()
+        return GameState(
+            questions = QuestionBank.randomGame(rounds = settings.rounds, source = questions()),
+            multipliers = settings.multipliersForRounds(),
+            strikesToSteal = settings.strikesToSteal,
+            answerLimitSeconds = settings.answerSeconds,
+            teams = TeamId.entries.associateWith { id ->
+                TeamState(id, settings.teamName(id))
+            }
+        )
     }
 
     /**

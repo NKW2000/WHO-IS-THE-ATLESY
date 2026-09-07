@@ -20,6 +20,11 @@ class GameEngine(initialState: GameState) {
     var state: GameState = initialState
         private set
 
+    /** لعبة جديدة من الصفر — بدون لاعبين ولا نقاط ولا جولات قديمة. */
+    fun reset(newState: GameState) {
+        state = newState
+    }
+
     fun apply(event: GameEvent): GameState {
         state = when (event) {
             is GameEvent.Buzz -> handleBuzz(event)

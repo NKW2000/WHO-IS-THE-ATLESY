@@ -89,24 +89,26 @@ private fun body(size: Int, weight: FontWeight = FontWeight.Medium) = TextStyle(
     fontFamily = BodyFont,
     fontWeight = weight,
     fontSize = size.sp,
-    lineHeight = (size * 1.7).toInt().sp
+    lineHeight = (size * 1.45).toInt().sp
 )
 
+// المقاسات مضبوطة على شاشة تلفون أفقية: كل شي لازم يوقع بشاشة وحدة
+// بدون تمرير، فالخط أصغر من مقاسات ماتيريال الافتراضية.
 private val FeudTypography = Typography(
-    displayLarge = display(58),
-    displayMedium = display(46),
-    displaySmall = display(38),
-    headlineLarge = display(34),
-    headlineMedium = display(30),
-    headlineSmall = display(26),
-    titleLarge = display(24),
-    titleMedium = display(20),
-    titleSmall = display(17),
-    bodyLarge = body(16),
-    bodyMedium = body(14),
-    labelLarge = body(14, FontWeight.ExtraBold),
-    labelMedium = body(13, FontWeight.Bold),
-    labelSmall = body(12, FontWeight.Bold)
+    displayLarge = display(42),
+    displayMedium = display(34),
+    displaySmall = display(28),
+    headlineLarge = display(25),
+    headlineMedium = display(22),
+    headlineSmall = display(19),
+    titleLarge = display(18),
+    titleMedium = display(15),
+    titleSmall = display(13),
+    bodyLarge = body(13),
+    bodyMedium = body(11),
+    labelLarge = body(11, FontWeight.ExtraBold),
+    labelMedium = body(10, FontWeight.Bold),
+    labelSmall = body(9, FontWeight.Bold)
 )
 
 private val FeudColorScheme = darkColorScheme(

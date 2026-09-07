@@ -44,6 +44,7 @@ import com.feudparty.app.ui.components.MiniScore
 import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.SecondaryButton
+import com.feudparty.app.ui.components.StrikeFlash
 import com.feudparty.app.ui.components.StrikeRow
 import com.feudparty.app.ui.components.color
 import com.feudparty.app.ui.components.inkColor
@@ -116,14 +117,19 @@ fun PlayerScreen(
             onBuzz = onBuzz
         )
     } else {
-        PlayerBoard(
-            state = state,
-            playerId = playerId,
-            teamId = teamId,
-            mark = mark,
-            status = status,
-            onBuzz = onBuzz
-        )
+        Box {
+            PlayerBoard(
+                state = state,
+                playerId = playerId,
+                teamId = teamId,
+                mark = mark,
+                status = status,
+                onBuzz = onBuzz
+            )
+            // نفس حركة الخطأ اللي بتطلع عند المضيف — بتطلع عند الكل،
+            // وكمان لما يخلص الوقت بدون جواب.
+            StrikeFlash(strikes = state?.strikes ?: 0)
+        }
     }
 }
 
@@ -166,6 +172,7 @@ private fun PlayerLobbyScreen(
 
             Spacer(Modifier.height(14.dp))
 
+            // الفرق بأسماء المضيف: دوس على فريق حتى تفوت فيه.
             Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 TeamId.entries.forEachIndexed { index, id ->
                     if (index > 0) Spacer(Modifier.width(12.dp))
@@ -173,20 +180,20 @@ private fun PlayerLobbyScreen(
                         state = state,
                         teamId = id,
                         mine = id == teamId,
+                        onClick = { if (id != teamId) onChangeTeam(id) },
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
 
-            if (other != null) {
-                Spacer(Modifier.height(14.dp))
-                SecondaryButton(
-                    text = "بدّل لـ ${state.teams[other]?.name ?: "الفريق التاني"}",
-                    onClick = { onChangeTeam(other) },
-                    accent = other.color(),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                if (other == null) "" else "دوس على الفريق التاني إذا بدك تبدّل",
+                color = FeudColors.textMuted,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -197,6 +204,7 @@ private fun TeamRoster(
     state: GameState,
     teamId: TeamId,
     mine: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val team = state.teams[teamId]
@@ -204,14 +212,26 @@ private fun TeamRoster(
         modifier = modifier,
         color = if (mine) teamId.color() else FeudColors.stageAlt,
         corner = 18.dp,
-        shadow = 7.dp
+        shadow = 7.dp,
+        onClick = onClick
     ) {
         Column(modifier = Modifier.fillMaxSize().padding(14.dp)) {
-            Text(
-                team?.name ?: "فريق",
-                color = if (mine) teamId.inkColor() else FeudColors.textSoft,
-                style = MaterialTheme.typography.titleMedium
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    team?.name ?: "فريق",
+                    color = if (mine) teamId.inkColor() else FeudColors.textSoft,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f)
+                )
+                if (mine) {
+                    Text(
+                        "فريقك",
+                        color = teamId.inkColor(),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
             Spacer(Modifier.height(8.dp))
             state.playersOf(teamId).forEach { player ->
                 Row(

@@ -85,6 +85,7 @@ fun NamePromptDialog(
             Spacer(Modifier.height(10.dp))
 
             NameKeypad(
+                modifier = Modifier.weight(1f),
                 onKey = { key -> if (value.length < maxLength) value += key },
                 onBackspace = { value = value.dropLast(1) },
                 onDone = { if (value.isNotBlank()) onConfirm(value.trim()) },

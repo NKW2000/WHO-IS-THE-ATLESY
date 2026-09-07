@@ -42,7 +42,8 @@ import com.feudparty.app.ui.theme.FeudPartyTheme
 @Composable
 fun HomeScreen(
     onHostClick: () -> Unit,
-    onJoinClick: () -> Unit
+    onJoinClick: () -> Unit,
+    onSettingsClick: () -> Unit = {}
 ) {
     StageBackground(contentPadding = PaddingValues(horizontal = 30.dp, vertical = 24.dp)) {
         Row(
@@ -81,12 +82,11 @@ fun HomeScreen(
                     onClick = onJoinClick,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(Modifier.height(14.dp))
-                Text(
-                    "جهاز للمضيف · جهاز لكل لاعب",
-                    color = FeudColors.textMuted,
-                    style = MaterialTheme.typography.labelLarge,
-                    textAlign = TextAlign.Center,
+                Spacer(Modifier.height(12.dp))
+                SecondaryButton(
+                    text = "الإعدادات",
+                    onClick = onSettingsClick,
+                    accent = FeudColors.gold,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

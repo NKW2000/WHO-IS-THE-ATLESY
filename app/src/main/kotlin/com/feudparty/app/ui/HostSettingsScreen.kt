@@ -1,7 +1,5 @@
 package com.feudparty.app.ui
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,8 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +28,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.settings.GameSettings
 import com.feudparty.app.ui.components.CartoonSurface
+import com.feudparty.app.ui.components.SettingsCard
+import com.feudparty.app.ui.components.Stepper
+import com.feudparty.app.ui.components.MultiplierChip
 import com.feudparty.app.ui.components.GoldDivider
 import com.feudparty.app.ui.components.NamePromptDialog
 import com.feudparty.app.ui.components.color
@@ -52,23 +51,11 @@ import com.feudparty.core.game.TeamId
 @Composable
 fun HostSettingsScreen(
     settings: GameSettings,
-    bankMessage: String?,
-    bankMessageIsError: Boolean,
     onSettingsChange: (GameSettings) -> Unit,
-    onImportBank: (android.net.Uri, String) -> Unit,
-    onClearBank: () -> Unit,
     onBack: () -> Unit,
-    onContinue: (() -> Unit)? = null
+    onContinue: () -> Unit
 ) {
     var renaming by remember { mutableStateOf<TeamId?>(null) }
-    val picker = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            val name = uri.lastPathSegment?.substringAfterLast('/') ?: "بنك مستورد"
-            onImportBank(uri, name)
-        }
-    }
 
     StageBackground(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -89,53 +76,36 @@ fun HostSettingsScreen(
                         accent = FeudColors.teal,
                         modifier = Modifier.width(150.dp)
                     )
-                    if (onContinue != null) {
-                        Spacer(Modifier.width(12.dp))
-                        PrimaryButton(
-                            text = "كمّل للوبي",
-                            onClick = onContinue,
-                            color = FeudColors.lime,
-                            modifier = Modifier.width(200.dp)
-                        )
-                    }
+                    Spacer(Modifier.width(12.dp))
+                    PrimaryButton(
+                        text = "كمّل للوبي",
+                        onClick = onContinue,
+                        color = FeudColors.lime,
+                        modifier = Modifier.width(190.dp)
+                    )
                 }
             }
             Spacer(Modifier.height(8.dp))
             GoldDivider(Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp))
 
+            // كل شي بيوقع بشاشة وحدة — ما في تمرير بشاشة إعدادات.
             Row(modifier = Modifier.weight(1f)) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     TeamsSection(settings) { renaming = it }
-                    Spacer(Modifier.height(12.dp))
-                    BankSection(
-                        settings = settings,
-                        message = bankMessage,
-                        isError = bankMessageIsError,
-                        onPick = { picker.launch(arrayOf("application/json", "text/plain", "*/*")) },
-                        onClear = onClearBank
-                    )
-                }
-
-                Spacer(Modifier.width(16.dp))
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    RoundsSection(settings, onSettingsChange)
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(10.dp))
                     SecondaryButton(
                         text = "رجوع للإعدادات الافتراضية",
                         onClick = { onSettingsChange(GameSettings()) },
                         accent = FeudColors.pink,
                         modifier = Modifier.fillMaxWidth()
                     )
+                }
+
+                Spacer(Modifier.width(14.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    RoundsSection(settings, onSettingsChange)
                 }
             }
         }
@@ -194,68 +164,6 @@ private fun TeamsSection(settings: GameSettings, onRename: (TeamId) -> Unit) {
         Spacer(Modifier.height(10.dp))
         Text(
             "اللاعب بيختار فريقه لما يفوت، وبيقدر يبدّله من اللوبي قبل ما تبلّش اللعبة.",
-            color = FeudColors.textMuted,
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
-
-@Composable
-private fun BankSection(
-    settings: GameSettings,
-    message: String?,
-    isError: Boolean,
-    onPick: () -> Unit,
-    onClear: () -> Unit
-) {
-    SettingsCard(title = "بنك الأسئلة") {
-        Text(
-            settings.bankName?.let { "الحالي: $it — ${settings.bankQuestionCount.ar()} سؤال" }
-                ?: "الحالي: البنك المرفق مع التطبيق",
-            color = FeudColors.text,
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Spacer(Modifier.height(10.dp))
-        Row {
-            PrimaryButton(
-                text = "استيراد ملف",
-                onClick = onPick,
-                modifier = Modifier.weight(1f)
-            )
-            if (settings.bankName != null) {
-                Spacer(Modifier.width(10.dp))
-                SecondaryButton(
-                    text = "حذف",
-                    onClick = onClear,
-                    accent = FeudColors.pink,
-                    modifier = Modifier.width(120.dp)
-                )
-            }
-        }
-
-        if (message != null) {
-            Spacer(Modifier.height(10.dp))
-            CartoonSurface(
-                modifier = Modifier.fillMaxWidth(),
-                color = if (isError) FeudColors.pink else FeudColors.lime,
-                borderWidth = 3.dp,
-                corner = 12.dp,
-                shadow = 4.dp
-            ) {
-                Text(
-                    message,
-                    color = if (isError) Color.White else FeudColors.ink,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp)
-                )
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-        Text(
-            "بتقدر تستورد أسئلتك من ملف بدل الأسئلة الجاهزة. كل سؤال بدّه " +
-                "نص وأجوبة، وكل جواب إله نقاط — والأعلى نقاط بياخد اللوح " +
-                "بالمواجهة.",
             color = FeudColors.textMuted,
             style = MaterialTheme.typography.bodyMedium
         )
@@ -330,133 +238,15 @@ private fun RoundsSection(settings: GameSettings, onChange: (GameSettings) -> Un
     }
 }
 
-@Composable
-private fun SettingsCard(title: String, content: @Composable () -> Unit) {
-    CartoonSurface(
-        modifier = Modifier.fillMaxWidth(),
-        color = FeudColors.stageAlt,
-        corner = 18.dp,
-        shadow = 6.dp
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(title, color = FeudColors.gold, style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(10.dp))
-            content()
-        }
-    }
-}
-
-@Composable
-private fun Stepper(
-    label: String,
-    value: Int,
-    min: Int,
-    max: Int,
-    step: Int = 1,
-    onChange: (Int) -> Unit
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            label,
-            color = FeudColors.text,
-            style = MaterialTheme.typography.bodyLarge,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
-        Spacer(Modifier.width(10.dp))
-        StepperButton(text = "−", enabled = value > min) {
-            onChange((value - step).coerceAtLeast(min))
-        }
-        Box(
-            modifier = Modifier.width(62.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                value.ar(),
-                color = FeudColors.gold,
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center
-            )
-        }
-        StepperButton(text = "+", enabled = value < max) {
-            onChange((value + step).coerceAtMost(max))
-        }
-    }
-}
-
-@Composable
-private fun StepperButton(text: String, enabled: Boolean, onClick: () -> Unit) {
-    CartoonSurface(
-        color = if (enabled) FeudColors.gold else FeudColors.panelDark,
-        borderWidth = 3.dp,
-        corner = 12.dp,
-        shadow = 4.dp,
-        onClick = onClick,
-        enabled = enabled
-    ) {
-        Box(modifier = Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-            Text(
-                text,
-                color = if (enabled) FeudColors.ink else FeudColors.outlineSoft,
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
-    }
-}
-
-@Composable
-private fun MultiplierChip(
-    round: Int,
-    multiplier: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    CartoonSurface(
-        modifier = modifier,
-        color = when (multiplier) {
-            1 -> FeudColors.stage
-            2 -> FeudColors.teal
-            3 -> FeudColors.lime
-            else -> FeudColors.pink
-        },
-        borderWidth = 3.dp,
-        corner = 12.dp,
-        shadow = 4.dp,
-        onClick = onClick
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                "جولة ${round.ar()}",
-                color = if (multiplier == 1) FeudColors.textMuted else FeudColors.ink,
-                style = MaterialTheme.typography.labelSmall
-            )
-            Text(
-                "×${multiplier.ar()}",
-                color = if (multiplier == 1) FeudColors.text else FeudColors.ink,
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-    }
-}
-
 @Preview(showBackground = true, widthDp = 880, heightDp = 420)
 @Composable
 private fun HostSettingsScreenPreview() {
     FeudPartyTheme {
         HostSettingsScreen(
             settings = GameSettings(bankName = "asilati.json", bankQuestionCount = 62),
-            bankMessage = "انقرأ البنك: ٦٢ سؤال",
-            bankMessageIsError = false,
             onSettingsChange = {},
-            onImportBank = { _, _ -> },
-            onClearBank = {},
-            onBack = {}
+            onBack = {},
+            onContinue = {}
         )
     }
 }

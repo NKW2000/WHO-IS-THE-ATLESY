@@ -7,6 +7,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -38,6 +40,7 @@ import com.feudparty.app.feedback.PlayerMarkCues
 import com.feudparty.app.ui.GameOverScreen
 import com.feudparty.app.ui.HomeScreen
 import com.feudparty.app.ui.HostGameBoardScreen
+import com.feudparty.app.ui.BankSettingsScreen
 import com.feudparty.app.ui.HostSettingsScreen
 import com.feudparty.app.ui.HostSetupScreen
 import com.feudparty.app.ui.PlayerJoinScreen
@@ -59,6 +62,7 @@ object Routes {
     const val PLAYER_JOIN = "player_join"
     const val PLAYER_BUZZER = "player_buzzer"
     const val HOST_SETTINGS = "host_settings"
+    const val BANK_SETTINGS = "bank_settings"
 }
 
 @Composable
@@ -85,7 +89,10 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
         NavHost(
             navController = navController,
             startDestination = Routes.HOME,
-            modifier = Modifier.padding(padding),
+            // المحتوى بيضل بعيد عن النتش وحواف الشاشة، والخلفية بتكمّل تحتهم.
+            modifier = Modifier
+                .padding(padding)
+                .windowInsetsPadding(WindowInsets.safeDrawing),
             enterTransition = { slideInHorizontally(slide) { it } + fadeIn(fade) },
             exitTransition = { slideOutHorizontally(slide) { -it / 4 } + fadeOut(fade) },
             popEnterTransition = { slideInHorizontally(slide) { -it / 4 } + fadeIn(fade) },
@@ -94,27 +101,43 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
             composable(Routes.HOME) {
                 // «استضافة» بتفوت على إعدادات المضيف أول إشي: أسماء
                 // الفرق، الجولات، الوقت، والأخطاء — وبعدها اللوبي.
+                val host = hostViewModel(activityOwner, context)
                 HomeScreen(
-                    onHostClick = { navController.navigate(Routes.HOST_SETTINGS) },
-                    onJoinClick = { navController.navigate(Routes.PLAYER_JOIN) }
+                    onHostClick = {
+                        // لعبة جديدة: بدون لاعبين ولا نقاط من اللعبة اللي راحت.
+                        host.resetSession()
+                        navController.navigate(Routes.HOST_SETTINGS)
+                    },
+                    onJoinClick = { navController.navigate(Routes.PLAYER_JOIN) },
+                    onSettingsClick = { navController.navigate(Routes.BANK_SETTINGS) }
                 )
             }
 
             composable(Routes.HOST_SETTINGS) {
                 val vm = settingsViewModel(activityOwner, context)
                 val settings by vm.settings.collectAsStateWithLifecycle()
-                val message by vm.bankMessage.collectAsStateWithLifecycle()
-                val failed by vm.bankFailed.collectAsStateWithLifecycle()
 
                 HostSettingsScreen(
                     settings = settings,
-                    bankMessage = message,
-                    bankMessageIsError = failed,
                     onSettingsChange = vm::update,
-                    onImportBank = vm::importBank,
-                    onClearBank = vm::clearBank,
                     onBack = { navController.popBackStack() },
                     onContinue = { navController.navigate(Routes.HOST_SETUP) }
+                )
+            }
+
+            composable(Routes.BANK_SETTINGS) {
+                val vm = settingsViewModel(activityOwner, context)
+                val settings by vm.settings.collectAsStateWithLifecycle()
+                val message by vm.bankMessage.collectAsStateWithLifecycle()
+                val failed by vm.bankFailed.collectAsStateWithLifecycle()
+
+                BankSettingsScreen(
+                    settings = settings,
+                    bankMessage = message,
+                    bankMessageIsError = failed,
+                    onImportBank = vm::importBank,
+                    onClearBank = vm::clearBank,
+                    onBack = { navController.popBackStack() }
                 )
             }
 
@@ -201,7 +224,9 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                         }
                     },
                     onBackToLobby = {
-                        navController.navigate(Routes.HOST_SETUP) {
+                        // اللوبي الجديد بيبلّش نظيف — أسئلة جديدة وبدون نقاط.
+                        vm.resetSession()
+                        navController.navigate(Routes.HOST_SETTINGS) {
                             popUpTo(Routes.HOME)
                         }
                     }
@@ -216,8 +241,8 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                     vm::dismissError
                 )
 
-                PlayerJoinScreen(onJoinConfirmed = { name, teamId ->
-                    vm.join(name, teamId)
+                PlayerJoinScreen(onJoinConfirmed = { name ->
+                    vm.join(name)
                     navController.navigate(Routes.PLAYER_BUZZER)
                 })
             }
@@ -310,16 +335,11 @@ private fun ErrorSnackbar(
 private fun hostViewModel(owner: ViewModelStoreOwner, context: Context): HostViewModel =
     viewModel(viewModelStoreOwner = owner, factory = viewModelFactory {
         initializer {
-            val settings = SettingsRepository(context).load()
-            val bank = SettingsRepository(context).questions()
-            val questions = QuestionBank.randomGame(rounds = settings.rounds, source = bank)
+            val repository = SettingsRepository(context)
             HostViewModel(
                 connections = NearbyConnectionsManagerImpl(context.applicationContext, "مضيف"),
-                questions = questions,
-                multipliers = settings.multipliersForRounds(),
-                strikesToSteal = settings.strikesToSteal,
-                answerLimitSeconds = settings.answerSeconds,
-                teamNames = settings.teamNames
+                // كل لعبة بتقرأ الإعدادات من جديد وبتسحب أسئلة جديدة.
+                newGame = { repository.newGameState() }
             )
         }
     })
