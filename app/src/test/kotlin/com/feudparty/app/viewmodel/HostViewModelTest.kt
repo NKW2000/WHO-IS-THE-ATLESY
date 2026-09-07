@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -280,5 +281,27 @@ class HostViewModelTest {
         val sent = (connections.broadcasts.last() as HostMessage.StateUpdate).state
         assertEquals(RoundPhase.SCOREBOARD, sent.phase)
         assertEquals(RoundPhase.SCOREBOARD, vm.uiState.value.phase)
+    }
+
+    @Test
+    fun `back to lobby keeps the players and clears the scores`() = runTest(dispatcher) {
+        val vm = viewModel()
+        testScheduler.advanceUntilIdle()
+        vm.startHosting()
+        join("سامر", "ليلى")
+        testScheduler.advanceUntilIdle()
+
+        // ما منشغّل الساعة هون: بس منتأكد إنه الرجوع للوبي بيحافظ على
+        // اللاعبين وبيصفّي النقاط والحالة.
+        vm.backToLobby()
+        testScheduler.advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(setOf("سامر", "ليلى"), state.players.map { it.name }.toSet())
+        assertFalse(state.matchStarted)
+        assertFalse(state.gameOver)
+        assertEquals(0, state.teams.values.sumOf { it.score })
+        // البثّ ما وقف — اللاعبين بيضلوا شايفين الغرفة.
+        assertEquals(HostViewModel.SERVICE_NAME, connections.advertisingAs)
     }
 }

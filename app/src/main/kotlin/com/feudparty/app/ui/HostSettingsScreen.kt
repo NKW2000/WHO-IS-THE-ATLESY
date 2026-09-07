@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -90,25 +91,49 @@ fun HostSettingsScreen(
             GoldDivider(Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp))
 
-            // كل شي بيوقع بشاشة وحدة — ما في تمرير بشاشة إعدادات.
-            Row(modifier = Modifier.weight(1f)) {
-                Column(modifier = Modifier.weight(1f)) {
-                    RoomSection(settings) { renamingRoom = true }
-                    Spacer(Modifier.height(8.dp))
-                    TeamsSection(settings) { renaming = it }
+            // تلات أعمدة متساوية، وكل عمود بطاقاته بتملا نفس الارتفاع —
+            // فبتضل الرؤوس والحواف على خط واحد وما في تمرير.
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        RoomSection(settings) { renamingRoom = true }
+                    }
+                    Box(modifier = Modifier.weight(2f)) {
+                        TeamsSection(settings) { renaming = it }
+                    }
                 }
 
-                Spacer(Modifier.width(10.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    RoundsSection(settings, onSettingsChange)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                ) {
+                    RoundsSection(
+                        settings = settings,
+                        onChange = onSettingsChange,
+                        modifier = Modifier.fillMaxHeight()
+                    )
                 }
 
-                Spacer(Modifier.width(10.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    TimingSection(settings, onSettingsChange)
-                    Spacer(Modifier.height(8.dp))
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    TimingSection(
+                        settings = settings,
+                        onChange = onSettingsChange,
+                        modifier = Modifier.weight(1f)
+                    )
                     SecondaryButton(
                         text = "رجوع للإعدادات الافتراضية",
                         onClick = { onSettingsChange(GameSettings()) },
@@ -152,7 +177,7 @@ fun HostSettingsScreen(
 /** اسم الغرفة — هو اللي بيبيّن باللستة عند اللاعبين. */
 @Composable
 private fun RoomSection(settings: GameSettings, onRename: () -> Unit) {
-    SettingsCard(title = "الغرفة") {
+    SettingsCard(title = "الغرفة", modifier = Modifier.fillMaxHeight()) {
         NameField(
             name = settings.roomName,
             color = FeudColors.gold,
@@ -207,7 +232,7 @@ private fun NameField(
 /** أسماء الفريقين — المضيف بيسمّيهم قبل ما يفوتوا اللاعبين. */
 @Composable
 private fun TeamsSection(settings: GameSettings, onRename: (TeamId) -> Unit) {
-    SettingsCard(title = "الفريقين") {
+    SettingsCard(title = "الفريقين", modifier = Modifier.fillMaxHeight()) {
         TeamId.entries.forEachIndexed { index, teamId ->
             if (index > 0) Spacer(Modifier.height(8.dp))
             NameField(
@@ -221,8 +246,12 @@ private fun TeamsSection(settings: GameSettings, onRename: (TeamId) -> Unit) {
 }
 
 @Composable
-private fun RoundsSection(settings: GameSettings, onChange: (GameSettings) -> Unit) {
-    SettingsCard(title = "الجولات والنقاط") {
+private fun RoundsSection(
+    settings: GameSettings,
+    onChange: (GameSettings) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    SettingsCard(title = "الجولات والنقاط", modifier = modifier) {
         Stepper(
             label = "عدد الجولات",
             value = settings.rounds,
@@ -273,8 +302,12 @@ private fun RoundsSection(settings: GameSettings, onChange: (GameSettings) -> Un
 
 /** التوقيت والأخطاء — عمود لحاله حتى يوصله المضيف بدون تمرير. */
 @Composable
-private fun TimingSection(settings: GameSettings, onChange: (GameSettings) -> Unit) {
-    SettingsCard(title = "الوقت والأخطاء") {
+private fun TimingSection(
+    settings: GameSettings,
+    onChange: (GameSettings) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    SettingsCard(title = "الوقت والأخطاء", modifier = modifier) {
         Stepper(
             label = "ثواني الجواب",
             value = settings.answerSeconds,

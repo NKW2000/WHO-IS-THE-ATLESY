@@ -7,8 +7,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -96,10 +94,8 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
         NavHost(
             navController = navController,
             startDestination = Routes.INTRO,
-            // المحتوى بيضل بعيد عن النتش وحواف الشاشة، والخلفية بتكمّل تحتهم.
-            modifier = Modifier
-                .padding(padding)
-                .windowInsetsPadding(WindowInsets.safeDrawing),
+            // شاشة كاملة: اللعبة بترسم على كل البكسلات — تحت النتش كمان.
+            modifier = Modifier.padding(padding),
             enterTransition = { slideInHorizontally(slide) { it } + fadeIn(fade) },
             exitTransition = { slideOutHorizontally(slide) { -it / 4 } + fadeOut(fade) },
             popEnterTransition = { slideInHorizontally(slide) { -it / 4 } + fadeIn(fade) },
@@ -240,9 +236,10 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                         }
                     },
                     onBackToLobby = {
-                        // اللوبي الجديد بيبلّش نظيف — أسئلة جديدة وبدون نقاط.
-                        vm.resetSession()
-                        navController.navigate(Routes.HOST_SETTINGS) {
+                        // نفس الغرفة ونفس اللاعبين — بس نقاط وأسئلة جديدة،
+                        // واللاعبين بيرجعوا يختاروا فرقهم من اللوبي.
+                        vm.backToLobby()
+                        navController.navigate(Routes.HOST_SETUP) {
                             popUpTo(Routes.HOME)
                         }
                     }

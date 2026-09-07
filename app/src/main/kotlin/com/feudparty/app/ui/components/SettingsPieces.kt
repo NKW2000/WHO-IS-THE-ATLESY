@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,9 +23,13 @@ import com.feudparty.app.ui.theme.FeudColors
 
 /** قطع شاشات الإعدادات: بطاقة، عدّاد زائد/ناقص، وشريحة مضاعف الجولة. */
 @Composable
-fun SettingsCard(title: String, content: @Composable () -> Unit) {
+fun SettingsCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
     CartoonSurface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         color = FeudColors.stageAlt,
         corner = 18.dp,
         shadow = 6.dp

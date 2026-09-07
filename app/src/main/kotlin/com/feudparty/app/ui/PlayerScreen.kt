@@ -14,6 +14,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -40,7 +41,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
@@ -86,6 +89,9 @@ private val TRACK_HEIGHT = 14.dp
 private const val DOOR_MILLIS = 640
 private val DoorEasing = CubicBezierEasing(0.2f, 0.85f, 0.25f, 1f)
 
+/** قطر زر البزّ. */
+private val BUZZER_SIZE = 190.dp
+
 /**
  * جهاز اللاعب. شاشتين بس:
  *
@@ -109,7 +115,8 @@ fun PlayerScreen(
 ) {
     val connected = status == ConnectionStatus.CONNECTED
 
-    // قبل ما يبلّش المضيف: اللاعب بيشوف رقمه وفريقه، وبيقدر يبدّل فريق.
+    // قبل ما يبلّش المضيف (وكمان بعد ما يرجّع اللوبي): اللاعب بيشوف رقمه
+    // وفريقه وبيقدر يبدّل.
     if (connected && state != null && !state.matchStarted && !state.gameOver) {
         PlayerLobbyScreen(
             state = state,
@@ -482,6 +489,7 @@ private fun FullScreenBuzzer(
     )
 
     val interaction = remember { MutableInteractionSource() }
+    val shadow = 10.dp
 
     Box(
         modifier = Modifier
@@ -496,26 +504,32 @@ private fun FullScreenBuzzer(
             },
         contentAlignment = Alignment.Center
     ) {
-        // حلقة بتكبر وبتخفّ — نبضة رادار حوالين الزر.
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val base = size.minDimension * 0.24f
-            drawCircle(
-                color = FeudColors.gold.copy(alpha = (1f - halo) * 0.35f),
-                radius = base * (1f + halo * 0.9f),
-                style = Stroke(width = 10f)
-            )
-        }
-
+        // الزر وحلقته: الحلقة متمركزة على الزر نفسه — الظل تحته بالنص
+        // وما بيدخل بحساب حجمه.
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CartoonSurface(
-                modifier = Modifier.scale(pulse),
-                color = FeudColors.gold,
-                borderWidth = 6.dp,
-                corner = 200.dp,
-                shadow = 10.dp
-            ) {
+            Box(contentAlignment = Alignment.Center) {
+                val ringSize = BUZZER_SIZE * 1.55f
+                Canvas(modifier = Modifier.size(ringSize)) {
+                    drawCircle(
+                        color = FeudColors.gold.copy(alpha = (1f - halo) * 0.35f),
+                        radius = (size.minDimension / 2f) * (0.62f + halo * 0.38f),
+                        style = Stroke(width = 8f)
+                    )
+                }
                 Box(
-                    modifier = Modifier.size(190.dp),
+                    modifier = Modifier
+                        .size(BUZZER_SIZE)
+                        .scale(pulse)
+                        .drawBehind {
+                            // ظل صلب تحت الزر بالضبط، مش على جنب.
+                            drawCircle(
+                                color = FeudColors.ink,
+                                radius = size.minDimension / 2f,
+                                center = Offset(size.width / 2f, size.height / 2f + shadow.toPx())
+                            )
+                        }
+                        .background(FeudColors.gold, CircleShape)
+                        .border(6.dp, FeudColors.ink, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

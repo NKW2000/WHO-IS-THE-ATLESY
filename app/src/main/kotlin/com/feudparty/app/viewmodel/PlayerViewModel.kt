@@ -61,8 +61,13 @@ class PlayerViewModel(
             connections.events.collect { event ->
                 when (event) {
                     is ConnectionEvent.RoomFound -> {
-                        _rooms.value = (_rooms.value.filterNot { it.endpointId == event.endpointId } +
-                            Room(event.endpointId, event.name)).sortedBy { it.name }
+                        // نفس الغرفة بترجع تنكشف بمعرّف جديد كل ما المضيف
+                        // يعيد البثّ، فمنميّزها بالاسم حتى ما تتكرر باللستة.
+                        _rooms.value = (
+                            _rooms.value.filterNot {
+                                it.endpointId == event.endpointId || it.name == event.name
+                            } + Room(event.endpointId, event.name)
+                            ).sortedBy { it.name }
                     }
 
                     is ConnectionEvent.RoomLost -> {
@@ -84,6 +89,8 @@ class PlayerViewModel(
         pendingName = name
         pendingTeam = teamId
         if (_status.value != ConnectionStatus.CONNECTED) {
+            // لستة نظيفة كل مرة نبلّش ندوّر — بدون بقايا بحث قديم.
+            _rooms.value = emptyList()
             _status.value = ConnectionStatus.SEARCHING
             connections.startDiscovery(serviceName)
         }
@@ -128,6 +135,8 @@ class PlayerViewModel(
     private fun onConnected(endpointId: String) {
         hostEndpointId = endpointId
         _status.value = ConnectionStatus.CONNECTED
+        // فتنا بغرفة — ما عاد في داعي نضل عارضين اللستة.
+        _rooms.value = emptyList()
         flushPendingName()
     }
 

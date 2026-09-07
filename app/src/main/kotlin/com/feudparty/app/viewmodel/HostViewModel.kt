@@ -99,6 +99,23 @@ class HostViewModel(
         _uiState.value = engine.state
     }
 
+    /**
+     * لعبة جديدة **بنفس الغرفة**: اللاعبين بيضلوا متصلين وبيرجعوا للوبي
+     * يختاروا فرقهم، والنقاط والأسئلة بتبلّش من جديد. البثّ ما بيوقف.
+     */
+    fun backToLobby() {
+        clockJob?.cancel()
+        clockJob = null
+        started = false
+        val players = engine.state.players.map { it.copy() }
+        engine.reset(newGame())
+        players.forEach { player ->
+            engine.apply(GameEvent.PlayerJoined(player.id, player.name, player.teamId))
+        }
+        _uiState.value = engine.state
+        connections.broadcastToAll(HostMessage.StateUpdate(engine.state.maskedForPlayers()))
+    }
+
     fun startHosting() {
         if (_advertising.value) return
         _advertising.value = true
