@@ -1,7 +1,9 @@
 package com.feudparty.app.ui
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -43,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -71,6 +74,17 @@ import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.game.TeamState
 import com.feudparty.core.game.other
+import kotlinx.coroutines.delay
+
+/** ألوان شاشة «العب / تمرير» زي ما هي بملف التصميم. */
+private val PassPlayBase = Color(0xFF1D0F38)
+private val PassColor = Color(0xFFFF5D73)
+private val PlayColor = Color(0xFF2FBF71)
+private val PlayInk = Color(0xFF08322D)
+private val TimerColor = Color(0xFFFFC93C)
+private val TRACK_HEIGHT = 14.dp
+private const val DOOR_MILLIS = 640
+private val DoorEasing = CubicBezierEasing(0.2f, 0.85f, 0.25f, 1f)
 
 /**
  * جهاز اللاعب. شاشتين بس:
@@ -278,118 +292,164 @@ private fun PlayOrPassScreen(
     onChoose: (Boolean) -> Unit
 ) {
     val other = state.teams[teamId?.other()]?.name ?: "الفريق التاني"
+    val total = state.choiceLimitSeconds.coerceAtLeast(1)
 
-    // البابين بيفتحوا من حافة الشاشة لحد ما يلزقوا ببلوك الوقت بالنص.
+    // ثلاث مراحل زي التصميم: برّا الكادر، داخل ومستقر، ومفتوح بعد الاختيار.
     var opened by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { opened = true }
-    val slide by animateFloatAsState(
-        targetValue = if (opened) 0f else 1f,
-        animationSpec = tween(durationMillis = 520, easing = FastOutSlowInEasing),
-        label = "doors"
-    )
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(120)
+        entered = true
+    }
+    val away = entered && !opened
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(FeudColors.ink)
+            .background(PassPlayBase)
     ) {
-        val gateWidth = 132.dp
-        val doorWidth = (maxWidth - gateWidth) / 2
+        val width = maxWidth
+        val bandHeight = (maxHeight - TRACK_HEIGHT) / 2
+        val labelSize = bandHeight * 0.3f
 
-        Row(modifier = Modifier.fillMaxSize()) {
-            // بالـ RTL أول عنصر بيكون عاليمين: الأخضر «نلعب».
-            Door(
-                title = "نلعب",
-                subtitle = "اللوح إلنا — بنكمّل نجاوب لآخر جواب",
-                color = FeudColors.team1,
-                ink = FeudColors.team1Ink,
-                width = doorWidth,
-                offset = doorWidth * slide,
-                onClick = { onChoose(true) }
+        val slide = tween<Dp>(durationMillis = DOOR_MILLIS, easing = DoorEasing)
+        val slideLate = tween<Dp>(
+            durationMillis = DOOR_MILLIS,
+            delayMillis = 110,
+            easing = DoorEasing
+        )
+
+        // «تمرير» بينزلق من اليمين، و«العب» من الشمال بفارق بسيط.
+        val passOffset by animateDpAsState(
+            targetValue = if (away) 0.dp else width,
+            animationSpec = slide,
+            label = "passBand"
+        )
+        val playOffset by animateDpAsState(
+            targetValue = if (away) 0.dp else -width,
+            animationSpec = slideLate,
+            label = "playBand"
+        )
+
+        // اللي تحت البابين: بيبيّن لما ينفتحوا بعد الاختيار.
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Pill(
+                text = "الجولة ${(state.currentQuestionIndex + 1).ar()}",
+                color = FeudColors.stageAlt,
+                textColor = FeudColors.textMuted
             )
-
-            // البوابة: الوقت والسؤال — البابين بيسكّروا عليها تماماً.
-            Column(
-                modifier = Modifier
-                    .width(gateWidth)
-                    .fillMaxHeight()
-                    .background(FeudColors.stage)
-                    // حدّ حبر على الجهتين — نفس حدود باقي التطبيق، وبيخلّي
-                    // البابين يسكّروا على البوابة بشكل نظيف.
-                    .border(
-                        width = 5.dp,
-                        color = FeudColors.ink
-                    )
-                    .padding(horizontal = 8.dp, vertical = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    "كسبتوا!",
-                    color = FeudColors.gold,
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(Modifier.height(10.dp))
-                Countdown(seconds = state.choiceSecondsLeft, size = 64.dp)
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    "تلعبوا ولا تمرّروا؟",
-                    color = FeudColors.text,
-                    style = MaterialTheme.typography.labelLarge,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Door(
-                title = "نمرّرها",
-                subtitle = "$other بيلعب اللوح، وإحنا منستنى السرقة",
-                color = FeudColors.pink,
-                ink = FeudColors.ink,
-                width = doorWidth,
-                offset = -doorWidth * slide,
-                onClick = { onChoose(false) }
-            )
-        }
-    }
-}
-
-/** نصف الشاشة كزر: لون كامل، عنوان كبير، وسطر بيشرح شو بيصير إذا اخترته. */
-@Composable
-private fun Door(
-    title: String,
-    subtitle: String,
-    color: Color,
-    ink: Color,
-    width: Dp,
-    offset: Dp,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .width(width)
-            .fillMaxHeight()
-            .offset(x = offset)
-            .background(color)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 22.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(Modifier.height(12.dp))
             Text(
-                title,
-                color = ink,
-                style = MaterialTheme.typography.displaySmall,
+                "كسبتوا المواجهة!",
+                color = FeudColors.cream,
+                style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                subtitle,
-                color = ink.copy(alpha = 0.8f),
+                if (opened) "اختيارك انحفظ، استنى باقي الفريق." else "تلعبوا اللوح ولا تمرّروه لـ$other؟",
+                color = FeudColors.textSoft,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )
         }
+
+        // شريط «تمرير» الأحمر فوق.
+        Band(
+            label = "تمرير",
+            background = PassColor,
+            labelColor = FeudColors.cream,
+            height = bandHeight,
+            fontSize = labelSize,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(x = passOffset),
+            onClick = {
+                if (!opened) {
+                    opened = true
+                    onChoose(false)
+                }
+            }
+        )
+
+        // شريط الوقت ملزوق بالأحمر: بيدخل معه، وبعدين بينسحب الذهبي كل ثانية.
+        val progress by animateFloatAsState(
+            targetValue = (state.choiceSecondsLeft.toFloat() / total).coerceIn(0f, 1f),
+            animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+            label = "choiceBar"
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .offset(x = passOffset, y = bandHeight)
+                .fillMaxWidth()
+                .height(TRACK_HEIGHT)
+                .background(PassPlayBase)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(progress)
+                    .fillMaxHeight()
+                    .background(TimerColor)
+            )
+        }
+
+        // شريط «العب» الأخضر تحت.
+        Band(
+            label = "العب",
+            background = PlayColor,
+            labelColor = PlayInk,
+            height = bandHeight,
+            fontSize = labelSize,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(x = playOffset),
+            onClick = {
+                if (!opened) {
+                    opened = true
+                    onChoose(true)
+                }
+            }
+        )
+    }
+}
+
+/** شريط ملوّن كامل العرض — مستطيل صافي بدون قصّات، زي التصميم. */
+@Composable
+private fun Band(
+    label: String,
+    background: Color,
+    labelColor: Color,
+    height: Dp,
+    fontSize: Dp,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val size = with(LocalDensity.current) { fontSize.toSp() }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .background(background)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 40.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            label,
+            color = labelColor,
+            style = MaterialTheme.typography.displayLarge.copy(
+                fontSize = size,
+                lineHeight = size * 1.1f
+            ),
+            textAlign = TextAlign.Center
+        )
     }
 }
 
