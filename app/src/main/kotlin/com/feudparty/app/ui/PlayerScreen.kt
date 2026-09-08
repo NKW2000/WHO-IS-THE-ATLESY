@@ -596,8 +596,19 @@ private fun PlayerBoard(
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // فوق: الأخطاء بالنص تماماً، والوقت بالزاوية اليمين.
+            // فوق: التصنيف والجولة بالزاوية الشمال، الأخطاء بالنص،
+            // والوقت بالزاوية اليمين.
             Box(modifier = Modifier.fillMaxWidth()) {
+                state?.currentQuestion?.let { question ->
+                    CategoryRoundBlocks(
+                        category = question.category,
+                        round = state.currentQuestionIndex + 1,
+                        totalRounds = state.questions.size,
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .width(200.dp)
+                    )
+                }
                 if (state != null &&
                     (state.phase == RoundPhase.PLAY || state.phase == RoundPhase.STEAL)
                 ) {
@@ -619,18 +630,6 @@ private fun PlayerBoard(
             }
 
             val question = state?.currentQuestion
-            if (question != null) {
-                Spacer(Modifier.height(8.dp))
-                CategoryRoundBlocks(
-                    category = question.category,
-                    round = state.currentQuestionIndex + 1,
-                    totalRounds = state.questions.size,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .widthIn(max = 420.dp)
-                        .fillMaxWidth()
-                )
-            }
             val questionText = question?.text.orEmpty()
             if (questionText.isNotBlank()) {
                 Spacer(Modifier.height(6.dp))
