@@ -14,7 +14,9 @@ data class Question(
     val id: String,
     val text: String,
     val answers: List<Answer>,
-    val category: String
+    val category: String,
+    /** انقرأ قبل هيك؟ الأسئلة المقروءة ما بترجع إلا لما يخلصوا كلهن. */
+    val isRead: Boolean = false
 )
 
 @Serializable

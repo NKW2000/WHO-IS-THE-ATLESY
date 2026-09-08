@@ -33,6 +33,9 @@ sealed class GameEvent {
     /** المضيف بلّش اللعبة — بعدها ما بيضل حدا يغيّر فريقه. */
     object StartGame : GameEvent()
 
+    /** المضيف بدّل سؤال الجولة الحالية بسؤال تاني. */
+    data class ReplaceQuestion(val question: Question) : GameEvent()
+
     /** ثانية مرقت — بتنقص من وقت الجواب أو وقت القرار. */
     object Tick : GameEvent()
 

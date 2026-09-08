@@ -36,6 +36,7 @@ class GameEngine(initialState: GameState) {
             is GameEvent.PlayerLeft -> handlePlayerLeft(event)
             is GameEvent.PlayerMoved -> handlePlayerMoved(event)
             GameEvent.StartGame -> state.copy(matchStarted = true)
+            is GameEvent.ReplaceQuestion -> handleReplaceQuestion(event.question)
             GameEvent.Tick -> handleTick()
             GameEvent.EndGame -> state.copy(
                 phase = RoundPhase.GAME_OVER,
@@ -69,12 +70,46 @@ class GameEngine(initialState: GameState) {
                 )
             }
 
-            // بمراحل اللعب الضغطة بس بتوضّح إنه اللاعب عم يجاوب هلق.
+            // بمراحل اللعب الضغطة بتوضّح إنه اللاعب عم يجاوب هلق، وبترجّع
+            // عدّاد الجواب من الأول — الوقت بيبلّش لما يبلّش هو.
             RoundPhase.FACE_OFF_SECOND, RoundPhase.PLAY, RoundPhase.STEAL ->
-                state.copy(buzzedPlayerId = player.id)
+                state.copy(
+                    buzzedPlayerId = player.id,
+                    answerSecondsLeft = state.answerLimitSeconds
+                )
 
             else -> state
         }
+    }
+
+    /**
+     * سؤال جديد لنفس الجولة — بيرجّع اللوح والأخطاء والمواجهة من الصفر.
+     * بينستعمل لما الاتنين يغلطوا والمضيف يقرر يبدّل السؤال.
+     */
+    private fun handleReplaceQuestion(question: Question): GameState {
+        val questions = state.questions.toMutableList()
+        if (state.currentQuestionIndex !in questions.indices) return state
+        questions[state.currentQuestionIndex] = question
+        return state.copy(
+            questions = questions,
+            phase = RoundPhase.FACE_OFF,
+            buzzState = BuzzState.OPEN,
+            buzzedPlayerId = null,
+            turnPlayerId = null,
+            faceOffTeam = null,
+            faceOffWinner = null,
+            faceOffLeader = null,
+            faceOffLeaderPoints = 0,
+            controllingTeam = null,
+            strikes = 0,
+            pot = 0,
+            wrongPlayers = emptySet(),
+            correctPlayers = emptySet(),
+            answerSecondsLeft = 0,
+            choiceSecondsLeft = 0,
+            lastAward = null,
+            roundWinner = null
+        )
     }
 
     // ------------------------------------------------------------- حكم المضيف

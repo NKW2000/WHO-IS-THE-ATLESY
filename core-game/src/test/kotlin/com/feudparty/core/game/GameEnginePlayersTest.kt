@@ -258,4 +258,42 @@ class GameEnginePlayersTest {
         assertTrue(started.matchStarted)
         assertTrue(started.maskedForPlayers().matchStarted)
     }
+
+    @Test
+    fun `the opponent gets a full answer clock when they buzz`() {
+        val engine = GameEngine(freshState())
+        engine.buzzPodium(TeamId.TEAM_1)
+        engine.wrong()
+
+        // بعد الغلط الدور انتقل للفريق التاني، وأول ما يضغط بيبلّش وقته من الأول.
+        val passed = engine.state
+        assertEquals(RoundPhase.FACE_OFF_SECOND, passed.phase)
+        engine.apply(GameEvent.Tick)
+        engine.apply(GameEvent.Tick)
+        assertEquals(passed.answerLimitSeconds - 2, engine.state.answerSecondsLeft)
+
+        engine.apply(GameEvent.Buzz("b1", 0L))
+        assertEquals(passed.answerLimitSeconds, engine.state.answerSecondsLeft)
+    }
+
+    @Test
+    fun `changing the question resets the round`() {
+        val engine = GameEngine(freshState())
+        engine.buzzPodium(TeamId.TEAM_1)
+        engine.wrong()
+
+        val fresh = Question(
+            id = "fresh",
+            text = "سؤال تاني",
+            answers = listOf(Answer("جواب", 50), Answer("جواب تاني", 30)),
+            category = "عام"
+        )
+        val state = engine.apply(GameEvent.ReplaceQuestion(fresh))
+
+        assertEquals("fresh", state.currentQuestion?.id)
+        assertEquals(RoundPhase.FACE_OFF, state.phase)
+        assertEquals(BuzzState.OPEN, state.buzzState)
+        assertEquals(0, state.strikes)
+        assertTrue(state.wrongPlayers.isEmpty())
+    }
 }

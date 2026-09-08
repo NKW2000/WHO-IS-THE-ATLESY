@@ -145,7 +145,8 @@ private fun demoScreens(
             state = demoState(RoundPhase.FACE_OFF, revealed = 0, strikes = 0),
             onCorrect = {},
             onWrong = {},
-            onNextRound = {}
+            onNextRound = {},
+            onChangeQuestion = {}
         )
     },
     DemoScreen("لوح المضيف — لعب") {

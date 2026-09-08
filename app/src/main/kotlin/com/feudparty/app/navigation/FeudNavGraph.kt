@@ -204,7 +204,8 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                         state = state,
                         onCorrect = vm::judgeCorrect,
                         onWrong = vm::judgeWrong,
-                        onNextRound = vm::nextRound
+                        onNextRound = vm::nextRound,
+                        onChangeQuestion = vm::changeQuestion
                     )
                 }
 
@@ -385,7 +386,15 @@ private fun hostViewModel(owner: ViewModelStoreOwner, context: Context): HostVie
                 connections = NearbyConnectionsManagerImpl(context.applicationContext, "مضيف"),
                 // كل لعبة بتقرأ الإعدادات من جديد وبتسحب أسئلة جديدة.
                 newGame = { repository.newGameState() },
-                roomName = { repository.load().roomName }
+                roomName = { repository.load().roomName },
+                freshQuestion = {
+                    QuestionBank.randomGame(
+                        rounds = 1,
+                        source = repository.questions(),
+                        readIds = repository.readQuestionIds()
+                    ).firstOrNull()
+                },
+                onQuestionShown = repository::markQuestionRead
             )
         }
     })

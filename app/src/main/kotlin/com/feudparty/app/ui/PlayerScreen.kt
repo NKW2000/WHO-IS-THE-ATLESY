@@ -15,6 +15,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -404,6 +405,15 @@ private fun PlayOrPassScreen(
                     .fillMaxWidth(progress)
                     .fillMaxHeight()
                     .background(TimerColor)
+            )
+            Text(
+                state.choiceSecondsLeft.ar(),
+                color = FeudColors.cream,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .background(PassPlayBase, RoundedCornerShape(6.dp))
+                    .padding(horizontal = 8.dp)
             )
         }
 

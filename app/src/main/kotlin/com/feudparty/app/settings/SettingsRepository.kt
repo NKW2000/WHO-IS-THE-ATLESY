@@ -62,11 +62,36 @@ class SettingsRepository(context: Context) {
         }
     }
 
-    /** حالة بداية للعبة جديدة: أسئلة مسحوبة عشوائي وإعدادات المضيف الحالية. */
+    /** الأسئلة اللي انقرأت قبل — ما بترجع لحد ما يخلص البنك. */
+    fun readQuestionIds(): Set<String> = prefs.getStringSet(KEY_READ_IDS, emptySet()).orEmpty()
+
+    /** المضيف شاف السؤال — منسجّله حتى ما يتكرر باللعبة الجاية. */
+    fun markQuestionRead(id: String) {
+        val bank = questions()
+        val read = readQuestionIds() + id
+        // خلصت كل الأسئلة؟ منبلّش دورة جديدة نظيفة.
+        val next = if (bank.isNotEmpty() && bank.all { it.id in read || it.isRead }) {
+            emptySet()
+        } else {
+            read
+        }
+        prefs.edit().putStringSet(KEY_READ_IDS, next).apply()
+    }
+
+    /** بنك جديد = دورة قراءة جديدة. */
+    fun clearReadQuestions() {
+        prefs.edit().remove(KEY_READ_IDS).apply()
+    }
+
+    /** حالة بداية للعبة جديدة: أسئلة ما انقرأت وإعدادات المضيف الحالية. */
     fun newGameState(): GameState {
         val settings = load()
         return GameState(
-            questions = QuestionBank.randomGame(rounds = settings.rounds, source = questions()),
+            questions = QuestionBank.randomGame(
+                rounds = settings.rounds,
+                source = questions(),
+                readIds = readQuestionIds()
+            ),
             multipliers = settings.multipliersForRounds(),
             strikesToSteal = settings.strikesToSteal,
             answerLimitSeconds = settings.answerSeconds,
@@ -93,6 +118,7 @@ class SettingsRepository(context: Context) {
         val result = QuestionBank.parse(text)
         if (result is BankResult.Success) {
             bankFile.writeText(text)
+            clearReadQuestions()
             prefs.edit()
                 .putString(KEY_BANK_NAME, displayName)
                 .putInt(KEY_BANK_COUNT, result.questions.size)
@@ -103,6 +129,7 @@ class SettingsRepository(context: Context) {
 
     /** رجوع للبنك المرفق مع التطبيق. */
     fun clearBank() {
+        clearReadQuestions()
         bankFile.delete()
         prefs.edit().remove(KEY_BANK_NAME).remove(KEY_BANK_COUNT).apply()
     }
@@ -115,6 +142,7 @@ class SettingsRepository(context: Context) {
         const val KEY_ANSWER_SECONDS = "answer_seconds"
         const val KEY_CHOICE_SECONDS = "choice_seconds"
         const val KEY_ROOM_NAME = "room_name"
+        const val KEY_READ_IDS = "read_question_ids"
         const val KEY_TEAM_1 = "team_1_name"
         const val KEY_TEAM_2 = "team_2_name"
         const val KEY_BANK_NAME = "bank_name"

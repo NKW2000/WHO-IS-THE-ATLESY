@@ -34,6 +34,10 @@ class HostViewModel(
     choiceLimitSeconds: Int = com.feudparty.core.game.CHOICE_SECONDS,
     /** اسم الغرفة بلستة اللاعبين — بينقرأ كل مرة نبلّش بث. */
     private val roomName: () -> String = { DEFAULT_ROOM_NAME },
+    /** سؤال بديل ما انقرأ — بينستعمل لما المضيف يبدّل السؤال. */
+    private val freshQuestion: () -> Question? = { null },
+    /** بينسجّل إنه السؤال انقرأ عند المضيف. */
+    private val onQuestionShown: (String) -> Unit = {},
     teamNames: Map<TeamId, String> = DEFAULT_TEAM_NAMES,
     /**
      * حالة بداية لعبة جديدة. بتنستدعى كل مرة بيبلّش فيها المضيف لعبة، فكل
@@ -134,11 +138,20 @@ class HostViewModel(
         startClock()
     }
 
+    /** بيرجّع سؤال بديل من البنك — أو null إذا ما في. */
+    fun canChangeQuestion(): Boolean = freshQuestion() != null
+
     /** المضيف بينقل لاعب لفريق تاني — بس قبل ما تبلّش اللعبة. */
     fun movePlayer(playerId: String, teamId: TeamId) {
         if (started) return
         applyAndBroadcast(GameEvent.PlayerMoved(playerId, teamId))
         connections.sendToEndpoint(playerId, HostMessage.Assigned(playerId, teamId))
+    }
+
+    /** بدّل سؤال الجولة — بيرجّع اللوح والمواجهة من الصفر بسؤال تاني. */
+    fun changeQuestion() {
+        val question = freshQuestion() ?: return
+        applyAndBroadcast(GameEvent.ReplaceQuestion(question))
     }
 
     fun judgeCorrect(answerIndex: Int) = applyAndBroadcast(GameEvent.JudgeCorrect(answerIndex))
@@ -222,10 +235,23 @@ class HostViewModel(
         applyAndBroadcast(GameEvent.PlayerLeft(endpointId))
     }
 
+    /** آخر سؤال انعرض — حتى ما نسجّله مقروء مرتين. */
+    private var shownQuestionId: String? = null
+
     private fun applyAndBroadcast(event: GameEvent) {
         val newState = engine.apply(event)
         _uiState.value = newState
+        noteQuestionShown(newState)
         connections.broadcastToAll(HostMessage.StateUpdate(newState.maskedForPlayers()))
+    }
+
+    /** السؤال بينحسب «انقرأ» أول ما يبان عند المضيف باللعبة الشغّالة. */
+    private fun noteQuestionShown(state: GameState) {
+        if (!state.matchStarted) return
+        val id = state.currentQuestion?.id ?: return
+        if (id == shownQuestionId) return
+        shownQuestionId = id
+        onQuestionShown(id)
     }
 
     override fun onCleared() {

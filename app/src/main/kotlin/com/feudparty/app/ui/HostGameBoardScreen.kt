@@ -2,6 +2,7 @@ package com.feudparty.app.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +27,7 @@ import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.QuestionCard
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
+import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.StrikeFlash
 import com.feudparty.app.ui.components.StrikeRow
 import com.feudparty.app.ui.components.color
@@ -51,14 +53,20 @@ import com.feudparty.core.game.buzzedTeam
  * بتبيّن هون — بتبيّن بشاشة النتيجة بين الجولات.
  */
 /** عرض الزاوية اللي فيها الوقت — ونفسه بالطرف التاني حتى يتوسّط السؤال. */
-private val SIDE_SLOT = 88.dp
+private val SIDE_SLOT = 172.dp
+
+/** تبديل السؤال مسموح قبل ما تبلّش الجولة فعلياً — يعني بالمواجهة وبدون كشف. */
+private fun GameState.canChangeQuestion(): Boolean =
+    (phase == RoundPhase.FACE_OFF || phase == RoundPhase.FACE_OFF_SECOND) &&
+        currentQuestion?.answers?.none { it.revealed } ?: false
 
 @Composable
 fun HostGameBoardScreen(
     state: GameState,
     onCorrect: (Int) -> Unit,
     onWrong: () -> Unit,
-    onNextRound: () -> Unit
+    onNextRound: () -> Unit,
+    onChangeQuestion: () -> Unit = {}
 ) {
     val canJudge = state.canJudge()
     val revealedAll = state.boardFullyRevealed()
@@ -67,17 +75,26 @@ fun HostGameBoardScreen(
     Box {
         StageBackground(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // فوق: السؤال بنص الشاشة، والوقت عالجنب بمساحة مساوية
-                // للمساحة المقابلة، فبيضل السؤال متوسّط تماماً.
+                // فوق: الوقت والأخطاء عاليمين، السؤال بالنص، والتصنيف عالشمال.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
+                    Row(
                         modifier = Modifier.width(SIDE_SLOT),
-                        contentAlignment = Alignment.Center
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        if (seconds > 0) Countdown(seconds = seconds, size = 44.dp)
+                        if (seconds > 0) {
+                            Countdown(seconds = seconds, size = 44.dp)
+                        } else {
+                            Spacer(Modifier.width(44.dp))
+                        }
+                        StrikeRow(
+                            strikes = state.strikes,
+                            total = state.strikesToSteal,
+                            size = 30.dp
+                        )
                     }
 
                     // بطاقة السؤال جوّا Box: هي بتستعمل AnimatedVisibility
@@ -91,19 +108,35 @@ fun HostGameBoardScreen(
                             totalRounds = state.questions.size,
                             category = state.currentQuestion?.category,
                             question = state.currentQuestion?.text ?: "—",
-                            modifier = Modifier.widthIn(max = 620.dp)
+                            modifier = Modifier.widthIn(max = 560.dp)
                         )
                     }
-                    // الأخطاء بالزاوية الشمال، مقابل الوقت.
-                    Box(
+
+                    // التصنيف والجولة عالشمال، وتحتهن زر تبديل السؤال.
+                    Column(
                         modifier = Modifier.width(SIDE_SLOT),
-                        contentAlignment = Alignment.Center
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        StrikeRow(
-                            strikes = state.strikes,
-                            total = state.strikesToSteal,
-                            size = 26.dp
+                        Pill(
+                            text = state.currentQuestion?.category ?: "عام",
+                            color = FeudColors.gold
                         )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "جولة ${(state.currentQuestionIndex + 1).ar()}/" +
+                                state.questions.size.ar(),
+                            color = FeudColors.textMuted,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        if (state.canChangeQuestion()) {
+                            Spacer(Modifier.height(6.dp))
+                            SecondaryButton(
+                                text = "بدّل السؤال",
+                                onClick = onChangeQuestion,
+                                accent = FeudColors.teal,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
 

@@ -14,6 +14,8 @@ private data class RawQuestion(
     val id: String? = null,
     val text: String,
     val category: String = "عام",
+    /** حطّها `true` إذا السؤال انقرأ قبل وما بدك يرجع. */
+    val isRead: Boolean = false,
     val answers: List<RawAnswer>
 )
 
@@ -106,6 +108,7 @@ object QuestionBank {
                 text = rawQuestion.text.trim(),
                 category = rawQuestion.category.trim().ifBlank { "عام" },
                 // ترتيب اللوح دايماً من الأعلى نقاط للأقل.
+                isRead = rawQuestion.isRead,
                 answers = rawQuestion.answers
                     .sortedByDescending { it.points }
                     .map { Answer(text = it.text.trim(), points = it.points) }
@@ -129,7 +132,26 @@ object QuestionBank {
         rounds: Int,
         source: List<Question> = bundled,
         random: Random = Random.Default
-    ): List<Question> = source.shuffled(random).take(rounds)
+    ): List<Question> = randomGame(rounds, source, emptySet(), random)
+
+    /**
+     * أسئلة لعبة وحدة — بتاخد من الأسئلة **اللي ما انقرأت** أول شي
+     * ([readIds] هي المقروءة). إذا ما ضل كفاية غير مقروء، منرجع نستعمل
+     * البنك كله من جديد.
+     */
+    fun randomGame(
+        rounds: Int,
+        source: List<Question>,
+        readIds: Set<String>,
+        random: Random = Random.Default
+    ): List<Question> {
+        val unread = source.filterNot { it.isRead || it.id in readIds }
+        val picked = unread.shuffled(random).take(rounds)
+        if (picked.size == rounds) return picked
+        // خلصت الأسئلة: منبلّش دورة جديدة على البنك كله.
+        val rest = source.filterNot { question -> picked.any { it.id == question.id } }
+        return picked + rest.shuffled(random).take(rounds - picked.size)
+    }
 
     private fun readResource(): String {
         val stream = QuestionBank::class.java.classLoader
