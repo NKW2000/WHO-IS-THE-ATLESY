@@ -53,4 +53,10 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
 
     /** الأسئلة المتاحة حالياً — بنك المضيف أو البنك المرفق. */
     fun questions(): List<Question> = repository.questions()
+
+    /** تصنيفات البنك الحالي — للفلتر بشاشة الإعدادات. */
+    fun categories(): List<String> = repository.categories()
+
+    /** كم سؤال بيطابق الفلتر الحالي. */
+    fun matchingCount(settings: GameSettings): Int = repository.filteredQuestions(settings).size
 }

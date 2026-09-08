@@ -126,7 +126,9 @@ private fun demoScreens(
             settings = settings,
             onSettingsChange = onSettings,
             onBack = {},
-            onContinue = {}
+            onContinue = {},
+            categories = listOf("عام", "أكل", "سفر", "بيت", "رياضة"),
+            matchingQuestions = 32
         )
     },
     DemoScreen("لوبي المضيف") {

@@ -132,7 +132,9 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                     settings = settings,
                     onSettingsChange = vm::update,
                     onBack = { navController.popBackStack() },
-                    onContinue = { navController.navigate(Routes.HOST_SETUP) }
+                    onContinue = { navController.navigate(Routes.HOST_SETUP) },
+                    categories = remember(settings.bankName) { vm.categories() },
+                    matchingQuestions = vm.matchingCount(settings)
                 )
             }
 
@@ -390,7 +392,8 @@ private fun hostViewModel(owner: ViewModelStoreOwner, context: Context): HostVie
                 freshQuestion = {
                     QuestionBank.randomGame(
                         rounds = 1,
-                        source = repository.questions(),
+                        source = repository.filteredQuestions()
+                            .ifEmpty { repository.questions() },
                         readIds = repository.readQuestionIds()
                     ).firstOrNull()
                 },

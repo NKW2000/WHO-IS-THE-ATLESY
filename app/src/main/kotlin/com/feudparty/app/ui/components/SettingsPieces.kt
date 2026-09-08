@@ -55,7 +55,7 @@ fun Stepper(
         Text(
             label,
             color = FeudColors.text,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
@@ -65,7 +65,7 @@ fun Stepper(
             onChange((value - step).coerceAtLeast(min))
         }
         Box(
-            modifier = Modifier.width(62.dp),
+            modifier = Modifier.width(46.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -91,7 +91,7 @@ private fun StepperButton(text: String, enabled: Boolean, onClick: () -> Unit) {
         onClick = onClick,
         enabled = enabled
     ) {
-        Box(modifier = Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.size(34.dp), contentAlignment = Alignment.Center) {
             Text(
                 text,
                 color = if (enabled) FeudColors.ink else FeudColors.outlineSoft,
@@ -124,7 +124,7 @@ fun MultiplierChip(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(vertical = 5.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(

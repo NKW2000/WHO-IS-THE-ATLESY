@@ -18,6 +18,11 @@ data class GameSettings(
     val teamNames: Map<TeamId, String> = DEFAULT_TEAM_NAMES,
     /** اسم الغرفة اللي بيشوفه اللاعبين لما يدوّروا على لعبة. */
     val roomName: String = DEFAULT_ROOM_NAME,
+    /** تصنيفات مسموحة — فاضية يعني كل التصنيفات. */
+    val categories: Set<String> = emptySet(),
+    /** أقل وأكثر عدد أجوبة بالسؤال — فلتر على البنك. */
+    val minAnswers: Int = MIN_ANSWERS,
+    val maxAnswers: Int = MAX_ANSWERS,
     val bankName: String? = null,
     val bankQuestionCount: Int = 0
 ) {
@@ -36,6 +41,9 @@ data class GameSettings(
         answerSeconds = answerSeconds.coerceIn(MIN_ANSWER_SECONDS, MAX_ANSWER_SECONDS),
         choiceSeconds = choiceSeconds.coerceIn(MIN_CHOICE_SECONDS, MAX_CHOICE_SECONDS),
         roomName = roomName.trim().take(MAX_TEAM_NAME).ifBlank { DEFAULT_ROOM_NAME },
+        categories = categories.map { it.trim() }.filter { it.isNotBlank() }.toSet(),
+        minAnswers = minAnswers.coerceIn(MIN_ANSWERS, MAX_ANSWERS),
+        maxAnswers = maxAnswers.coerceIn(minAnswers.coerceIn(MIN_ANSWERS, MAX_ANSWERS), MAX_ANSWERS),
         teamNames = TeamId.entries.associateWith { id ->
             teamNames[id]?.trim()?.take(MAX_TEAM_NAME)?.ifBlank { null }
                 ?: DEFAULT_TEAM_NAMES.getValue(id)
@@ -61,6 +69,10 @@ data class GameSettings(
         const val DEFAULT_CHOICE_SECONDS = 5
         const val MAX_TEAM_NAME = 18
         const val DEFAULT_ROOM_NAME = "غرفة مين الأطليسي"
+
+        /** نفس حدود بنك الأسئلة. */
+        const val MIN_ANSWERS = 2
+        const val MAX_ANSWERS = 9
         val DEFAULT_TEAM_NAMES = mapOf(
             TeamId.TEAM_1 to "الفريق الأخضر",
             TeamId.TEAM_2 to "الفريق الأزرق"

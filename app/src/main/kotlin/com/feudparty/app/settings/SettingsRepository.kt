@@ -31,6 +31,9 @@ class SettingsRepository(context: Context) {
         answerSeconds = prefs.getInt(KEY_ANSWER_SECONDS, GameSettings.DEFAULT_ANSWER_SECONDS),
         choiceSeconds = prefs.getInt(KEY_CHOICE_SECONDS, GameSettings.DEFAULT_CHOICE_SECONDS),
         roomName = prefs.getString(KEY_ROOM_NAME, null).orEmpty(),
+        categories = prefs.getStringSet(KEY_CATEGORIES, emptySet()).orEmpty(),
+        minAnswers = prefs.getInt(KEY_MIN_ANSWERS, GameSettings.MIN_ANSWERS),
+        maxAnswers = prefs.getInt(KEY_MAX_ANSWERS, GameSettings.MAX_ANSWERS),
         teamNames = mapOf(
             TeamId.TEAM_1 to prefs.getString(KEY_TEAM_1, null).orEmpty(),
             TeamId.TEAM_2 to prefs.getString(KEY_TEAM_2, null).orEmpty()
@@ -48,6 +51,9 @@ class SettingsRepository(context: Context) {
             .putInt(KEY_ANSWER_SECONDS, safe.answerSeconds)
             .putInt(KEY_CHOICE_SECONDS, safe.choiceSeconds)
             .putString(KEY_ROOM_NAME, safe.roomName)
+            .putStringSet(KEY_CATEGORIES, safe.categories)
+            .putInt(KEY_MIN_ANSWERS, safe.minAnswers)
+            .putInt(KEY_MAX_ANSWERS, safe.maxAnswers)
             .putString(KEY_TEAM_1, safe.teamName(TeamId.TEAM_1))
             .putString(KEY_TEAM_2, safe.teamName(TeamId.TEAM_2))
             .apply()
@@ -62,12 +68,24 @@ class SettingsRepository(context: Context) {
         }
     }
 
+    /** تصنيفات البنك الحالي — بتنعرض للمضيف حتى يفلتر فيها. */
+    fun categories(): List<String> = questions().map { it.category }.distinct().sorted()
+
+    /** أسئلة البنك بعد فلتر التصنيف وعدد الأجوبة. */
+    fun filteredQuestions(settings: GameSettings = load()): List<Question> =
+        questions().filter { question ->
+            val categoryOk = settings.categories.isEmpty() ||
+                question.category in settings.categories
+            val answersOk = question.answers.size in settings.minAnswers..settings.maxAnswers
+            categoryOk && answersOk
+        }
+
     /** الأسئلة اللي انقرأت قبل — ما بترجع لحد ما يخلص البنك. */
     fun readQuestionIds(): Set<String> = prefs.getStringSet(KEY_READ_IDS, emptySet()).orEmpty()
 
     /** المضيف شاف السؤال — منسجّله حتى ما يتكرر باللعبة الجاية. */
     fun markQuestionRead(id: String) {
-        val bank = questions()
+        val bank = filteredQuestions().ifEmpty { questions() }
         val read = readQuestionIds() + id
         // خلصت كل الأسئلة؟ منبلّش دورة جديدة نظيفة.
         val next = if (bank.isNotEmpty() && bank.all { it.id in read || it.isRead }) {
@@ -89,7 +107,8 @@ class SettingsRepository(context: Context) {
         return GameState(
             questions = QuestionBank.randomGame(
                 rounds = settings.rounds,
-                source = questions(),
+                // الفلتر تبع المضيف: تصنيفات معيّنة وعدد أجوبة معيّن.
+                source = filteredQuestions(settings).ifEmpty { questions() },
                 readIds = readQuestionIds()
             ),
             multipliers = settings.multipliersForRounds(),
@@ -143,6 +162,9 @@ class SettingsRepository(context: Context) {
         const val KEY_CHOICE_SECONDS = "choice_seconds"
         const val KEY_ROOM_NAME = "room_name"
         const val KEY_READ_IDS = "read_question_ids"
+        const val KEY_CATEGORIES = "categories"
+        const val KEY_MIN_ANSWERS = "min_answers"
+        const val KEY_MAX_ANSWERS = "max_answers"
         const val KEY_TEAM_1 = "team_1_name"
         const val KEY_TEAM_2 = "team_2_name"
         const val KEY_BANK_NAME = "bank_name"

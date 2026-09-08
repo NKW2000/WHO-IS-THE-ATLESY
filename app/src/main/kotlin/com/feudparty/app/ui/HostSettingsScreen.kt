@@ -1,6 +1,8 @@
 package com.feudparty.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -54,7 +56,9 @@ fun HostSettingsScreen(
     settings: GameSettings,
     onSettingsChange: (GameSettings) -> Unit,
     onBack: () -> Unit,
-    onContinue: () -> Unit
+    onContinue: () -> Unit,
+    categories: List<String> = emptyList(),
+    matchingQuestions: Int = 0
 ) {
     var renaming by remember { mutableStateOf<TeamId?>(null) }
     var renamingRoom by remember { mutableStateOf(false) }
@@ -103,24 +107,8 @@ fun HostSettingsScreen(
                         .fillMaxHeight(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        RoomSection(settings) { renamingRoom = true }
-                    }
-                    Box(modifier = Modifier.weight(2f)) {
-                        TeamsSection(settings) { renaming = it }
-                    }
-                }
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                ) {
-                    RoundsSection(
-                        settings = settings,
-                        onChange = onSettingsChange,
-                        modifier = Modifier.fillMaxHeight()
-                    )
+                    RoomSection(settings) { renamingRoom = true }
+                    TeamsSection(settings) { renaming = it }
                 }
 
                 Column(
@@ -129,11 +117,22 @@ fun HostSettingsScreen(
                         .fillMaxHeight(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    TimingSection(
+                    RoundsSection(settings = settings, onChange = onSettingsChange)
+                }
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    FilterSection(
                         settings = settings,
-                        onChange = onSettingsChange,
-                        modifier = Modifier.weight(1f)
+                        categories = categories,
+                        matching = matchingQuestions,
+                        onChange = onSettingsChange
                     )
+                    Spacer(Modifier.weight(1f))
                     SecondaryButton(
                         text = "رجوع للإعدادات الافتراضية",
                         onClick = { onSettingsChange(GameSettings()) },
@@ -177,7 +176,7 @@ fun HostSettingsScreen(
 /** اسم الغرفة — هو اللي بيبيّن باللستة عند اللاعبين. */
 @Composable
 private fun RoomSection(settings: GameSettings, onRename: () -> Unit) {
-    SettingsCard(title = "الغرفة", modifier = Modifier.fillMaxHeight()) {
+    SettingsCard(title = "الغرفة") {
         NameField(
             name = settings.roomName,
             color = FeudColors.gold,
@@ -232,7 +231,7 @@ private fun NameField(
 /** أسماء الفريقين — المضيف بيسمّيهم قبل ما يفوتوا اللاعبين. */
 @Composable
 private fun TeamsSection(settings: GameSettings, onRename: (TeamId) -> Unit) {
-    SettingsCard(title = "الفريقين", modifier = Modifier.fillMaxHeight()) {
+    SettingsCard(title = "الفريقين") {
         TeamId.entries.forEachIndexed { index, teamId ->
             if (index > 0) Spacer(Modifier.height(8.dp))
             NameField(
@@ -251,7 +250,7 @@ private fun RoundsSection(
     onChange: (GameSettings) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    SettingsCard(title = "الجولات والنقاط", modifier = modifier) {
+    SettingsCard(title = "الجولات والوقت", modifier = modifier) {
         Stepper(
             label = "عدد الجولات",
             value = settings.rounds,
@@ -293,21 +292,6 @@ private fun RoundsSection(
             }
         }
         Spacer(Modifier.height(4.dp))
-        Pill(
-            text = "بتحتاج ${settings.questionsNeeded().ar()} سؤال باللعبة الوحدة",
-            color = FeudColors.gold
-        )
-    }
-}
-
-/** التوقيت والأخطاء — عمود لحاله حتى يوصله المضيف بدون تمرير. */
-@Composable
-private fun TimingSection(
-    settings: GameSettings,
-    onChange: (GameSettings) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    SettingsCard(title = "الوقت والأخطاء", modifier = modifier) {
         Stepper(
             label = "ثواني الجواب",
             value = settings.answerSeconds,
@@ -316,7 +300,7 @@ private fun TimingSection(
             step = 5,
             onChange = { onChange(settings.copy(answerSeconds = it)) }
         )
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(4.dp))
         Stepper(
             label = "ثواني «العب أو تمرير»",
             value = settings.choiceSeconds,
@@ -324,13 +308,106 @@ private fun TimingSection(
             max = GameSettings.MAX_CHOICE_SECONDS,
             onChange = { onChange(settings.copy(choiceSeconds = it)) }
         )
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(4.dp))
         Stepper(
             label = "أخطاء تفتح السرقة",
             value = settings.strikesToSteal,
             min = GameSettings.MIN_STRIKES,
             max = GameSettings.MAX_STRIKES,
             onChange = { onChange(settings.copy(strikesToSteal = it)) }
+        )
+    }
+}
+
+/**
+ * تصفية الأسئلة: تصنيفات مختارة وعدد أجوبة معيّن. بدون تصنيفات مختارة
+ * يعني البنك كله، والعدّاد بيقول كم سؤال بيطابق الفلتر.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FilterSection(
+    settings: GameSettings,
+    categories: List<String>,
+    matching: Int,
+    onChange: (GameSettings) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    SettingsCard(title = "تصفية الأسئلة", modifier = modifier) {
+        if (categories.isEmpty()) {
+            Text(
+                "البنك ما فيه تصنيفات",
+                color = FeudColors.textMuted,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        } else {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                CategoryChip(
+                    label = "الكل",
+                    selected = settings.categories.isEmpty(),
+                    onClick = { onChange(settings.copy(categories = emptySet())) }
+                )
+                categories.forEach { category ->
+                    val selected = category in settings.categories
+                    CategoryChip(
+                        label = category,
+                        selected = selected,
+                        onClick = {
+                            val next = if (selected) {
+                                settings.categories - category
+                            } else {
+                                settings.categories + category
+                            }
+                            onChange(settings.copy(categories = next))
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Stepper(
+            label = "أقل عدد أجوبة",
+            value = settings.minAnswers,
+            min = GameSettings.MIN_ANSWERS,
+            max = settings.maxAnswers,
+            onChange = { onChange(settings.copy(minAnswers = it)) }
+        )
+        Spacer(Modifier.height(6.dp))
+        Stepper(
+            label = "أكثر عدد أجوبة",
+            value = settings.maxAnswers,
+            min = settings.minAnswers,
+            max = GameSettings.MAX_ANSWERS,
+            onChange = { onChange(settings.copy(maxAnswers = it)) }
+        )
+        Spacer(Modifier.height(8.dp))
+        Pill(
+            text = "${matching.ar()} سؤال مطابق",
+            color = if (matching >= settings.rounds) FeudColors.lime else FeudColors.pink,
+            textColor = if (matching >= settings.rounds) FeudColors.ink else FeudColors.cream
+        )
+    }
+}
+
+/** شريحة تصنيف — بتضوي لما تنتخب. */
+@Composable
+private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    CartoonSurface(
+        color = if (selected) FeudColors.gold else FeudColors.stage,
+        borderWidth = 3.dp,
+        corner = 10.dp,
+        shadow = 3.dp,
+        onClick = onClick
+    ) {
+        Text(
+            label,
+            color = if (selected) FeudColors.ink else FeudColors.textMuted,
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
         )
     }
 }
