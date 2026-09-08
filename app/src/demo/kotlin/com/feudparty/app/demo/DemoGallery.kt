@@ -28,6 +28,8 @@ import com.feudparty.app.ui.HostSettingsScreen
 import com.feudparty.app.ui.HostSetupScreen
 import com.feudparty.app.ui.IntroScreen
 import com.feudparty.app.ui.RoomListScreen
+import com.feudparty.app.ui.RoundIntroScreen
+import com.feudparty.app.ui.VersusScreen
 import com.feudparty.app.ui.PlayerJoinScreen
 import com.feudparty.app.ui.PlayerScreen
 import com.feudparty.app.ui.ScoreboardScreen
@@ -160,6 +162,17 @@ private fun demoScreens(
             onCorrect = {},
             onWrong = {},
             onNextRound = {}
+        )
+    },
+    DemoScreen("بداية الجولة") {
+        RoundIntroScreen(round = 3, multiplier = 2)
+    },
+    DemoScreen("استعدوا") {
+        VersusScreen(
+            playerA = "سامر",
+            playerB = "ليلى",
+            teamAName = "نمور الشام",
+            teamBName = "صقور البحر"
         )
     },
     DemoScreen("النتيجة بين الجولات") {

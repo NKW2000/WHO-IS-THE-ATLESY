@@ -1,33 +1,41 @@
 package com.feudparty.app.ui
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.feudparty.app.ui.components.CartoonSurface
-import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.PrimaryButton
-import com.feudparty.app.ui.components.StageBackground
+import com.feudparty.app.ui.components.SpinningRays
+import com.feudparty.app.ui.components.appear
+import com.feudparty.app.ui.components.drop
+import com.feudparty.app.ui.components.rememberShowClock
+import com.feudparty.app.ui.components.rise
+import com.feudparty.app.ui.components.thump
+import com.feudparty.app.ui.components.wipe
 import com.feudparty.app.ui.components.color
 import com.feudparty.app.ui.components.inkColor
 import com.feudparty.app.ui.theme.FeudColors
@@ -38,30 +46,57 @@ import com.feudparty.core.game.TeamId
 import com.feudparty.core.game.TeamState
 
 /**
- * النتيجة بين الجولات — بتظهر عند المضيف وعند كل اللاعبين بنفس الوقت.
- * المضيف بس هو اللي عنده زر الانتقال للجولة الجاية.
+ * النتيجة بين الجولات — نفس مشهد «نهاية الجولة» بملف التصميم
+ * (`مين الأطليسي - Play & Pass`): العنوان بيهبط، اللوحان بيطلعان من تحت،
+ * الأرقام بتعدّ لفوق مع أعمدتها، وبعدين تاج ذهبي للمتقدّم ولافتة بتكنس.
+ * بتظهر عند المضيف وعند كل اللاعبين — بس المضيف عنده زر الجولة الجاية.
  */
+private const val COUNT_START = 0.5f
+private const val COUNT_TIME = 0.9f
+private const val CROWN_AT = 1.5f
+private const val BANNER_AT = 1.56f
+
 @Composable
 fun ScoreboardScreen(
     state: GameState,
     onContinue: (() -> Unit)? = null
 ) {
-    val award = state.lastAward
     val roundNumber = state.currentQuestionIndex + 1
+    val award = state.lastAward
+    val t by rememberShowClock(key = roundNumber, cap = 4f)
+    val counted = ((t - COUNT_START) / COUNT_TIME).coerceIn(0f, 1f)
+    val scores = TeamId.entries.associateWith { state.teams[it]?.score ?: 0 }
+    val top = scores.values.maxOrNull()?.coerceAtLeast(1) ?: 1
+    val leader = when {
+        scores.getValue(TeamId.TEAM_1) == scores.getValue(TeamId.TEAM_2) -> null
+        scores.getValue(TeamId.TEAM_1) > scores.getValue(TeamId.TEAM_2) -> TeamId.TEAM_1
+        else -> TeamId.TEAM_2
+    }
 
-    StageBackground(contentPadding = PaddingValues(horizontal = 30.dp, vertical = 20.dp)) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val h = maxHeight
+        val w = maxWidth
+        SpinningRays(modifier = Modifier.fillMaxSize())
+
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Pill(
-                text = "انتهت الجولة ${roundNumber.ar()} من ${state.questions.size.ar()}",
-                color = FeudColors.gold
+            Text(
+                "نتيجة الجولة ${roundNumber.ar()}/${state.questions.size.ar()}",
+                color = FeudColors.gold,
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.graphicsLayer {
+                    translationY = drop(t, 0.04f) * size.height
+                    alpha = appear(t, 0.04f, 0.08f)
+                }
             )
 
             if (award != null) {
-                Spacer(Modifier.height(10.dp))
-                val teamName = state.teams[award.teamId]?.name ?: ""
+                Spacer(Modifier.height(6.dp))
+                val teamName = state.teams[award.teamId]?.name.orEmpty()
                 Text(
                     if (award.stolen) {
                         "سرقة! $teamName أخد ${award.points.ar()}"
@@ -69,36 +104,59 @@ fun ScoreboardScreen(
                         "$teamName أخد ${award.points.ar()}"
                     },
                     color = if (award.stolen) FeudColors.pink else FeudColors.lime,
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(10.dp))
 
             Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(20.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                TeamId.entries.forEach { teamId ->
-                    TeamScore(
-                        state = state,
+                TeamId.entries.forEachIndexed { index, teamId ->
+                    TeamPanel(
+                        name = state.teams[teamId]?.name.orEmpty(),
+                        score = scores.getValue(teamId),
+                        shown = (scores.getValue(teamId) * counted).toInt(),
+                        share = (scores.getValue(teamId).toFloat() / top) * counted,
+                        crowned = leader == teamId,
                         teamId = teamId,
-                        leading = state.leadingTeam == teamId,
-                        modifier = Modifier.weight(1f)
+                        t = t,
+                        delay = if (index == 0) 0.2f else 0.32f,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
                     )
                 }
             }
 
+            Spacer(Modifier.height(10.dp))
+
+            // لافتة «مين بالمقدمة» بتكنس عرض الشاشة زي التصميم.
+            LeadBanner(
+                text = when (leader) {
+                    null -> "تعادل"
+                    else -> "${state.teams[leader]?.name.orEmpty()} بالمقدمة"
+                },
+                width = w,
+                height = h * 0.14f,
+                offsetFraction = wipe(t, BANNER_AT)
+            )
+
+            Spacer(Modifier.height(10.dp))
+
             if (onContinue != null) {
-                Spacer(Modifier.height(14.dp))
                 PrimaryButton(
                     text = if (state.isLastRound) "النتيجة النهائية" else "الجولة الجاية",
                     onClick = onContinue,
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {
-                Spacer(Modifier.height(14.dp))
                 Text(
                     "بانتظار المضيف يبلّش الجولة الجاية",
                     color = FeudColors.textMuted,
@@ -109,49 +167,113 @@ fun ScoreboardScreen(
     }
 }
 
+/** لوح فريق: بيطلع من تحت، رقمه بيعدّ، وعموده بيكبر معه. */
 @Composable
-private fun TeamScore(
-    state: GameState,
+private fun TeamPanel(
+    name: String,
+    score: Int,
+    shown: Int,
+    share: Float,
+    crowned: Boolean,
     teamId: TeamId,
-    leading: Boolean,
+    t: Float,
+    delay: Float,
     modifier: Modifier = Modifier
 ) {
-    val team = state.teams[teamId] ?: return
-    val score by animateIntAsState(
-        targetValue = team.score,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "score${teamId.name}"
-    )
-
-    CartoonSurface(
-        modifier = modifier,
-        color = teamId.color(),
-        corner = 22.dp,
-        shadow = 8.dp
+    val density = LocalDensity.current
+    BoxWithConstraints(
+        modifier = modifier
+            .graphicsLayer {
+                translationY = rise(t, delay) * size.height
+                alpha = appear(t, delay, 0.1f)
+            }
+            .clip(RoundedCornerShape(18.dp))
+            .background(teamId.color())
     ) {
+        val panelHeight = maxHeight
+
+        if (crowned) {
+            // تاج المتقدّم: شريط ذهبي بينط فوق اللوح.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .graphicsLayer { scaleY = thump(t, CROWN_AT) }
+                    .background(FeudColors.gold)
+            )
+        }
+
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
+                .padding(horizontal = 12.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
-                team.name,
+                name,
                 color = teamId.inkColor(),
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center
             )
             Text(
-                score.ar(),
-                color = Color.White,
-                style = MaterialTheme.typography.displayLarge
+                shown.coerceAtMost(score).ar(),
+                color = if (teamId == TeamId.TEAM_1) teamId.inkColor() else FeudColors.cream,
+                style = MaterialTheme.typography.displayLarge.copy(
+                    fontSize = with(density) { (panelHeight * 0.34f).toSp() },
+                    lineHeight = with(density) { (panelHeight * 0.36f).toSp() }
+                ),
+                maxLines = 1
             )
-            if (leading) {
-                Box(modifier = Modifier.padding(top = 6.dp)) {
-                    Pill(text = "متقدّم", color = FeudColors.gold)
-                }
+            Spacer(Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.64f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(FeudColors.ink.copy(alpha = 0.28f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(share.coerceIn(0f, 1f))
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(FeudColors.ink)
+                )
             }
         }
+    }
+}
+
+/** لافتة ذهبية بتكنس عرض الشاشة وبتقول مين بالمقدمة. */
+@Composable
+private fun LeadBanner(
+    text: String,
+    width: Dp,
+    height: Dp,
+    offsetFraction: Float
+) {
+    val density = LocalDensity.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
+            .offset(x = width * offsetFraction)
+            .background(FeudColors.gold),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text,
+            color = FeudColors.ink,
+            style = MaterialTheme.typography.displayLarge.copy(
+                fontSize = with(density) { (height * 0.45f).toSp() }
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

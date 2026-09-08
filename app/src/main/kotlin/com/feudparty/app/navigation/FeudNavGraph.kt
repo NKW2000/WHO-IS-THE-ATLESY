@@ -46,12 +46,14 @@ import com.feudparty.app.ui.HostSetupScreen
 import com.feudparty.app.ui.PlayerJoinScreen
 import com.feudparty.app.ui.PlayerScreen
 import com.feudparty.app.ui.RoomListScreen
+import com.feudparty.app.ui.RoundOpening
 import com.feudparty.app.ui.ScoreboardScreen
 import com.feudparty.app.viewmodel.HostViewModel
 import com.feudparty.app.viewmodel.PlayerViewModel
 import com.feudparty.app.viewmodel.SettingsViewModel
 import com.feudparty.app.settings.SettingsRepository
 import com.feudparty.core.game.RoundPhase
+import com.feudparty.core.game.TeamId
 import com.feudparty.core.network.NearbyConnectionsManagerImpl
 import com.feudparty.data.questions.QuestionBank
 
@@ -209,6 +211,24 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                         onWrong = vm::judgeWrong,
                         onNextRound = vm::nextRound,
                         onChangeQuestion = vm::changeQuestion
+                    )
+                }
+
+                // افتتاحية كل جولة عند المضيف: اسم الجولة والمضاعف، وبعدها
+                // «استعدوا» بأسماء اللي عالمنصة. بتنعرض مرة وحدة لكل جولة.
+                var openedRound by remember { mutableStateOf(-1) }
+                val roundIndex = state.currentQuestionIndex
+                if (state.matchStarted && !state.gameOver &&
+                    state.phase == RoundPhase.FACE_OFF && openedRound != roundIndex
+                ) {
+                    RoundOpening(
+                        round = roundIndex + 1,
+                        multiplier = state.multiplier,
+                        playerA = state.podiumPlayer(TeamId.TEAM_1)?.name,
+                        playerB = state.podiumPlayer(TeamId.TEAM_2)?.name,
+                        teamAName = state.teams[TeamId.TEAM_1]?.name.orEmpty(),
+                        teamBName = state.teams[TeamId.TEAM_2]?.name.orEmpty(),
+                        onDone = { openedRound = roundIndex }
                     )
                 }
 
