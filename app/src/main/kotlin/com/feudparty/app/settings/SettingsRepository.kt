@@ -32,7 +32,7 @@ class SettingsRepository(context: Context) {
         choiceSeconds = prefs.getInt(KEY_CHOICE_SECONDS, GameSettings.DEFAULT_CHOICE_SECONDS),
         roomName = prefs.getString(KEY_ROOM_NAME, null).orEmpty(),
         categories = prefs.getStringSet(KEY_CATEGORIES, emptySet()).orEmpty(),
-        minAnswers = prefs.getInt(KEY_MIN_ANSWERS, GameSettings.MIN_ANSWERS),
+        minAnswers = prefs.getInt(KEY_MIN_ANSWERS, GameSettings.DEFAULT_MIN_ANSWERS),
         maxAnswers = prefs.getInt(KEY_MAX_ANSWERS, GameSettings.MAX_ANSWERS),
         teamNames = mapOf(
             TeamId.TEAM_1 to prefs.getString(KEY_TEAM_1, null).orEmpty(),
@@ -70,6 +70,14 @@ class SettingsRepository(context: Context) {
 
     /** تصنيفات البنك الحالي — بتنعرض للمضيف حتى يفلتر فيها. */
     fun categories(): List<String> = questions().map { it.category }.distinct().sorted()
+
+    /** حدود عدد الأجوبة الموجودة فعلياً بالبنك — منها بتتبنى خطوات الفلتر. */
+    fun answerBounds(): IntRange {
+        val sizes = questions().map { it.answers.size }
+        val low = sizes.minOrNull() ?: GameSettings.MIN_ANSWERS
+        val high = sizes.maxOrNull() ?: GameSettings.MAX_ANSWERS
+        return low..high
+    }
 
     /** أسئلة البنك بعد فلتر التصنيف وعدد الأجوبة. */
     fun filteredQuestions(settings: GameSettings = load()): List<Question> =

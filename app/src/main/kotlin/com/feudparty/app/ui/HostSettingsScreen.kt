@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,10 +59,26 @@ fun HostSettingsScreen(
     onBack: () -> Unit,
     onContinue: () -> Unit,
     categories: List<String> = emptyList(),
+    answerBounds: IntRange = GameSettings.MIN_ANSWERS..GameSettings.MAX_ANSWERS,
     matchingQuestions: Int = 0
 ) {
     var renaming by remember { mutableStateOf<TeamId?>(null) }
     var renamingRoom by remember { mutableStateOf(false) }
+
+    // البنك بيحكم الفلتر: إذا تغيّر، منرجّع الأرقام والتصنيفات لحدوده.
+    LaunchedEffect(answerBounds, categories) {
+        val low = settings.minAnswers.coerceIn(answerBounds)
+        val high = settings.maxAnswers.coerceIn(low, answerBounds.last)
+        val picked = settings.categories.filterTo(mutableSetOf()) { it in categories }
+        if (low != settings.minAnswers ||
+            high != settings.maxAnswers ||
+            picked != settings.categories
+        ) {
+            onSettingsChange(
+                settings.copy(minAnswers = low, maxAnswers = high, categories = picked)
+            )
+        }
+    }
 
     StageBackground(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -129,15 +146,10 @@ fun HostSettingsScreen(
                     FilterSection(
                         settings = settings,
                         categories = categories,
+                        bounds = answerBounds,
                         matching = matchingQuestions,
-                        onChange = onSettingsChange
-                    )
-                    Spacer(Modifier.weight(1f))
-                    SecondaryButton(
-                        text = "رجوع للإعدادات الافتراضية",
-                        onClick = { onSettingsChange(GameSettings()) },
-                        accent = FeudColors.pink,
-                        modifier = Modifier.fillMaxWidth()
+                        onChange = onSettingsChange,
+                        modifier = Modifier.fillMaxHeight()
                     )
                 }
             }
@@ -328,6 +340,7 @@ private fun RoundsSection(
 private fun FilterSection(
     settings: GameSettings,
     categories: List<String>,
+    bounds: IntRange,
     matching: Int,
     onChange: (GameSettings) -> Unit,
     modifier: Modifier = Modifier
@@ -370,17 +383,17 @@ private fun FilterSection(
         Spacer(Modifier.height(8.dp))
         Stepper(
             label = "أقل عدد أجوبة",
-            value = settings.minAnswers,
-            min = GameSettings.MIN_ANSWERS,
-            max = settings.maxAnswers,
+            value = settings.minAnswers.coerceIn(bounds),
+            min = bounds.first,
+            max = settings.maxAnswers.coerceIn(bounds),
             onChange = { onChange(settings.copy(minAnswers = it)) }
         )
         Spacer(Modifier.height(6.dp))
         Stepper(
             label = "أكثر عدد أجوبة",
-            value = settings.maxAnswers,
-            min = settings.minAnswers,
-            max = GameSettings.MAX_ANSWERS,
+            value = settings.maxAnswers.coerceIn(bounds),
+            min = settings.minAnswers.coerceIn(bounds),
+            max = bounds.last,
             onChange = { onChange(settings.copy(maxAnswers = it)) }
         )
         Spacer(Modifier.height(8.dp))

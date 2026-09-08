@@ -22,12 +22,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.AnswerBoardGrid
+import com.feudparty.app.ui.components.CategoryRoundBlocks
 import com.feudparty.app.ui.components.Countdown
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.QuestionCard
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
-import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.StrikeFlash
 import com.feudparty.app.ui.components.StrikeRow
 import com.feudparty.app.ui.components.color
@@ -53,7 +53,7 @@ import com.feudparty.core.game.buzzedTeam
  * بتبيّن هون — بتبيّن بشاشة النتيجة بين الجولات.
  */
 /** عرض الزاوية اللي فيها الوقت — ونفسه بالطرف التاني حتى يتوسّط السؤال. */
-private val SIDE_SLOT = 172.dp
+private val SIDE_SLOT = 210.dp
 
 /** تبديل السؤال مسموح قبل ما تبلّش الجولة فعلياً — يعني بالمواجهة وبدون كشف. */
 private fun GameState.canChangeQuestion(): Boolean =
@@ -112,32 +112,13 @@ fun HostGameBoardScreen(
                         )
                     }
 
-                    // التصنيف والجولة عالشمال، وتحتهن زر تبديل السؤال.
-                    Column(
-                        modifier = Modifier.width(SIDE_SLOT),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Pill(
-                            text = state.currentQuestion?.category ?: "عام",
-                            color = FeudColors.gold
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "جولة ${(state.currentQuestionIndex + 1).ar()}/" +
-                                state.questions.size.ar(),
-                            color = FeudColors.textMuted,
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        if (state.canChangeQuestion()) {
-                            Spacer(Modifier.height(6.dp))
-                            SecondaryButton(
-                                text = "بدّل السؤال",
-                                onClick = onChangeQuestion,
-                                accent = FeudColors.teal,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
+                    // التصنيف والجولة عالشمال — بلوكين جنب بعض بنفس القياس.
+                    CategoryRoundBlocks(
+                        category = state.currentQuestion?.category,
+                        round = state.currentQuestionIndex + 1,
+                        totalRounds = state.questions.size,
+                        modifier = Modifier.width(SIDE_SLOT)
+                    )
                 }
 
                 Spacer(Modifier.height(14.dp))
@@ -171,6 +152,18 @@ fun HostGameBoardScreen(
                             .align(Alignment.Center)
                             .width(200.dp)
                     )
+                    // زاوية تحت: بدّل السؤال قبل ما تبلّش الجولة، وبنفس
+                    // المكان زر الجولة الجاية بعد ما تخلص.
+                    if (state.canChangeQuestion()) {
+                        SecondaryButton(
+                            text = "بدّل السؤال",
+                            onClick = onChangeQuestion,
+                            accent = FeudColors.teal,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .width(200.dp)
+                        )
+                    }
                     if (state.phase == RoundPhase.ROUND_END) {
                         PrimaryButton(
                             text = if (revealedAll) state.nextButtonLabel() else "اكشف الباقي",

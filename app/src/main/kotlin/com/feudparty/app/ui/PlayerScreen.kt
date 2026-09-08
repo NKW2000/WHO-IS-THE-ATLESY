@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.AnswerBoardGrid
 import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.CartoonSurface
+import com.feudparty.app.ui.components.CategoryRoundBlocks
 import com.feudparty.app.ui.components.Countdown
 import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.PrimaryButton
@@ -406,15 +408,6 @@ private fun PlayOrPassScreen(
                     .fillMaxHeight()
                     .background(TimerColor)
             )
-            Text(
-                state.choiceSecondsLeft.ar(),
-                color = FeudColors.cream,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .background(PassPlayBase, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 8.dp)
-            )
         }
 
         // شريط «العب» الأخضر تحت.
@@ -626,6 +619,18 @@ private fun PlayerBoard(
             }
 
             val question = state?.currentQuestion
+            if (question != null) {
+                Spacer(Modifier.height(8.dp))
+                CategoryRoundBlocks(
+                    category = question.category,
+                    round = state.currentQuestionIndex + 1,
+                    totalRounds = state.questions.size,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .widthIn(max = 420.dp)
+                        .fillMaxWidth()
+                )
+            }
             val questionText = question?.text.orEmpty()
             if (questionText.isNotBlank()) {
                 Spacer(Modifier.height(6.dp))

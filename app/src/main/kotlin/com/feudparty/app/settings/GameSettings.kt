@@ -21,7 +21,7 @@ data class GameSettings(
     /** تصنيفات مسموحة — فاضية يعني كل التصنيفات. */
     val categories: Set<String> = emptySet(),
     /** أقل وأكثر عدد أجوبة بالسؤال — فلتر على البنك. */
-    val minAnswers: Int = MIN_ANSWERS,
+    val minAnswers: Int = DEFAULT_MIN_ANSWERS,
     val maxAnswers: Int = MAX_ANSWERS,
     val bankName: String? = null,
     val bankQuestionCount: Int = 0
@@ -70,9 +70,10 @@ data class GameSettings(
         const val MAX_TEAM_NAME = 18
         const val DEFAULT_ROOM_NAME = "غرفة مين الأطليسي"
 
-        /** نفس حدود بنك الأسئلة. */
+        /** نفس حدود بنك الأسئلة — والحدود الفعلية بتجي من البنك نفسه. */
         const val MIN_ANSWERS = 2
         const val MAX_ANSWERS = 9
+        const val DEFAULT_MIN_ANSWERS = 5
         val DEFAULT_TEAM_NAMES = mapOf(
             TeamId.TEAM_1 to "الفريق الأخضر",
             TeamId.TEAM_2 to "الفريق الأزرق"
