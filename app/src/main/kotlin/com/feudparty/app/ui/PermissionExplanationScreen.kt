@@ -7,6 +7,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -43,13 +45,19 @@ fun PermissionExplanationScreen(
     onRequestClick: () -> Unit,
     onOpenSettings: () -> Unit = {}
 ) {
-    StageBackground(contentPadding = PaddingValues(horizontal = 34.dp, vertical = 22.dp)) {
+    val portrait = isPortrait()
+
+    StageBackground(contentPadding = stagePadding()) {
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SignalBadge()
-            Spacer(Modifier.width(28.dp))
+            if (!portrait) {
+                SignalBadge()
+                Spacer(Modifier.width(28.dp))
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "بدنا صلاحية قبل ما نبلّش",
@@ -87,7 +95,7 @@ fun PermissionExplanationScreen(
                 PrimaryButton(
                     text = if (permanentlyDenied) "افتح الإعدادات" else "منح الصلاحيات",
                     onClick = if (permanentlyDenied) onOpenSettings else onRequestClick,
-                    modifier = Modifier.width(300.dp)
+                    modifier = if (portrait) Modifier.fillMaxWidth() else Modifier.width(300.dp)
                 )
             }
         }

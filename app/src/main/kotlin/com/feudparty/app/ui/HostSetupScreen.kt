@@ -7,6 +7,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,14 +70,16 @@ fun HostSetupScreen(
         players.count { it.teamId == team && it.connected } >= minPerTeam
     }
 
-    StageBackground(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp)) {
+    val portrait = isPortrait()
+
+    StageBackground(contentPadding = stagePadding()) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "مين معنا؟",
                         color = FeudColors.gold,
@@ -84,7 +88,9 @@ fun HostSetupScreen(
                     Text(
                         "كل لاعب بيفتح التطبيق ويختار «انضمام كلاعب»",
                         color = FeudColors.textMuted,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 if (advertising) BroadcastBadge() else Spacer(Modifier.width(1.dp))
@@ -92,42 +98,67 @@ fun HostSetupScreen(
 
             Spacer(Modifier.height(10.dp))
 
-            Row(modifier = Modifier.weight(1f)) {
-                TeamId.entries.forEachIndexed { index, teamId ->
-                    if (index > 0) Spacer(Modifier.width(12.dp))
-                    TeamColumn(
-                        team = teams[teamId],
-                        teamId = teamId,
-                        players = players.filter { it.teamId == teamId },
-                        onMovePlayer = onMovePlayer,
-                        modifier = Modifier.weight(1f)
-                    )
+            if (portrait) {
+                // طولي: فريق فوق فريق بتمرير، والأزرار ملزوقة تحت.
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    TeamId.entries.forEach { teamId ->
+                        TeamColumn(
+                            team = teams[teamId],
+                            teamId = teamId,
+                            players = players.filter { it.teamId == teamId },
+                            onMovePlayer = onMovePlayer,
+                            expand = false,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            } else {
+                Row(modifier = Modifier.weight(1f)) {
+                    TeamId.entries.forEachIndexed { index, teamId ->
+                        if (index > 0) Spacer(Modifier.width(12.dp))
+                        TeamColumn(
+                            team = teams[teamId],
+                            teamId = teamId,
+                            players = players.filter { it.teamId == teamId },
+                            onMovePlayer = onMovePlayer,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
             Spacer(Modifier.height(10.dp))
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (ready) "جاهزين — يلا نبلّش" else "بدنا لاعب بكل فريق عالأقل",
+                color = if (ready) FeudColors.lime else FeudColors.textMuted,
+                style = MaterialTheme.typography.titleSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 SecondaryButton(
                     text = if (advertising) "البث شغّال" else "بدء البث",
                     onClick = onStartHosting,
                     enabled = !advertising,
-                    modifier = Modifier.width(240.dp)
+                    modifier = if (portrait) Modifier.weight(1f) else Modifier.width(240.dp)
                 )
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    if (ready) "جاهزين — يلا نبلّش" else "بدنا لاعب بكل فريق عالأقل",
-                    color = if (ready) FeudColors.lime else FeudColors.textMuted,
-                    style = MaterialTheme.typography.titleSmall,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(Modifier.width(12.dp))
+                if (!portrait) Spacer(Modifier.weight(1f))
                 PrimaryButton(
                     text = "ابدأ اللعبة",
                     onClick = onBeginGame,
                     enabled = ready,
                     color = FeudColors.lime,
-                    modifier = Modifier.width(240.dp)
+                    modifier = if (portrait) Modifier.weight(1f) else Modifier.width(240.dp)
                 )
             }
         }
@@ -163,18 +194,25 @@ private fun TeamColumn(
     teamId: TeamId,
     players: List<Player>,
     onMovePlayer: (String, TeamId) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // بالوضع الطولي الكرت بياخد ارتفاع محتواه بس — لأنه جوّا تمرير.
+    expand: Boolean = true
 ) {
     val color = teamId.color()
     val joined = players.count { it.connected }
 
     CartoonSurface(
-        modifier = modifier.fillMaxHeight(),
+        modifier = if (expand) modifier.fillMaxHeight() else modifier,
         color = if (joined > 0) color else FeudColors.ink.copy(alpha = 0.35f),
         corner = 20.dp,
         shadow = 7.dp
     ) {
-        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight().padding(12.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (expand) Modifier.fillMaxHeight() else Modifier)
+                .padding(12.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -198,7 +236,12 @@ private fun TeamColumn(
             Spacer(Modifier.height(8.dp))
 
             if (players.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().weight(1f), Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(if (expand) Modifier.weight(1f) else Modifier.height(90.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
                         "بانتظار الاتصال...",
                         color = FeudColors.textMuted,
@@ -208,9 +251,21 @@ private fun TeamColumn(
                 return@Column
             }
 
-            // قائمة كسولة — تضل داخل الشاشة مهما زاد العدد.
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                items(players) { player ->
+            if (expand) {
+                // أفقي: قائمة كسولة — تضل داخل الشاشة مهما زاد العدد.
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    items(players) { player ->
+                        PlayerRow(
+                            player = player,
+                            teamId = teamId,
+                            onMove = { onMovePlayer(player.id, teamId.other()) }
+                        )
+                        Spacer(Modifier.height(6.dp))
+                    }
+                }
+            } else {
+                // طولي: الكرت كله جوّا تمرير الشاشة، فاللستة عادية.
+                players.forEach { player ->
                     PlayerRow(
                         player = player,
                         teamId = teamId,

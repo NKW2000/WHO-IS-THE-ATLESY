@@ -125,7 +125,8 @@ fun RoundIntroScreen(round: Int, multiplier: Int, modifier: Modifier = Modifier)
     val t by rememberShowClock(key = round, cap = 6f)
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val h = maxHeight
+        // القياسات من أقصر بُعد — نفس الشكل بالأفقي وبالطولي.
+        val h = minOf(maxHeight, maxWidth)
         val w = maxWidth
         SpinningRays(modifier = Modifier.fillMaxSize())
 
@@ -178,8 +179,8 @@ fun RoundIntroScreen(round: Int, multiplier: Int, modifier: Modifier = Modifier)
             height = h * 0.183f,
             offsetFraction = wipe(t, 0.70f),
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .offset(y = h * 0.76f)
+                .align(Alignment.Center)
+                .offset(y = h * 0.52f)
         )
     }
 }
@@ -198,7 +199,7 @@ fun VersusScreen(
     // الهندسة بالتصميم يسار/يمين فيزيائي — منثبّت الاتجاه حتى تطابق.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-            val h = maxHeight
+            val h = minOf(maxHeight, maxWidth)
             val w = maxWidth
             val density = LocalDensity.current
             SpinningRays(modifier = Modifier.fillMaxSize())
@@ -233,10 +234,14 @@ fun VersusScreen(
                     drawPath(left, FeudColors.team2.copy(alpha = fade))
                 }
 
-                // الخيط الأسود بين النصين — بيطلع بعد ما يستقروا.
+                // الخيط الأسود بين النصين — بيطلع بعد ما يستقروا، وميلانه
+                // محسوب من نفس القطع حتى يطابقه بأي نسبة شاشة.
                 if (seam > 0f) {
                     val seamWidth = width * 0.018f
-                    rotate(degrees = 17.4f, pivot = center) {
+                    val slant = Math.toDegrees(
+                        kotlin.math.atan2((0.16f * width).toDouble(), height.toDouble())
+                    ).toFloat()
+                    rotate(degrees = slant, pivot = center) {
                         drawRect(
                             color = FeudColors.ink,
                             topLeft = Offset(
@@ -253,15 +258,18 @@ fun VersusScreen(
             }
 
             // الأسماء: الأخضر عاليمين والأزرق عالشمال، وبينزلقوا مع نصّهم.
+            // نص الشاشة ناقص نصف الشارة — والخط بياخد قياسه من الاتنين.
+            val halfWidth = maxWidth * 0.5f - h * 0.2f
+            val nameBasis = minOf(h * 0.14f, halfWidth * 0.2f)
             NameHalf(
                 label = teamAName,
                 name = playerA,
                 ink = FeudColors.team1Ink,
                 nameColor = FeudColors.team1Ink,
-                height = h,
+                nameSize = nameBasis,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .width(w * 0.5f - h * 0.18f)
+                    .width(halfWidth)
                     .offset(x = w * slide)
                     .graphicsLayer { alpha = fade }
             )
@@ -270,10 +278,10 @@ fun VersusScreen(
                 name = playerB,
                 ink = FeudColors.team2Ink,
                 nameColor = FeudColors.cream,
-                height = h,
+                nameSize = nameBasis,
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .width(w * 0.5f - h * 0.18f)
+                    .width(halfWidth)
                     .offset(x = -w * slide)
                     .graphicsLayer { alpha = fade }
             )
@@ -328,12 +336,12 @@ private fun NameHalf(
     name: String,
     ink: Color,
     nameColor: Color,
-    height: Dp,
+    nameSize: Dp,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
     Column(
-        modifier = modifier.padding(horizontal = height * 0.04f),
+        modifier = modifier.padding(horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -348,8 +356,8 @@ private fun NameHalf(
             name,
             color = nameColor,
             style = MaterialTheme.typography.displayLarge.copy(
-                fontSize = with(density) { (height * 0.14f).toSp() },
-                lineHeight = with(density) { (height * 0.16f).toSp() }
+                fontSize = with(density) { nameSize.toSp() },
+                lineHeight = with(density) { (nameSize * 1.14f).toSp() }
             ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

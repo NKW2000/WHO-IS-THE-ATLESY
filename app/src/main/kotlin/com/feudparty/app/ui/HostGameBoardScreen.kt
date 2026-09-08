@@ -71,120 +71,216 @@ fun HostGameBoardScreen(
     val canJudge = state.canJudge()
     val revealedAll = state.boardFullyRevealed()
     val seconds = maxOf(state.answerSecondsLeft, state.choiceSecondsLeft)
+    val portrait = isPortrait()
 
     Box {
-        StageBackground(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)) {
+        StageBackground(
+            contentPadding = if (portrait) {
+                PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+            } else {
+                PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+            }
+        ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // فوق: الوقت والأخطاء عاليمين، السؤال بالنص، والتصنيف عالشمال.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                if (portrait) {
+                    // طولي: سطر معلومات فوق، السؤال تحته بعرض الشاشة،
+                    // اللوح عمودين، والحكم بشريط ملزوق تحت.
                     Row(
-                        modifier = Modifier.width(SIDE_SLOT),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        if (seconds > 0) {
-                            Countdown(seconds = seconds, size = 44.dp)
-                        } else {
-                            Spacer(Modifier.width(44.dp))
-                        }
+                        CategoryRoundBlocks(
+                            category = state.currentQuestion?.category,
+                            round = state.currentQuestionIndex + 1,
+                            totalRounds = state.questions.size,
+                            modifier = Modifier.weight(1f)
+                        )
                         StrikeRow(
                             strikes = state.strikes,
                             total = state.strikesToSteal,
-                            size = 30.dp
+                            size = 26.dp
                         )
+                        if (seconds > 0) {
+                            Countdown(seconds = seconds, size = 44.dp)
+                        }
                     }
 
-                    // بطاقة السؤال جوّا Box: هي بتستعمل AnimatedVisibility
-                    // اللي بتاكل الـ weight وبتاخد كل العرض إذا حطيناه عليها.
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        QuestionCard(
-                            round = state.currentQuestionIndex + 1,
-                            totalRounds = state.questions.size,
-                            category = state.currentQuestion?.category,
-                            question = state.currentQuestion?.text ?: "—",
-                            modifier = Modifier.widthIn(max = 560.dp)
-                        )
-                    }
+                    Spacer(Modifier.height(10.dp))
 
-                    // التصنيف والجولة عالشمال — بلوكين جنب بعض بنفس القياس.
-                    CategoryRoundBlocks(
-                        category = state.currentQuestion?.category,
+                    QuestionCard(
                         round = state.currentQuestionIndex + 1,
                         totalRounds = state.questions.size,
-                        modifier = Modifier.width(SIDE_SLOT)
+                        category = state.currentQuestion?.category,
+                        question = state.currentQuestion?.text ?: "—",
+                        modifier = Modifier.fillMaxWidth()
                     )
-                }
 
-                Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(10.dp))
 
-                AnswerBoardGrid(
-                    answers = state.currentQuestion?.answers.orEmpty(),
-                    modifier = Modifier.weight(1f),
-                    revealHiddenText = true,
-                    enabledSlots = canJudge,
-                    onSlotClick = onCorrect
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                // تحت: مين عم يجاوب وكم خطأ عليه، وزر الغلط.
-                // تحت: زر الغلط بالنص، والدور عالجنب، والجولة الجاية عالطرف
-                // التاني — الأخطاء فوق عالشمال مع الوقت.
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    TurnChip(
-                        state = state,
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .width(300.dp)
+                    // بالطولي منعرض خانات السؤال بس — بدون خانات فاضية
+                    // بتاكل نص الشاشة.
+                    val answers = state.currentQuestion?.answers.orEmpty()
+                    AnswerBoardGrid(
+                        answers = answers,
+                        modifier = Modifier.weight(1f),
+                        columns = 2,
+                        slots = maxOf(answers.size + answers.size % 2, 2),
+                        revealHiddenText = true,
+                        enabledSlots = canJudge,
+                        onSlotClick = onCorrect
                     )
-                    SecondaryButton(
-                        text = "غلط ✕",
-                        onClick = onWrong,
-                        enabled = canJudge,
-                        accent = FeudColors.strike,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .width(200.dp)
-                    )
-                    // زاوية تحت: بدّل السؤال قبل ما تبلّش الجولة، وبنفس
-                    // المكان زر الجولة الجاية بعد ما تخلص.
-                    if (state.canChangeQuestion()) {
-                        if (state.faceOffFailed) {
-                            // الاتنين غلطوا: السؤال محروق، فالزر بيصير أساسي.
+
+                    Spacer(Modifier.height(8.dp))
+                    TurnChip(state = state, modifier = Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        SecondaryButton(
+                            text = "غلط ✕",
+                            onClick = onWrong,
+                            enabled = canJudge,
+                            accent = FeudColors.strike,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (state.canChangeQuestion()) {
+                            if (state.faceOffFailed) {
+                                PrimaryButton(
+                                    text = "بدّل السؤال",
+                                    onClick = onChangeQuestion,
+                                    color = FeudColors.gold,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            } else {
+                                SecondaryButton(
+                                    text = "بدّل السؤال",
+                                    onClick = onChangeQuestion,
+                                    accent = FeudColors.teal,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                        if (state.phase == RoundPhase.ROUND_END) {
                             PrimaryButton(
-                                text = "الاتنين غلطوا — بدّل السؤال",
-                                onClick = onChangeQuestion,
-                                color = FeudColors.gold,
-                                modifier = Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .width(300.dp)
-                            )
-                        } else {
-                            SecondaryButton(
-                                text = "بدّل السؤال",
-                                onClick = onChangeQuestion,
-                                accent = FeudColors.teal,
-                                modifier = Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .width(200.dp)
+                                text = if (revealedAll) state.nextButtonLabel() else "اكشف الباقي",
+                                onClick = onNextRound,
+                                enabled = revealedAll,
+                                modifier = Modifier.weight(1.2f)
                             )
                         }
                     }
-                    if (state.phase == RoundPhase.ROUND_END) {
-                        PrimaryButton(
-                            text = if (revealedAll) state.nextButtonLabel() else "اكشف الباقي",
-                            onClick = onNextRound,
-                            enabled = revealedAll,
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .width(240.dp)
+                } else {
+                    // أفقي: الوقت والأخطاء عاليمين، السؤال بالنص، والتصنيف عالشمال.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.width(SIDE_SLOT),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            if (seconds > 0) {
+                                Countdown(seconds = seconds, size = 44.dp)
+                            } else {
+                                Spacer(Modifier.width(44.dp))
+                            }
+                            StrikeRow(
+                                strikes = state.strikes,
+                                total = state.strikesToSteal,
+                                size = 30.dp
+                            )
+                        }
+
+                        // بطاقة السؤال جوّا Box: هي بتستعمل AnimatedVisibility
+                        // اللي بتاكل الـ weight وبتاخد كل العرض إذا حطيناه عليها.
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            QuestionCard(
+                                round = state.currentQuestionIndex + 1,
+                                totalRounds = state.questions.size,
+                                category = state.currentQuestion?.category,
+                                question = state.currentQuestion?.text ?: "—",
+                                modifier = Modifier.widthIn(max = 560.dp)
+                            )
+                        }
+
+                        // التصنيف والجولة عالشمال — بلوكين جنب بعض بنفس القياس.
+                        CategoryRoundBlocks(
+                            category = state.currentQuestion?.category,
+                            round = state.currentQuestionIndex + 1,
+                            totalRounds = state.questions.size,
+                            modifier = Modifier.width(SIDE_SLOT)
                         )
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    AnswerBoardGrid(
+                        answers = state.currentQuestion?.answers.orEmpty(),
+                        modifier = Modifier.weight(1f),
+                        revealHiddenText = true,
+                        enabledSlots = canJudge,
+                        onSlotClick = onCorrect
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    // تحت: زر الغلط بالنص، والدور عالجنب، وتبديل السؤال أو
+                    // الجولة الجاية عالطرف التاني.
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        TurnChip(
+                            state = state,
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .width(300.dp)
+                        )
+                        SecondaryButton(
+                            text = "غلط ✕",
+                            onClick = onWrong,
+                            enabled = canJudge,
+                            accent = FeudColors.strike,
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .width(200.dp)
+                        )
+                        if (state.canChangeQuestion()) {
+                            if (state.faceOffFailed) {
+                                // الاتنين غلطوا: السؤال محروق، فالزر بيصير أساسي.
+                                PrimaryButton(
+                                    text = "الاتنين غلطوا — بدّل السؤال",
+                                    onClick = onChangeQuestion,
+                                    color = FeudColors.gold,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .width(300.dp)
+                                )
+                            } else {
+                                SecondaryButton(
+                                    text = "بدّل السؤال",
+                                    onClick = onChangeQuestion,
+                                    accent = FeudColors.teal,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .width(200.dp)
+                                )
+                            }
+                        }
+                        if (state.phase == RoundPhase.ROUND_END) {
+                            PrimaryButton(
+                                text = if (revealedAll) state.nextButtonLabel() else "اكشف الباقي",
+                                onClick = onNextRound,
+                                enabled = revealedAll,
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .width(240.dp)
+                            )
+                        }
                     }
                 }
             }

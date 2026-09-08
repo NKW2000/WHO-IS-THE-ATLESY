@@ -1,5 +1,7 @@
 package com.feudparty.app.ui
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -80,7 +82,9 @@ fun HostSettingsScreen(
         }
     }
 
-    StageBackground(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp)) {
+    val portrait = isPortrait()
+
+    StageBackground(contentPadding = stagePadding()) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -92,25 +96,66 @@ fun HostSettingsScreen(
                     color = FeudColors.gold,
                     style = MaterialTheme.typography.headlineSmall
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    SecondaryButton(
-                        text = "رجوع",
-                        onClick = onBack,
-                        accent = FeudColors.teal,
-                        modifier = Modifier.width(150.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    PrimaryButton(
-                        text = "كمّل للوبي",
-                        onClick = onContinue,
-                        color = FeudColors.lime,
-                        modifier = Modifier.width(190.dp)
-                    )
+                if (!portrait) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        SecondaryButton(
+                            text = "رجوع",
+                            onClick = onBack,
+                            accent = FeudColors.teal,
+                            modifier = Modifier.width(150.dp)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        PrimaryButton(
+                            text = "كمّل للوبي",
+                            onClick = onContinue,
+                            color = FeudColors.lime,
+                            modifier = Modifier.width(190.dp)
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(8.dp))
             GoldDivider(Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp))
+
+            if (portrait) {
+                // طولي: كرت ورا كرت بتمرير، والأزرار ملزوقة تحت.
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    RoomSection(settings) { renamingRoom = true }
+                    TeamsSection(settings) { renaming = it }
+                    RoundsSection(settings = settings, onChange = onSettingsChange)
+                    FilterSection(
+                        settings = settings,
+                        categories = categories,
+                        bounds = answerBounds,
+                        matching = matchingQuestions,
+                        onChange = onSettingsChange
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    SecondaryButton(
+                        text = "رجوع",
+                        onClick = onBack,
+                        accent = FeudColors.teal,
+                        modifier = Modifier.weight(1f)
+                    )
+                    PrimaryButton(
+                        text = "كمّل للوبي",
+                        onClick = onContinue,
+                        color = FeudColors.lime,
+                        modifier = Modifier.weight(1.4f)
+                    )
+                }
+            } else {
 
             // تلات أعمدة متساوية، وكل عمود بطاقاته بتملا نفس الارتفاع —
             // فبتضل الرؤوس والحواف على خط واحد وما في تمرير.
@@ -152,6 +197,7 @@ fun HostSettingsScreen(
                         modifier = Modifier.fillMaxHeight()
                     )
                 }
+            }
             }
         }
     }

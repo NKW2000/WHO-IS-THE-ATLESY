@@ -73,8 +73,9 @@ fun ScoreboardScreen(
         else -> TeamId.TEAM_2
     }
 
+    val short = shortSide()
+
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val h = maxHeight
         val w = maxWidth
         SpinningRays(modifier = Modifier.fillMaxSize())
 
@@ -112,26 +113,56 @@ fun ScoreboardScreen(
 
             Spacer(Modifier.height(10.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                TeamId.entries.forEachIndexed { index, teamId ->
-                    TeamPanel(
-                        name = state.teams[teamId]?.name.orEmpty(),
-                        score = scores.getValue(teamId),
-                        shown = (scores.getValue(teamId) * counted).toInt(),
-                        share = (scores.getValue(teamId).toFloat() / top) * counted,
-                        crowned = leader == teamId,
-                        teamId = teamId,
-                        t = t,
-                        delay = if (index == 0) 0.2f else 0.32f,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
+            if (isPortrait()) {
+                // طولي: لوح فوق لوح، كل واحد سطر واحد بالاسم والرقم.
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(
+                        14.dp,
+                        Alignment.CenterVertically
                     )
+                ) {
+                    TeamId.entries.forEachIndexed { index, teamId ->
+                        TeamPanel(
+                            name = state.teams[teamId]?.name.orEmpty(),
+                            score = scores.getValue(teamId),
+                            shown = (scores.getValue(teamId) * counted).toInt(),
+                            share = (scores.getValue(teamId).toFloat() / top) * counted,
+                            crowned = leader == teamId,
+                            teamId = teamId,
+                            t = t,
+                            delay = if (index == 0) 0.2f else 0.32f,
+                            wide = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp)
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    TeamId.entries.forEachIndexed { index, teamId ->
+                        TeamPanel(
+                            name = state.teams[teamId]?.name.orEmpty(),
+                            score = scores.getValue(teamId),
+                            shown = (scores.getValue(teamId) * counted).toInt(),
+                            share = (scores.getValue(teamId).toFloat() / top) * counted,
+                            crowned = leader == teamId,
+                            teamId = teamId,
+                            t = t,
+                            delay = if (index == 0) 0.2f else 0.32f,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        )
+                    }
                 }
             }
 
@@ -144,7 +175,7 @@ fun ScoreboardScreen(
                     else -> "${state.teams[leader]?.name.orEmpty()} بالمقدمة"
                 },
                 width = w,
-                height = h * 0.14f,
+                height = (short * 0.14f).coerceIn(48.dp, 74.dp),
                 offsetFraction = wipe(t, BANNER_AT)
             )
 
@@ -178,7 +209,9 @@ private fun TeamPanel(
     teamId: TeamId,
     t: Float,
     delay: Float,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // بالطولي اللوح بيصير عريض: الاسم والرقم بسطر واحد.
+    wide: Boolean = false
 ) {
     val density = LocalDensity.current
     BoxWithConstraints(
@@ -190,7 +223,8 @@ private fun TeamPanel(
             .clip(RoundedCornerShape(18.dp))
             .background(teamId.color())
     ) {
-        val panelHeight = maxHeight
+        // الرقم بياخد قياسه من أصغر بُعد باللوح — حتى ما ينفجر بالطولي.
+        val basis = minOf(maxHeight, maxWidth)
 
         if (crowned) {
             // تاج المتقدّم: شريط ذهبي بينط فوق اللوح.
@@ -204,34 +238,63 @@ private fun TeamPanel(
             )
         }
 
+        val scoreColor =
+            if (teamId == TeamId.TEAM_1) teamId.inkColor() else FeudColors.cream
+        val scoreSize = if (wide) basis * 0.42f else basis * 0.34f
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                name,
-                color = teamId.inkColor(),
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                shown.coerceAtMost(score).ar(),
-                color = if (teamId == TeamId.TEAM_1) teamId.inkColor() else FeudColors.cream,
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = with(density) { (panelHeight * 0.34f).toSp() },
-                    lineHeight = with(density) { (panelHeight * 0.36f).toSp() }
-                ),
-                maxLines = 1
-            )
-            Spacer(Modifier.height(8.dp))
+            if (wide) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        name,
+                        color = teamId.inkColor(),
+                        style = MaterialTheme.typography.titleLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        shown.coerceAtMost(score).ar(),
+                        color = scoreColor,
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = with(density) { scoreSize.toSp() },
+                            lineHeight = with(density) { (scoreSize * 1.06f).toSp() }
+                        ),
+                        maxLines = 1
+                    )
+                }
+            } else {
+                Text(
+                    name,
+                    color = teamId.inkColor(),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    shown.coerceAtMost(score).ar(),
+                    color = scoreColor,
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = with(density) { scoreSize.toSp() },
+                        lineHeight = with(density) { (scoreSize * 1.06f).toSp() }
+                    ),
+                    maxLines = 1
+                )
+            }
+            Spacer(Modifier.height(10.dp))
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.64f)
+                    .fillMaxWidth(if (wide) 1f else 0.64f)
                     .height(14.dp)
                     .clip(RoundedCornerShape(999.dp))
                     .background(FeudColors.ink.copy(alpha = 0.28f))

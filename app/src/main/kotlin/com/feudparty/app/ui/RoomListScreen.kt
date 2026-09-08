@@ -60,7 +60,7 @@ fun RoomListScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                BrandBadge(em = 40.dp)
+                if (!isPortrait()) BrandBadge(em = 40.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -72,7 +72,7 @@ fun RoomListScreen(
                         "أهلاً $playerName — اختار الغرفة اللي بدك تفوت فيها",
                         color = FeudColors.textMuted,
                         style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -87,7 +87,7 @@ fun RoomListScreen(
                     text = "رجوع",
                     onClick = onBack,
                     accent = FeudColors.teal,
-                    modifier = Modifier.width(140.dp)
+                    modifier = Modifier.width(if (isPortrait()) 104.dp else 140.dp)
                 )
             }
 
@@ -100,7 +100,7 @@ fun RoomListScreen(
             } else {
                 // عمودين — أكتر غرف بتبان بدون تمرير.
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
+                    columns = GridCells.Fixed(if (isPortrait()) 1 else 2),
                     modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)

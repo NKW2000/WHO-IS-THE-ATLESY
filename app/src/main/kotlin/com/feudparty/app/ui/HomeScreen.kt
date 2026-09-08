@@ -6,9 +6,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -55,76 +59,125 @@ fun HomeScreen(
         label = "tilt"
     )
 
+    val portrait = isPortrait()
+
     StageBackgroundHost {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // لوح العلامة.
-            CartoonSurface(
+        if (portrait) {
+            // طولي: العلامة فوق، والأزرار تحتها بمتناول الإصبع.
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .rotate(tilt * 0.35f),
-                color = FeudColors.canvas,
-                borderWidth = 5.dp,
-                corner = 26.dp,
-                shadow = 9.dp
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)
             ) {
+                BrandPlate(
+                    tilt = tilt,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(shortSide() * 0.82f)
+                )
+                HomeActions(
+                    onHostClick = onHostClick,
+                    onJoinClick = onJoinClick,
+                    onSettingsClick = onSettingsClick,
+                    itemModifier = Modifier.height(104.dp)
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BrandPlate(
+                    tilt = tilt,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+
+                Spacer(Modifier.width(18.dp))
+
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .width(320.dp)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    BrandLogo(em = 38.dp)
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        "لعبة عائلية · فريقين · جهاز لكل لاعب",
-                        color = FeudColors.textMuted,
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                    HomeActions(
+                        onHostClick = onHostClick,
+                        onJoinClick = onJoinClick,
+                        onSettingsClick = onSettingsClick,
+                        itemModifier = Modifier.weight(1f)
                     )
                 }
             }
-
-            Spacer(Modifier.width(18.dp))
-
-            Column(
-                modifier = Modifier
-                    .width(320.dp)
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                HomeAction(
-                    title = "استضافة لعبة",
-                    subtitle = "افتح غرفة وخلّي اللاعبين يفوتوا",
-                    color = FeudColors.lime,
-                    ink = FeudColors.ink,
-                    modifier = Modifier.weight(1f),
-                    onClick = onHostClick
-                )
-                HomeAction(
-                    title = "انضمام كلاعب",
-                    subtitle = "اكتب اسمك واختار غرفة",
-                    color = FeudColors.teal,
-                    ink = FeudColors.ink,
-                    modifier = Modifier.weight(1f),
-                    onClick = onJoinClick
-                )
-                HomeAction(
-                    title = "الإعدادات",
-                    subtitle = "استورد بنك أسئلتك",
-                    color = FeudColors.gold,
-                    ink = FeudColors.ink,
-                    modifier = Modifier.weight(1f),
-                    onClick = onSettingsClick
-                )
-            }
         }
     }
+}
+
+/** لوح العلامة — نفس الكرت بالوضعين، بس ارتفاعه بيتغيّر. */
+@Composable
+private fun BrandPlate(tilt: Float, modifier: Modifier = Modifier) {
+    CartoonSurface(
+        modifier = modifier.rotate(tilt * 0.35f),
+        color = FeudColors.canvas,
+        borderWidth = 5.dp,
+        corner = 26.dp,
+        shadow = 9.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            BrandLogo(em = 38.dp)
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "لعبة عائلية · فريقين · جهاز لكل لاعب",
+                color = FeudColors.textMuted,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+/** الأزرار التلاتة — نفس الترتيب بالوضعين. */
+@Composable
+private fun ColumnScope.HomeActions(
+    onHostClick: () -> Unit,
+    onJoinClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    itemModifier: Modifier
+) {
+    HomeAction(
+        title = "استضافة لعبة",
+        subtitle = "افتح غرفة وخلّي اللاعبين يفوتوا",
+        color = FeudColors.lime,
+        ink = FeudColors.ink,
+        modifier = itemModifier,
+        onClick = onHostClick
+    )
+    HomeAction(
+        title = "انضمام كلاعب",
+        subtitle = "اكتب اسمك واختار غرفة",
+        color = FeudColors.teal,
+        ink = FeudColors.ink,
+        modifier = itemModifier,
+        onClick = onJoinClick
+    )
+    HomeAction(
+        title = "الإعدادات",
+        subtitle = "استورد بنك أسئلتك",
+        color = FeudColors.gold,
+        ink = FeudColors.ink,
+        modifier = itemModifier,
+        onClick = onSettingsClick
+    )
 }
 
 /** زر رئيسي بعنوان وسطر شرح — بياخد ارتفاعه من العمود. */

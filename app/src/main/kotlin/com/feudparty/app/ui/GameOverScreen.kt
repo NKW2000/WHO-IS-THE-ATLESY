@@ -60,7 +60,7 @@ fun GameOverScreen(
     val winnerName = winner?.let { state.teams[it]?.name }
 
     Box {
-        StageBackground(contentPadding = PaddingValues(horizontal = 30.dp, vertical = 18.dp)) {
+        StageBackground(contentPadding = stagePadding()) {
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -78,22 +78,27 @@ fun GameOverScreen(
 
                 Spacer(Modifier.height(18.dp))
 
+                val portrait = isPortrait()
                 Row(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(18.dp)
+                    horizontalArrangement = Arrangement.spacedBy(if (portrait) 10.dp else 18.dp)
                 ) {
                     Podium(
                         name = one?.name ?: "فريق ١",
                         score = one?.score ?: 0,
                         teamId = TeamId.TEAM_1,
-                        height = if (winner == TeamId.TEAM_1) 190.dp else 150.dp
+                        height = if (winner == TeamId.TEAM_1) 190.dp else 150.dp,
+                        modifier = if (portrait) Modifier.weight(1f) else Modifier.width(230.dp)
                     )
                     Podium(
                         name = two?.name ?: "فريق ٢",
                         score = two?.score ?: 0,
                         teamId = TeamId.TEAM_2,
-                        height = if (winner == TeamId.TEAM_2) 190.dp else 150.dp
+                        height = if (winner == TeamId.TEAM_2) 190.dp else 150.dp,
+                        modifier = if (portrait) Modifier.weight(1f) else Modifier.width(230.dp)
                     )
                 }
 
@@ -130,9 +135,15 @@ fun GameOverScreen(
 }
 
 @Composable
-private fun Podium(name: String, score: Int, teamId: TeamId, height: Dp) {
+private fun Podium(
+    name: String,
+    score: Int,
+    teamId: TeamId,
+    height: Dp,
+    modifier: Modifier = Modifier
+) {
     CartoonSurface(
-        modifier = Modifier.width(230.dp),
+        modifier = modifier,
         color = teamId.color(),
         corner = 20.dp,
         shadow = 8.dp

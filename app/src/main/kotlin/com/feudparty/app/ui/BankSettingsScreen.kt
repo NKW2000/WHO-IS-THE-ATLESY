@@ -3,6 +3,8 @@ package com.feudparty.app.ui
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -53,7 +55,7 @@ fun BankSettingsScreen(
         }
     }
 
-    StageBackground(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp)) {
+    StageBackground(contentPadding = stagePadding()) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -76,7 +78,11 @@ fun BankSettingsScreen(
             GoldDivider(Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp))
 
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
                 SettingsCard(title = "بنك الأسئلة") {
                     Text(
                         settings.bankName?.let {

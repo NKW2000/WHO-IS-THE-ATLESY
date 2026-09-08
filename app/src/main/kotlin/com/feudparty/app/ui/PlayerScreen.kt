@@ -321,7 +321,8 @@ private fun PlayOrPassScreen(
     ) {
         val width = maxWidth
         val bandHeight = (maxHeight - TRACK_HEIGHT) / 2
-        val labelSize = bandHeight * 0.3f
+        // بالطولي الشريط بيصير عالي كتير — منحدّ الخط بعرض الشاشة.
+        val labelSize = minOf(bandHeight * 0.3f, maxWidth * 0.2f)
 
         val slide = tween<Dp>(durationMillis = DOOR_MILLIS, easing = DoorEasing)
         val slideLate = tween<Dp>(
@@ -603,17 +604,21 @@ private fun PlayerBoard(
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // فوق: التصنيف والجولة بالزاوية الشمال، الأخطاء بالنص،
-            // والوقت بالزاوية اليمين.
-            Box(modifier = Modifier.fillMaxWidth()) {
+            // فوق سطر واحد بيتقاسم: التصنيف والجولة عالشمال، الأخطاء
+            // بالنص، والوقت عاليمين — بدون ما يركبوا على بعض.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 state?.currentQuestion?.let { question ->
                     CategoryRoundBlocks(
                         category = question.category,
                         round = state.currentQuestionIndex + 1,
                         totalRounds = state.questions.size,
                         modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .width(200.dp)
+                            .weight(1f)
+                            .widthIn(max = 200.dp)
                     )
                 }
                 if (state != null &&
@@ -622,17 +627,12 @@ private fun PlayerBoard(
                     StrikeRow(
                         strikes = state.strikes,
                         total = state.strikesToSteal,
-                        size = 30.dp,
-                        modifier = Modifier.align(Alignment.Center)
+                        size = 26.dp
                     )
                 }
                 val seconds = state?.let { maxOf(it.answerSecondsLeft, it.choiceSecondsLeft) } ?: 0
                 if (seconds > 0) {
-                    Countdown(
-                        seconds = seconds,
-                        size = 40.dp,
-                        modifier = Modifier.align(Alignment.CenterStart)
-                    )
+                    Countdown(seconds = seconds, size = 40.dp)
                 }
             }
 
@@ -657,6 +657,13 @@ private fun PlayerBoard(
                     modifier = Modifier
                         .weight(1f)
                         .padding(vertical = 6.dp),
+                    // شاشة الموبايل ضيّقة: عمودين وبدون خانات فاضية زيادة.
+                    columns = if (isPortrait()) 2 else 3,
+                    slots = if (isPortrait()) {
+                        maxOf(question.answers.size + question.answers.size % 2, 2)
+                    } else {
+                        9
+                    },
                     revealHiddenText = false,
                     showHiddenPoints = false
                 )

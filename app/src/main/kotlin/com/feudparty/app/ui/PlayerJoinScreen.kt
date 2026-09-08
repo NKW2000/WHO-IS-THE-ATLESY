@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.NameKeypad
 import com.feudparty.app.ui.components.StageBackground
@@ -39,7 +41,7 @@ fun PlayerJoinScreen(onJoinConfirmed: (String) -> Unit) {
     var name by remember { mutableStateOf("") }
     val ready = name.isNotBlank()
 
-    StageBackground(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp)) {
+    StageBackground(contentPadding = stagePadding()) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -84,7 +86,10 @@ fun PlayerJoinScreen(onJoinConfirmed: (String) -> Unit) {
             Spacer(Modifier.height(10.dp))
 
             NameKeypad(
-                modifier = Modifier.weight(1f),
+                // بالطولي الكيبورد بياخد نصف الشاشة تحت — مش كل الفراغ.
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(max = if (isPortrait()) 460.dp else Dp.Unspecified),
                 onKey = { key -> if (name.length < 14) name += key },
                 onBackspace = { name = name.dropLast(1) },
                 onDone = { if (ready) onJoinConfirmed(name.trim()) },
