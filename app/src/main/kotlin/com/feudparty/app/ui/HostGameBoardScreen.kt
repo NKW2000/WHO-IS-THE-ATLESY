@@ -155,14 +155,26 @@ fun HostGameBoardScreen(
                     // زاوية تحت: بدّل السؤال قبل ما تبلّش الجولة، وبنفس
                     // المكان زر الجولة الجاية بعد ما تخلص.
                     if (state.canChangeQuestion()) {
-                        SecondaryButton(
-                            text = "بدّل السؤال",
-                            onClick = onChangeQuestion,
-                            accent = FeudColors.teal,
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .width(200.dp)
-                        )
+                        if (state.faceOffFailed) {
+                            // الاتنين غلطوا: السؤال محروق، فالزر بيصير أساسي.
+                            PrimaryButton(
+                                text = "الاتنين غلطوا — بدّل السؤال",
+                                onClick = onChangeQuestion,
+                                color = FeudColors.gold,
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .width(300.dp)
+                            )
+                        } else {
+                            SecondaryButton(
+                                text = "بدّل السؤال",
+                                onClick = onChangeQuestion,
+                                accent = FeudColors.teal,
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .width(200.dp)
+                            )
+                        }
                     }
                     if (state.phase == RoundPhase.ROUND_END) {
                         PrimaryButton(

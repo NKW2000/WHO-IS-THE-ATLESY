@@ -1,6 +1,7 @@
 package com.feudparty.app.ui
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.CubicBezierEasing
@@ -388,12 +389,16 @@ private fun PlayOrPassScreen(
             }
         )
 
-        // شريط الوقت ملزوق بالأحمر: بيدخل معه، وبعدين بينسحب الذهبي كل ثانية.
-        val progress by animateFloatAsState(
-            targetValue = (state.choiceSecondsLeft.toFloat() / total).coerceIn(0f, 1f),
-            animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
-            label = "choiceBar"
-        )
+        // شريط الوقت ملزوق بالأحمر: بينزل ناعم بدون وقفات — كل ما توصل
+        // ثانية جديدة منكمّل النزول للثانية اللي بعدها بنفس السرعة.
+        val progress = remember { Animatable(1f) }
+        LaunchedEffect(state.choiceSecondsLeft, total) {
+            val now = (state.choiceSecondsLeft.toFloat() / total).coerceIn(0f, 1f)
+            // رجع الوقت لفوق؟ يعني عدّاد جديد — منقفز بدل ما نطلع ببطء.
+            if (now > progress.value + 0.02f) progress.snapTo(now)
+            val next = ((state.choiceSecondsLeft - 1).coerceAtLeast(0)).toFloat() / total
+            progress.animateTo(next, tween(durationMillis = 1000, easing = LinearEasing))
+        }
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -402,9 +407,11 @@ private fun PlayOrPassScreen(
                 .height(TRACK_HEIGHT)
                 .background(PassPlayBase)
         ) {
+            // بينفضى من اليمين للشمال: الباقي ملزوق بالطرف الشمالي.
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(progress)
+                    .align(Alignment.CenterEnd)
+                    .fillMaxWidth(progress.value)
                     .fillMaxHeight()
                     .background(TimerColor)
             )

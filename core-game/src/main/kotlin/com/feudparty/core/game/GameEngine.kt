@@ -101,6 +101,7 @@ class GameEngine(initialState: GameState) {
             faceOffLeader = null,
             faceOffLeaderPoints = 0,
             controllingTeam = null,
+            faceOffFailed = false,
             strikes = 0,
             pot = 0,
             wrongPlayers = emptySet(),
@@ -203,11 +204,13 @@ class GameEngine(initialState: GameState) {
         return when (state.phase) {
             RoundPhase.FACE_OFF -> {
                 val team = state.faceOffTeam ?: return state
+                // الخصم بيبلّش من نفس الوقت الكامل — مش من الباقي.
                 state.markWrong(answering).copy(
                     phase = RoundPhase.FACE_OFF_SECOND,
                     buzzState = BuzzState.CLOSED,
                     faceOffTeam = team.other(),
                     buzzedPlayerId = null,
+                    faceOffFailed = false,
                     answerSecondsLeft = state.answerLimitSeconds
                 )
             }
@@ -227,7 +230,10 @@ class GameEngine(initialState: GameState) {
                         faceOffTeam = null,
                         buzzedPlayerId = null,
                         answerSecondsLeft = 0,
-                        wrongPlayers = emptySet()
+                        wrongPlayers = emptySet(),
+                        // الدور بينتقل للرقم اللي بعده، والمضيف بيبدّل السؤال.
+                        faceOffSeat = marked.nextSeat(),
+                        faceOffFailed = true
                     )
                 }
             }
@@ -314,6 +320,7 @@ class GameEngine(initialState: GameState) {
             correctPlayers = emptySet(),
             roundWinner = null,
             faceOffWinner = null,
+            faceOffFailed = false,
             faceOffSeat = state.nextSeat()
         )
     }
@@ -408,12 +415,16 @@ private fun GameState.markCorrect(playerId: String?): GameState =
     if (playerId == null) this
     else copy(correctPlayers = correctPlayers + playerId, wrongPlayers = wrongPlayers - playerId)
 
-private fun GameState.markWrong(playerId: String?): GameState =
-    if (playerId == null) this
-    else copy(wrongPlayers = wrongPlayers + playerId, correctPlayers = correctPlayers - playerId)
+private fun GameState.markWrong(playerId: String?): GameState = copy(
+    // العدّاد بيزيد دايماً — حتى لو ما عرفنا مين اللاعب — حتى يشتغل الصوت.
+    wrongTicks = wrongTicks + 1,
+    wrongPlayers = if (playerId == null) wrongPlayers else wrongPlayers + playerId,
+    correctPlayers = if (playerId == null) correctPlayers else correctPlayers - playerId
+)
 
 /** الفائز بالمواجهة بيستنى قرار: يلعب أو يمرّر — بالوقت اللي حطّه المضيف. */
 private fun GameState.offerChoice(winner: TeamId): GameState = copy(
+    faceOffFailed = false,
     phase = RoundPhase.PLAY_OR_PASS,
     faceOffWinner = winner,
     faceOffTeam = null,

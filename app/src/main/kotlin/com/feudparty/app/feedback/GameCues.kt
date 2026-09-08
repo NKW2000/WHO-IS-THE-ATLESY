@@ -20,9 +20,10 @@ fun GameStateCues(state: GameState?) {
     val feedback = LocalGameFeedback.current ?: return
     var lastRevealed by remember { mutableIntStateOf(state.revealedCount()) }
     var lastStrikes by remember { mutableIntStateOf(state?.strikes ?: 0) }
+    var lastWrong by remember { mutableIntStateOf(state?.wrongTicks ?: 0) }
     var lastAward by remember { mutableStateOf(state?.lastAward) }
 
-    LaunchedEffect(state?.revealedCount(), state?.strikes, state?.lastAward) {
+    LaunchedEffect(state?.revealedCount(), state?.strikes, state?.wrongTicks, state?.lastAward) {
         if (state == null) return@LaunchedEffect
 
         val revealed = state.revealedCount()
@@ -32,11 +33,14 @@ fun GameStateCues(state: GameState?) {
             // نهاية الجولة بتكشف اللوح كله، فبنعلن الفوز مش كل خانة.
             award != null && award != lastAward -> feedback.play(Cue.WIN)
             state.strikes > lastStrikes -> feedback.playStrike(state.strikes)
+            // غلط بالمواجهة ما بياخد X، بس لازم ينسمع.
+            state.wrongTicks > lastWrong -> feedback.play(Cue.WRONG)
             revealed > lastRevealed -> feedback.play(Cue.REVEAL)
         }
 
         lastRevealed = revealed
         lastStrikes = state.strikes
+        lastWrong = state.wrongTicks
         lastAward = award
     }
 }

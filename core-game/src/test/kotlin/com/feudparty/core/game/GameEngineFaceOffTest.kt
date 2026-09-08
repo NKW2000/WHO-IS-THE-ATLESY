@@ -90,6 +90,52 @@ class GameEngineFaceOffTest {
     }
 
     @Test
+    fun `wrong first answer hands the other team a full clock`() {
+        val engine = GameEngine(freshState())
+        engine.buzzPodium(TeamId.TEAM_1)
+        engine.apply(GameEvent.Tick)
+        engine.apply(GameEvent.Tick)
+        val result = engine.wrong()
+
+        assertEquals(result.answerLimitSeconds, result.answerSecondsLeft)
+    }
+
+    @Test
+    fun `every wrong answer bumps the counter that drives the sound`() {
+        val engine = GameEngine(freshState())
+        engine.buzzPodium(TeamId.TEAM_1)
+        val first = engine.wrong()
+        val second = engine.wrong()
+
+        assertEquals(1, first.wrongTicks)
+        assertEquals(2, second.wrongTicks)
+    }
+
+    @Test
+    fun `both wrong moves the podium on and asks the host for a new question`() {
+        val engine = GameEngine(freshState())
+        val seat = engine.state.faceOffSeat
+        engine.buzzPodium(TeamId.TEAM_1)
+        engine.wrong()
+        val result = engine.wrong()
+
+        assertEquals(seat + 1, result.faceOffSeat)
+        assertTrue(result.faceOffFailed)
+    }
+
+    @Test
+    fun `a replaced question clears the failed face-off flag`() {
+        val engine = GameEngine(freshState())
+        engine.buzzPodium(TeamId.TEAM_1)
+        engine.wrong()
+        engine.wrong()
+        val result = engine.apply(GameEvent.ReplaceQuestion(board("q9")))
+
+        assertEquals(false, result.faceOffFailed)
+        assertEquals(RoundPhase.FACE_OFF, result.phase)
+    }
+
+    @Test
     fun `second team correct after first was wrong takes control`() {
         val engine = GameEngine(freshState())
         engine.buzzPodium(TeamId.TEAM_1)

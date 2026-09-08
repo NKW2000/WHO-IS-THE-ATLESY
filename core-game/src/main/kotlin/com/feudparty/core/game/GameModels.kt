@@ -128,6 +128,10 @@ data class GameState(
     val turnIndex: Map<TeamId, Int> = emptyMap(),
     /** لاعبين جاوبوا غلط — بيضلوا حمر لحد ما يرجع دورهم. */
     val wrongPlayers: Set<String> = emptySet(),
+    /** عدّاد كل جواب غلط بالجولة — منه بيجي صوت الغلط عند الكل. */
+    val wrongTicks: Int = 0,
+    /** الاتنين غلطوا بالمواجهة — المضيف لازم يبدّل السؤال. */
+    val faceOffFailed: Boolean = false,
     /** لاعبين جاوبوا صح — بيضلوا خضر لحد ما يرجع دورهم. */
     val correctPlayers: Set<String> = emptySet(),
     val roundWinner: TeamId? = null,
