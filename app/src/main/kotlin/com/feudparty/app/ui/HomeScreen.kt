@@ -42,6 +42,13 @@ import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
 
+/** قياس واحد لكل أزرار الرئيسية — نفس الارتفاع والحدّ والزوايا والظل. */
+private val CARD_HEIGHT = 104.dp
+private val CARD_GAP = 12.dp
+private val CARD_CORNER = 22.dp
+private val CARD_BORDER = 5.dp
+private val CARD_SHADOW = 7.dp
+
 /**
  * الشاشة الرئيسية: العلامة على لوح غامق زي كرت «شاشة البداية» بملف
  * التصميم، وجنبها تلات أزرار كبار — كل زر معه سطر بيقول شو بيصير لما
@@ -154,32 +161,36 @@ private fun PortraitHome(
                 )
             }
 
-            // زر الاستضافة الكبير.
+            // زر الاستضافة الكبير — نفس الحدّ والزوايا والظل تبع الزرّين
+            // اللي تحته، وارتفاعه ثابت حتى ما يتغيّر مع طول السطر.
             CartoonSurface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(CARD_HEIGHT),
                 color = FeudColors.lime,
-                borderWidth = 5.dp,
-                corner = 24.dp,
-                shadow = 8.dp,
+                borderWidth = CARD_BORDER,
+                corner = CARD_CORNER,
+                shadow = CARD_SHADOW,
                 onClick = onHostClick
             ) {
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 22.dp),
+                        .fillMaxSize()
+                        .padding(horizontal = 18.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             "استضافة لعبة",
                             color = FeudColors.ink,
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.titleLarge,
                             maxLines = 1
                         )
+                        Spacer(Modifier.height(4.dp))
                         Text(
                             "افتح غرفة وخلّي اللاعبين يفوتوا",
                             color = FeudColors.ink.copy(alpha = 0.72f),
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -199,24 +210,28 @@ private fun PortraitHome(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(CARD_GAP))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(CARD_GAP)
             ) {
                 SmallHomeCard(
                     title = "انضمام كلاعب",
                     subtitle = "اكتب اسمك واختار غرفة",
                     color = FeudColors.teal,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(CARD_HEIGHT),
                     onClick = onJoinClick
                 )
                 SmallHomeCard(
                     title = "الإعدادات",
                     subtitle = "استورد بنك أسئلتك",
                     color = FeudColors.gold,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(CARD_HEIGHT),
                     onClick = onSettingsClick
                 )
             }
@@ -224,7 +239,7 @@ private fun PortraitHome(
     }
 }
 
-/** كرت صغير بعنوان وسطر — الاتنين تحت زر الاستضافة. */
+/** كرت صغير بعنوان وسطر — الاتنين تحت زر الاستضافة، بنفس قياس الكبير. */
 @Composable
 private fun SmallHomeCard(
     title: String,
@@ -236,28 +251,31 @@ private fun SmallHomeCard(
     CartoonSurface(
         modifier = modifier,
         color = color,
-        borderWidth = 5.dp,
-        corner = 22.dp,
-        shadow = 7.dp,
+        borderWidth = CARD_BORDER,
+        corner = CARD_CORNER,
+        shadow = CARD_SHADOW,
         onClick = onClick
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+                .fillMaxSize()
+                .padding(horizontal = 14.dp),
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
                 title,
                 color = FeudColors.ink,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 subtitle,
                 color = FeudColors.ink.copy(alpha = 0.72f),
-                style = MaterialTheme.typography.labelMedium,
-                maxLines = 2
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -341,9 +359,9 @@ private fun HomeAction(
     CartoonSurface(
         modifier = modifier.fillMaxWidth(),
         color = color,
-        borderWidth = 4.dp,
-        corner = 18.dp,
-        shadow = 6.dp,
+        borderWidth = CARD_BORDER,
+        corner = CARD_CORNER,
+        shadow = CARD_SHADOW,
         onClick = onClick
     ) {
         Column(

@@ -145,6 +145,11 @@ data class GameState(
     val choiceLimitSeconds: Int = CHOICE_SECONDS,
     /** الوقت الباقي للجواب — صفر يعني ما في عدّاد شغّال. */
     val answerSecondsLeft: Int = 0,
+    /**
+     * اللاعب ضغط عالشاشة ليجاوب — العدّاد بيوقف لحد ما يحكم المضيف،
+     * حتى ما ينحسب عليه خطأ لأن المضيف ما لحق يدوس.
+     */
+    val clockPaused: Boolean = false,
     /** الوقت الباقي لقرار «نلعب أو نمرّر». */
     val choiceSecondsLeft: Int = 0,
     /** صارت اللعبة تمشي — قبلها اللاعب بيقدر يبدّل فريقه. */

@@ -35,7 +35,6 @@ import com.feudparty.core.game.TeamId
 fun QuestionCard(
     round: Int,
     totalRounds: Int,
-    category: String?,
     question: String,
     modifier: Modifier = Modifier
 ) {

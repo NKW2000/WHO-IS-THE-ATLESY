@@ -61,7 +61,7 @@ import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.AnswerBoardGrid
 import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.CartoonSurface
-import com.feudparty.app.ui.components.CategoryRoundBlocks
+import com.feudparty.app.ui.components.RoundBlock
 import com.feudparty.app.ui.components.Countdown
 import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.PrimaryButton
@@ -721,8 +721,7 @@ private fun PlayerBoard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     question?.let {
-                        CategoryRoundBlocks(
-                            category = it.category,
+                        RoundBlock(
                             round = (state?.currentQuestionIndex ?: 0) + 1,
                             totalRounds = state?.questions?.size ?: 1,
                             modifier = Modifier

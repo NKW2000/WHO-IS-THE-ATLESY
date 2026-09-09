@@ -34,7 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.AnswerBoardGrid
-import com.feudparty.app.ui.components.CategoryRoundBlocks
+import com.feudparty.app.ui.components.RoundBlock
 import com.feudparty.app.ui.components.Countdown
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.QuestionCard
@@ -137,15 +137,13 @@ fun HostGameBoardScreen(
                             QuestionCard(
                                 round = state.currentQuestionIndex + 1,
                                 totalRounds = state.questions.size,
-                                category = state.currentQuestion?.category,
                                 question = state.currentQuestion?.text ?: "—",
                                 modifier = Modifier.widthIn(max = 560.dp)
                             )
                         }
 
                         // التصنيف والجولة عالشمال — بلوكين جنب بعض بنفس القياس.
-                        CategoryRoundBlocks(
-                            category = state.currentQuestion?.category,
+                        RoundBlock(
                             round = state.currentQuestionIndex + 1,
                             totalRounds = state.questions.size,
                             modifier = Modifier.width(SIDE_SLOT)

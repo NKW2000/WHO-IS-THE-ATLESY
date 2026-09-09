@@ -46,6 +46,10 @@ class GameEngine(initialState: GameState) {
                 turnPlayerId = null
             )
         }
+        // أي حدث غير الضغطة والثانية بيرجّع العدّاد يمشي.
+        if (event !is GameEvent.Buzz && event != GameEvent.Tick) {
+            state = state.copy(clockPaused = false)
+        }
         return state
     }
 
@@ -62,20 +66,22 @@ class GameEngine(initialState: GameState) {
                     TeamId.TEAM_1 -> BuzzState.LOCKED_TEAM_1
                     TeamId.TEAM_2 -> BuzzState.LOCKED_TEAM_2
                 }
+                // الضغطة بتوقف العدّاد: اللاعب صار جاهز يجاوب والمضيف
+                // بيحكم على راحته.
                 state.copy(
                     buzzState = locked,
                     faceOffTeam = player.teamId,
                     buzzedPlayerId = player.id,
-                    answerSecondsLeft = state.answerLimitSeconds
+                    clockPaused = true
                 )
             }
 
-            // بمراحل اللعب الضغطة بتوضّح إنه اللاعب عم يجاوب هلق، وبترجّع
-            // عدّاد الجواب من الأول — الوقت بيبلّش لما يبلّش هو.
+            // بمراحل اللعب الضغطة بتوضّح إنه اللاعب عم يجاوب هلق وبتوقف
+            // العدّاد — الوقت ما بيكمّل وهو مستني حكم المضيف.
             RoundPhase.FACE_OFF_SECOND, RoundPhase.PLAY, RoundPhase.STEAL ->
                 state.copy(
                     buzzedPlayerId = player.id,
-                    answerSecondsLeft = state.answerLimitSeconds
+                    clockPaused = true
                 )
 
             else -> state
@@ -259,6 +265,9 @@ class GameEngine(initialState: GameState) {
      * لما يخلص بينحسب خطأ زي أي جواب غلط.
      */
     private fun handleTick(): GameState = when {
+        // لاعب ضاغط ومستني حكم — العدّاد واقف.
+        state.clockPaused -> state
+
         state.choiceSecondsLeft > 0 -> {
             val left = state.choiceSecondsLeft - 1
             if (left > 0) {

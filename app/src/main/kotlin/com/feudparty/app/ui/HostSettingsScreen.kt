@@ -10,8 +10,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -67,7 +65,6 @@ fun HostSettingsScreen(
     onSettingsChange: (GameSettings) -> Unit,
     onBack: () -> Unit,
     onContinue: () -> Unit,
-    categories: List<String> = emptyList(),
     answerBounds: IntRange = GameSettings.MIN_ANSWERS..GameSettings.MAX_ANSWERS,
     matchingQuestions: Int = 0
 ) {
@@ -75,41 +72,28 @@ fun HostSettingsScreen(
     var renamingRoom by remember { mutableStateOf(false) }
 
     // البنك بيحكم الفلتر: إذا تغيّر، منرجّع الأرقام والتصنيفات لحدوده.
-    LaunchedEffect(answerBounds, categories) {
+    LaunchedEffect(answerBounds) {
         val low = settings.minAnswers.coerceIn(answerBounds)
         val high = settings.maxAnswers.coerceIn(low, answerBounds.last)
-        val picked = settings.categories.filterTo(mutableSetOf()) { it in categories }
-        if (low != settings.minAnswers ||
-            high != settings.maxAnswers ||
-            picked != settings.categories
-        ) {
-            onSettingsChange(
-                settings.copy(minAnswers = low, maxAnswers = high, categories = picked)
-            )
+        if (low != settings.minAnswers || high != settings.maxAnswers) {
+            onSettingsChange(settings.copy(minAnswers = low, maxAnswers = high))
         }
     }
 
     val portrait = isPortrait()
 
     // البنك بيحكم الفلتر: إذا تغيّر، منرجّع الأرقام والتصنيفات لحدوده.
-    LaunchedEffect(answerBounds, categories) {
+    LaunchedEffect(answerBounds) {
         val low = settings.minAnswers.coerceIn(answerBounds)
         val high = settings.maxAnswers.coerceIn(low, answerBounds.last)
-        val picked = settings.categories.filterTo(mutableSetOf()) { it in categories }
-        if (low != settings.minAnswers ||
-            high != settings.maxAnswers ||
-            picked != settings.categories
-        ) {
-            onSettingsChange(
-                settings.copy(minAnswers = low, maxAnswers = high, categories = picked)
-            )
+        if (low != settings.minAnswers || high != settings.maxAnswers) {
+            onSettingsChange(settings.copy(minAnswers = low, maxAnswers = high))
         }
     }
 
     if (portrait) {
         PortraitHostSettings(
             settings = settings,
-            categories = categories,
             answerBounds = answerBounds,
             matchingQuestions = matchingQuestions,
             onSettingsChange = onSettingsChange,
@@ -182,8 +166,7 @@ fun HostSettingsScreen(
                 ) {
                     FilterSection(
                         settings = settings,
-                        categories = categories,
-                        bounds = answerBounds,
+                                    bounds = answerBounds,
                         matching = matchingQuestions,
                         onChange = onSettingsChange,
                         modifier = Modifier.fillMaxHeight()
@@ -228,11 +211,9 @@ fun HostSettingsScreen(
  * الرجوع والعنوان، جسم بيتمرّر بأقسام (الأسماء، الجولات، الوقت والأخطاء،
  * تصفية الأسئلة)، وشريط سفلي فيه «كمّل للوبي».
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PortraitHostSettings(
     settings: GameSettings,
-    categories: List<String>,
     answerBounds: IntRange,
     matchingQuestions: Int,
     onSettingsChange: (GameSettings) -> Unit,
@@ -416,31 +397,6 @@ private fun PortraitHostSettings(
                             FeudColors.cream
                         }
                     )
-                }
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CategoryChip(
-                        label = "الكل",
-                        selected = settings.categories.isEmpty(),
-                        onClick = { onSettingsChange(settings.copy(categories = emptySet())) }
-                    )
-                    categories.forEach { category ->
-                        val selected = category in settings.categories
-                        CategoryChip(
-                            label = category,
-                            selected = selected,
-                            onClick = {
-                                val next = if (selected) {
-                                    settings.categories - category
-                                } else {
-                                    settings.categories + category
-                                }
-                                onSettingsChange(settings.copy(categories = next))
-                            }
-                        )
-                    }
                 }
                 SettingRow(
                     label = "عدد الأجوبة",
@@ -801,55 +757,17 @@ private fun RoundsSection(
 }
 
 /**
- * تصفية الأسئلة: تصنيفات مختارة وعدد أجوبة معيّن. بدون تصنيفات مختارة
- * يعني البنك كله، والعدّاد بيقول كم سؤال بيطابق الفلتر.
+ * تصفية الأسئلة: عدد أجوبة معيّن، والعدّاد بيقول كم سؤال بيطابق الفلتر.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FilterSection(
     settings: GameSettings,
-    categories: List<String>,
     bounds: IntRange,
     matching: Int,
     onChange: (GameSettings) -> Unit,
     modifier: Modifier = Modifier
 ) {
     SettingsCard(title = "تصفية الأسئلة", modifier = modifier) {
-        if (categories.isEmpty()) {
-            Text(
-                "البنك ما فيه تصنيفات",
-                color = FeudColors.textMuted,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        } else {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                CategoryChip(
-                    label = "الكل",
-                    selected = settings.categories.isEmpty(),
-                    onClick = { onChange(settings.copy(categories = emptySet())) }
-                )
-                categories.forEach { category ->
-                    val selected = category in settings.categories
-                    CategoryChip(
-                        label = category,
-                        selected = selected,
-                        onClick = {
-                            val next = if (selected) {
-                                settings.categories - category
-                            } else {
-                                settings.categories + category
-                            }
-                            onChange(settings.copy(categories = next))
-                        }
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
         Stepper(
             label = "أقل عدد أجوبة",
             value = settings.minAnswers.coerceIn(bounds),
@@ -870,26 +788,6 @@ private fun FilterSection(
             text = "${matching.ar()} سؤال مطابق",
             color = if (matching >= settings.rounds) FeudColors.lime else FeudColors.pink,
             textColor = if (matching >= settings.rounds) FeudColors.ink else FeudColors.cream
-        )
-    }
-}
-
-/** شريحة تصنيف — بتضوي لما تنتخب. */
-@Composable
-private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    CartoonSurface(
-        color = if (selected) FeudColors.gold else FeudColors.stage,
-        borderWidth = 3.dp,
-        corner = 10.dp,
-        shadow = 3.dp,
-        onClick = onClick
-    ) {
-        Text(
-            label,
-            color = if (selected) FeudColors.ink else FeudColors.textMuted,
-            style = MaterialTheme.typography.labelLarge,
-            maxLines = 1,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
         )
     }
 }

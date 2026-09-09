@@ -18,8 +18,6 @@ data class GameSettings(
     val teamNames: Map<TeamId, String> = DEFAULT_TEAM_NAMES,
     /** اسم الغرفة اللي بيشوفه اللاعبين لما يدوّروا على لعبة. */
     val roomName: String = DEFAULT_ROOM_NAME,
-    /** تصنيفات مسموحة — فاضية يعني كل التصنيفات. */
-    val categories: Set<String> = emptySet(),
     /** أقل وأكثر عدد أجوبة بالسؤال — فلتر على البنك. */
     val minAnswers: Int = DEFAULT_MIN_ANSWERS,
     val maxAnswers: Int = MAX_ANSWERS,
@@ -41,7 +39,6 @@ data class GameSettings(
         answerSeconds = answerSeconds.coerceIn(MIN_ANSWER_SECONDS, MAX_ANSWER_SECONDS),
         choiceSeconds = choiceSeconds.coerceIn(MIN_CHOICE_SECONDS, MAX_CHOICE_SECONDS),
         roomName = roomName.trim().take(MAX_TEAM_NAME).ifBlank { DEFAULT_ROOM_NAME },
-        categories = categories.map { it.trim() }.filter { it.isNotBlank() }.toSet(),
         minAnswers = minAnswers.coerceIn(MIN_ANSWERS, MAX_ANSWERS),
         maxAnswers = maxAnswers.coerceIn(minAnswers.coerceIn(MIN_ANSWERS, MAX_ANSWERS), MAX_ANSWERS),
         teamNames = TeamId.entries.associateWith { id ->

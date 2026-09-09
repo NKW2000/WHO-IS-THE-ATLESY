@@ -17,12 +17,9 @@ import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.ar
 import com.feudparty.app.ui.theme.FeudColors
 
-/**
- * التصنيف والجولة — بلوكين جنب بعض بنفس القياس، عند المضيف وعند اللاعب.
- */
+/** بلوك الجولة — نفس الشكل عند المضيف وعند اللاعب. */
 @Composable
-fun CategoryRoundBlocks(
-    category: String?,
+fun RoundBlock(
     round: Int,
     totalRounds: Int,
     modifier: Modifier = Modifier
@@ -32,12 +29,6 @@ fun CategoryRoundBlocks(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        InfoBlock(
-            label = "التصنيف",
-            value = category?.takeIf { it.isNotBlank() } ?: "عام",
-            accent = FeudColors.gold,
-            modifier = Modifier.weight(1f)
-        )
         InfoBlock(
             label = "الجولة",
             value = "${round.ar()}/${totalRounds.ar()}",

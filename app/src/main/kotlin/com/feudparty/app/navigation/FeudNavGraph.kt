@@ -135,7 +135,6 @@ fun FeudNavGraph(navController: NavHostController = rememberNavController()) {
                     onSettingsChange = vm::update,
                     onBack = { navController.popBackStack() },
                     onContinue = { navController.navigate(Routes.HOST_SETUP) },
-                    categories = remember(settings.bankName) { vm.categories() },
                     answerBounds = remember(settings.bankName) { vm.answerBounds() },
                     matchingQuestions = vm.matchingCount(settings)
                 )

@@ -129,7 +129,6 @@ private fun demoScreens(
             onSettingsChange = onSettings,
             onBack = {},
             onContinue = {},
-            categories = listOf("عام", "أكل", "سفر", "بيت", "رياضة"),
             matchingQuestions = 32
         )
     },

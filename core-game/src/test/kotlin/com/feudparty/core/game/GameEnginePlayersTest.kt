@@ -260,20 +260,29 @@ class GameEnginePlayersTest {
     }
 
     @Test
-    fun `the opponent gets a full answer clock when they buzz`() {
+    fun `the opponent gets a full answer clock and the buzz freezes it`() {
         val engine = GameEngine(freshState())
         engine.buzzPodium(TeamId.TEAM_1)
         engine.wrong()
 
-        // بعد الغلط الدور انتقل للفريق التاني، وأول ما يضغط بيبلّش وقته من الأول.
+        // بعد الغلط الدور انتقل للفريق التاني بوقت كامل.
         val passed = engine.state
         assertEquals(RoundPhase.FACE_OFF_SECOND, passed.phase)
+        assertEquals(passed.answerLimitSeconds, passed.answerSecondsLeft)
         engine.apply(GameEvent.Tick)
         engine.apply(GameEvent.Tick)
         assertEquals(passed.answerLimitSeconds - 2, engine.state.answerSecondsLeft)
 
+        // أول ما يضغط ليجاوب بيوقف العدّاد لحد ما يحكم المضيف.
         engine.apply(GameEvent.Buzz("b1", 0L))
-        assertEquals(passed.answerLimitSeconds, engine.state.answerSecondsLeft)
+        assertEquals(true, engine.state.clockPaused)
+        engine.apply(GameEvent.Tick)
+        engine.apply(GameEvent.Tick)
+        assertEquals(passed.answerLimitSeconds - 2, engine.state.answerSecondsLeft)
+
+        // وبعد الحكم بيرجع يمشي.
+        engine.wrong()
+        assertEquals(false, engine.state.clockPaused)
     }
 
     @Test
