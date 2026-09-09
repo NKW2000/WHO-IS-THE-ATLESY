@@ -238,67 +238,11 @@ private fun ColumnScope.PortraitBoard(
     onNextRound: () -> Unit,
     onChangeQuestion: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // شريحة الوقت.
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(14.dp))
-                .background(FeudColors.panelDark)
-                .border(3.dp, FeudColors.stageAlt, RoundedCornerShape(14.dp))
-                .padding(horizontal = 16.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                if (seconds > 0) seconds.ar() else "—",
-                color = FeudColors.gold,
-                style = MaterialTheme.typography.headlineSmall
-            )
-            Text(
-                "ثانية",
-                color = FeudColors.gold.copy(alpha = 0.8f),
-                style = MaterialTheme.typography.labelMedium
-            )
-        }
-
-        Spacer(Modifier.weight(1f))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-            repeat(state.strikesToSteal) { index ->
-                val lit = index < state.strikes
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .drawBehind {
-                            if (lit) {
-                                drawCircle(
-                                    color = FeudColors.strikeShadow,
-                                    radius = size.minDimension / 2f,
-                                    center = Offset(
-                                        size.width / 2f,
-                                        size.height / 2f + 3.dp.toPx()
-                                    )
-                                )
-                            }
-                        }
-                        .background(
-                            if (lit) FeudColors.pink else FeudColors.stageAlt,
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "✕",
-                        color = if (lit) Color.White else FeudColors.outlineSoft,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-            }
-        }
-    }
+    PortraitBoardHeader(
+        seconds = seconds,
+        strikes = state.strikes,
+        total = state.strikesToSteal
+    )
 
     Spacer(Modifier.height(10.dp))
 
@@ -382,14 +326,89 @@ private fun ColumnScope.PortraitBoard(
     }
 }
 
+/**
+ * سطر الوقت والأخطاء بالوضع الطولي: الوقت عاليمين والأخطاء عالشمال —
+ * نفس الشريط عند المضيف وعند اللاعب.
+ */
+@Composable
+fun PortraitBoardHeader(
+    seconds: Int,
+    strikes: Int,
+    total: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .background(FeudColors.panelDark)
+                .border(3.dp, FeudColors.stageAlt, RoundedCornerShape(14.dp))
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                if (seconds > 0) seconds.ar() else "—",
+                color = FeudColors.gold,
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                "ثانية",
+                color = FeudColors.gold.copy(alpha = 0.8f),
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            repeat(total) { index ->
+                val lit = index < strikes
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .drawBehind {
+                            if (lit) {
+                                drawCircle(
+                                    color = FeudColors.strikeShadow,
+                                    radius = size.minDimension / 2f,
+                                    center = Offset(
+                                        size.width / 2f,
+                                        size.height / 2f + 3.dp.toPx()
+                                    )
+                                )
+                            }
+                        }
+                        .background(
+                            if (lit) FeudColors.pink else FeudColors.stageAlt,
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "✕",
+                        color = if (lit) Color.White else FeudColors.outlineSoft,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            }
+        }
+    }
+}
+
 /** سطر جواب بالوضع الطولي: رقم، نص، نقاط — بظل مسطّح زي التصميم. */
 @Composable
-private fun PortraitAnswerRow(
+fun PortraitAnswerRow(
     position: Int,
     answer: Answer?,
     enabled: Boolean,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    // اللاعب ما بيشوف نص الجواب ولا نقاطه قبل ما يكشفه المضيف.
+    revealHiddenText: Boolean = true,
+    onClick: () -> Unit = {}
 ) {
     val revealed = answer?.revealed == true
     val shape = RoundedCornerShape(12.dp)
@@ -406,7 +425,9 @@ private fun PortraitAnswerRow(
         else -> Modifier
             .flatShadow(4.dp, FeudColors.creamShadow, 12.dp)
             .background(FeudColors.cream, shape)
-            .border(3.dp, FeudColors.gold, shape)
+            .then(
+                if (revealHiddenText) Modifier.border(3.dp, FeudColors.gold, shape) else Modifier
+            )
     }
 
     Row(
@@ -440,19 +461,26 @@ private fun PortraitAnswerRow(
             )
         }
         if (answer != null) {
+            val showText = revealed || revealHiddenText
             Text(
-                answer.text,
-                color = if (revealed) FeudColors.team1Ink else FeudColors.ink,
+                if (showText) answer.text else "؟ ؟ ؟",
+                color = when {
+                    revealed -> FeudColors.team1Ink
+                    showText -> FeudColors.ink
+                    else -> FeudColors.ink.copy(alpha = 0.35f)
+                },
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
-            Text(
-                answer.points.ar(),
-                color = if (revealed) FeudColors.team1Ink else FeudColors.ink,
-                style = MaterialTheme.typography.titleMedium
-            )
+            if (showText) {
+                Text(
+                    answer.points.ar(),
+                    color = if (revealed) FeudColors.team1Ink else FeudColors.ink,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
         } else {
             Spacer(Modifier.weight(1f))
         }

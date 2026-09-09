@@ -186,25 +186,56 @@ private fun PlayerLobbyScreen(
 
     Box(modifier = Modifier.fillMaxSize().background(FeudColors.stage).padding(20.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (me != null) {
-                    SeatBadge(seat = me.seat, size = 34.dp)
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        me.name,
-                        color = FeudColors.cream,
-                        style = MaterialTheme.typography.headlineSmall
-                    )
+            // بالطولي الاسم بسطر والحالة بسطر تحته — ما بينقص الاسم.
+            if (isPortrait()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (me != null) {
+                        SeatBadge(seat = me.seat, size = 40.dp)
+                        Text(
+                            me.name,
+                            color = FeudColors.cream,
+                            style = MaterialTheme.typography.headlineSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
-                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     "بانتظار المضيف يبلّش",
                     color = FeudColors.gold,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1
                 )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (me != null) {
+                        SeatBadge(seat = me.seat, size = 34.dp)
+                        Text(
+                            me.name,
+                            color = FeudColors.cream,
+                            style = MaterialTheme.typography.headlineSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        "بانتظار المضيف يبلّش",
+                        color = FeudColors.gold,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1
+                    )
+                }
             }
 
             Spacer(Modifier.height(14.dp))
@@ -246,11 +277,11 @@ private fun PlayerLobbyScreen(
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
                 if (other == null) "" else "دوس على الفريق التاني إذا بدك تبدّل",
                 color = FeudColors.textMuted,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -271,25 +302,27 @@ private fun TeamRoster(
     val team = state.teams[teamId]
     CartoonSurface(
         modifier = modifier,
-        color = if (mine) teamId.color() else FeudColors.stageAlt,
+        // الفريقين بلونهم دايماً زي التصميم — «فريقك» هي اللي بتميّز.
+        color = if (mine) teamId.color() else teamId.color().copy(alpha = 0.75f),
         corner = 18.dp,
         shadow = 7.dp,
         onClick = onClick
     ) {
-        Column(modifier = Modifier.fillMaxSize().padding(14.dp)) {
+        Column(modifier = Modifier.fillMaxSize().padding(if (twoColumns) 18.dp else 14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     team?.name ?: "فريق",
-                    color = if (mine) teamId.inkColor() else FeudColors.textSoft,
-                    style = MaterialTheme.typography.titleMedium,
+                    color = teamId.inkColor(),
+                    style = MaterialTheme.typography.titleLarge,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
                 if (mine) {
                     Text(
                         "فريقك",
                         color = teamId.inkColor(),
-                        style = MaterialTheme.typography.labelMedium
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
             }
@@ -308,12 +341,12 @@ private fun TeamRoster(
                             modifier = if (twoColumns) Modifier.weight(1f) else Modifier,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            SeatBadge(seat = player.seat, size = 24.dp)
-                            Spacer(Modifier.width(8.dp))
+                            SeatBadge(seat = player.seat, size = if (twoColumns) 30.dp else 24.dp)
+                            Spacer(Modifier.width(10.dp))
                             Text(
                                 player.name,
-                                color = if (mine) teamId.inkColor() else FeudColors.cream,
-                                style = MaterialTheme.typography.bodyLarge,
+                                color = teamId.inkColor(),
+                                style = MaterialTheme.typography.titleMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -646,71 +679,97 @@ private fun PlayerBoard(
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // فوق سطر واحد بيتقاسم: التصنيف والجولة عالشمال، الأخطاء
-            // بالنص، والوقت عاليمين — بدون ما يركبوا على بعض.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                state?.currentQuestion?.let { question ->
-                    CategoryRoundBlocks(
-                        category = question.category,
-                        round = state.currentQuestionIndex + 1,
-                        totalRounds = state.questions.size,
+            val question = state?.currentQuestion
+            val seconds = state?.let { maxOf(it.answerSecondsLeft, it.choiceSecondsLeft) } ?: 0
+
+            if (isPortrait()) {
+                // نفس لوح المضيف بالضبط — بس بدون السؤال وبدون زر الغلط.
+                PortraitBoardHeader(
+                    seconds = seconds,
+                    strikes = state?.strikes ?: 0,
+                    total = state?.strikesToSteal ?: 3
+                )
+                Spacer(Modifier.height(10.dp))
+
+                val answers = question?.answers.orEmpty()
+                val slots = maxOf(answers.size + 1, 8)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    repeat(slots) { index ->
+                        PortraitAnswerRow(
+                            position = index + 1,
+                            answer = answers.getOrNull(index),
+                            enabled = false,
+                            revealHiddenText = false,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+            } else {
+                // فوق سطر واحد بيتقاسم: التصنيف والجولة عالشمال، الأخطاء
+                // بالنص، والوقت عاليمين.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    question?.let {
+                        CategoryRoundBlocks(
+                            category = it.category,
+                            round = (state?.currentQuestionIndex ?: 0) + 1,
+                            totalRounds = state?.questions?.size ?: 1,
+                            modifier = Modifier
+                                .weight(1f)
+                                .widthIn(max = 200.dp)
+                        )
+                    }
+                    if (state != null &&
+                        (state.phase == RoundPhase.PLAY || state.phase == RoundPhase.STEAL)
+                    ) {
+                        StrikeRow(
+                            strikes = state.strikes,
+                            total = state.strikesToSteal,
+                            size = 26.dp
+                        )
+                    }
+                    if (seconds > 0) {
+                        Countdown(seconds = seconds, size = 40.dp)
+                    }
+                }
+
+                val questionText = question?.text.orEmpty()
+                if (questionText.isNotBlank()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = questionText,
+                        color = onBackground,
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                if (question != null) {
+                    AnswerBoardGrid(
+                        answers = question.answers,
                         modifier = Modifier
                             .weight(1f)
-                            .widthIn(max = 200.dp)
+                            .padding(vertical = 6.dp),
+                        columns = 3,
+                        slots = 9,
+                        revealHiddenText = false,
+                        showHiddenPoints = false
                     )
+                } else {
+                    Box(modifier = Modifier.weight(1f))
                 }
-                if (state != null &&
-                    (state.phase == RoundPhase.PLAY || state.phase == RoundPhase.STEAL)
-                ) {
-                    StrikeRow(
-                        strikes = state.strikes,
-                        total = state.strikesToSteal,
-                        size = 26.dp
-                    )
-                }
-                val seconds = state?.let { maxOf(it.answerSecondsLeft, it.choiceSecondsLeft) } ?: 0
-                if (seconds > 0) {
-                    Countdown(seconds = seconds, size = 40.dp)
-                }
-            }
-
-            val question = state?.currentQuestion
-            val questionText = question?.text.orEmpty()
-            if (questionText.isNotBlank()) {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = questionText,
-                    color = onBackground,
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            // اللوح بيبان للكل حتى وهو السؤال مخفي: رقم الخانة بس، بدون
-            // نص وبدون نقاط، لحد ما المضيف يكشفها.
-            if (question != null) {
-                AnswerBoardGrid(
-                    answers = question.answers,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(vertical = 6.dp),
-                    // شاشة الموبايل ضيّقة: عمودين وبدون خانات فاضية زيادة.
-                    columns = if (isPortrait()) 2 else 3,
-                    slots = if (isPortrait()) {
-                        maxOf(question.answers.size + question.answers.size % 2, 2)
-                    } else {
-                        9
-                    },
-                    revealHiddenText = false,
-                    showHiddenPoints = false
-                )
-            } else {
-                Box(modifier = Modifier.weight(1f))
             }
 
             // تحت: بلوك واحد بيقول مين عم يلعب برقمه، وشو المطلوب منّك.

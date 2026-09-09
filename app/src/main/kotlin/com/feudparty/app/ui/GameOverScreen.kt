@@ -9,6 +9,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.graphics.graphicsLayer
+import com.feudparty.app.ui.components.SpinningRays
+import com.feudparty.app.ui.components.appear
+import com.feudparty.app.ui.components.drop
+import com.feudparty.app.ui.components.rememberShowClock
+import com.feudparty.app.ui.components.wipe
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -47,64 +55,113 @@ import com.feudparty.core.game.Question
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.game.TeamState
 
-/** النتيجة النهائية — منصة تتويج، كونفيتي، ولوحة ذهبية للفائز. */
+/**
+ * النتيجة النهائية — نفس لغة «نتيجة الجولة»: أشعة بتلف، اللوحان بيطلعان
+ * من تحت وأرقامهم بتعدّ مع أعمدتها، الفائز بيضوي، ولافتة ذهبية بتكنس
+ * باسمه، وفوق الكل قصاصات وألعاب نارية.
+ */
 @Composable
 fun GameOverScreen(
     state: GameState,
     onBackHome: (() -> Unit)? = null,
     onBackToLobby: (() -> Unit)? = null
 ) {
-    val one = state.teams[TeamId.TEAM_1]
-    val two = state.teams[TeamId.TEAM_2]
     val winner = state.leadingTeam
     val winnerName = winner?.let { state.teams[it]?.name }
+    val scores = TeamId.entries.associateWith { state.teams[it]?.score ?: 0 }
+    val top = scores.values.maxOrNull()?.coerceAtLeast(1) ?: 1
+    val t by rememberShowClock(key = "final", cap = 4f)
+    val counted = ((t - 0.5f) / 0.9f).coerceIn(0f, 1f)
+    val portrait = isPortrait()
+    val short = shortSide()
 
     Box {
-        StageBackground(contentPadding = stagePadding()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val w = maxWidth
+            SpinningRays(modifier = Modifier.fillMaxSize())
+
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(Modifier.height(6.dp))
-                CartoonSurface(color = FeudColors.gold, corner = 20.dp, shadow = 8.dp) {
-                    Text(
-                        winnerName?.let { "فاز $it" } ?: "تعادل!",
-                        color = FeudColors.ink,
-                        style = MaterialTheme.typography.headlineLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 30.dp, vertical = 10.dp)
-                    )
+                Text(
+                    "النتيجة النهائية",
+                    color = FeudColors.gold,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.graphicsLayer {
+                        translationY = drop(t, 0.04f) * size.height
+                        alpha = appear(t, 0.04f, 0.08f)
+                    }
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                if (portrait) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)
+                    ) {
+                        TeamId.entries.forEachIndexed { index, teamId ->
+                            TeamPanel(
+                                name = state.teams[teamId]?.name.orEmpty(),
+                                score = scores.getValue(teamId),
+                                shown = (scores.getValue(teamId) * counted).toInt(),
+                                share = (scores.getValue(teamId).toFloat() / top) * counted,
+                                crowned = winner == teamId,
+                                teamId = teamId,
+                                t = t,
+                                delay = if (index == 0) 0.2f else 0.32f,
+                                wide = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        TeamId.entries.forEachIndexed { index, teamId ->
+                            TeamPanel(
+                                name = state.teams[teamId]?.name.orEmpty(),
+                                score = scores.getValue(teamId),
+                                shown = (scores.getValue(teamId) * counted).toInt(),
+                                share = (scores.getValue(teamId).toFloat() / top) * counted,
+                                crowned = winner == teamId,
+                                teamId = teamId,
+                                t = t,
+                                delay = if (index == 0) 0.2f else 0.32f,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                            )
+                        }
+                    }
                 }
 
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(12.dp))
 
-                val portrait = isPortrait()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(if (portrait) 10.dp else 18.dp)
-                ) {
-                    Podium(
-                        name = one?.name ?: "فريق ١",
-                        score = one?.score ?: 0,
-                        teamId = TeamId.TEAM_1,
-                        height = if (winner == TeamId.TEAM_1) 190.dp else 150.dp,
-                        modifier = if (portrait) Modifier.weight(1f) else Modifier.width(230.dp)
-                    )
-                    Podium(
-                        name = two?.name ?: "فريق ٢",
-                        score = two?.score ?: 0,
-                        teamId = TeamId.TEAM_2,
-                        height = if (winner == TeamId.TEAM_2) 190.dp else 150.dp,
-                        modifier = if (portrait) Modifier.weight(1f) else Modifier.width(230.dp)
-                    )
-                }
+                LeadBanner(
+                    text = winnerName?.let { "فاز $it" } ?: "تعادل!",
+                    width = w,
+                    height = (short * 0.14f).coerceIn(52.dp, 84.dp),
+                    offsetFraction = wipe(t, 1.56f)
+                )
 
                 if (onBackHome != null || onBackToLobby != null) {
                     Spacer(Modifier.height(14.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         if (onBackToLobby != null) {
                             PrimaryButton(
                                 text = "رجوع للوبي",
@@ -112,9 +169,6 @@ fun GameOverScreen(
                                 color = FeudColors.lime,
                                 modifier = Modifier.weight(1f)
                             )
-                        }
-                        if (onBackHome != null && onBackToLobby != null) {
-                            Spacer(Modifier.width(12.dp))
                         }
                         if (onBackHome != null) {
                             PrimaryButton(

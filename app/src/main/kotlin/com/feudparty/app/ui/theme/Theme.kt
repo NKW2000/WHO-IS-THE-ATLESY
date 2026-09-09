@@ -5,6 +5,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -99,9 +100,9 @@ private fun body(size: Int, weight: FontWeight = FontWeight.Medium) = TextStyle(
     lineHeight = (size * 1.45).toInt().sp
 )
 
-// المقاسات مضبوطة على شاشة تلفون أفقية: كل شي لازم يوقع بشاشة وحدة
-// بدون تمرير، فالخط أصغر من مقاسات ماتيريال الافتراضية.
-private val FeudTypography = Typography(
+// مقياسين بنفس الخطوط والأوزان: الأفقي مضغوط لأنه كل شي لازم يوقع
+// بشاشة وحدة بدون تمرير، والطولي أكبر لأنه الموبايل بالإيد وبيتمرّر.
+private val LandscapeTypography = Typography(
     displayLarge = display(42),
     displayMedium = display(34),
     displaySmall = display(28),
@@ -116,6 +117,23 @@ private val FeudTypography = Typography(
     labelLarge = body(11, FontWeight.ExtraBold),
     labelMedium = body(10, FontWeight.Bold),
     labelSmall = body(9, FontWeight.Bold)
+)
+
+private val PortraitTypography = Typography(
+    displayLarge = display(54),
+    displayMedium = display(44),
+    displaySmall = display(36),
+    headlineLarge = display(32),
+    headlineMedium = display(28),
+    headlineSmall = display(24),
+    titleLarge = display(22),
+    titleMedium = display(19),
+    titleSmall = display(17),
+    bodyLarge = body(17),
+    bodyMedium = body(15),
+    labelLarge = body(14, FontWeight.ExtraBold),
+    labelMedium = body(13, FontWeight.Bold),
+    labelSmall = body(12, FontWeight.Bold)
 )
 
 private val FeudColorScheme = darkColorScheme(
@@ -137,7 +155,14 @@ private val FeudColorScheme = darkColorScheme(
  */
 @Composable
 fun FeudPartyTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = FeudColorScheme, typography = FeudTypography) {
+    val configuration = LocalConfiguration.current
+    val typography = if (configuration.screenHeightDp > configuration.screenWidthDp) {
+        PortraitTypography
+    } else {
+        LandscapeTypography
+    }
+
+    MaterialTheme(colorScheme = FeudColorScheme, typography = typography) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             content()
         }

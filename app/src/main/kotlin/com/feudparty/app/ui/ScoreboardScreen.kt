@@ -201,7 +201,7 @@ fun ScoreboardScreen(
 
 /** لوح فريق: بيطلع من تحت، رقمه بيعدّ، وعموده بيكبر معه. */
 @Composable
-private fun TeamPanel(
+fun TeamPanel(
     name: String,
     score: Int,
     shown: Int,
@@ -331,7 +331,7 @@ private fun TeamPanel(
 
 /** لافتة ذهبية بتكنس عرض الشاشة وبتقول مين بالمقدمة. */
 @Composable
-private fun LeadBanner(
+fun LeadBanner(
     text: String,
     width: Dp,
     height: Dp,

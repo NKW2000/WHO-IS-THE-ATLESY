@@ -5,6 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Spacer
+import com.feudparty.app.ui.components.flatShadow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -205,6 +208,20 @@ fun VersusScreen(
 ) {
     val t by rememberShowClock(key = playerA + playerB, cap = 6f)
 
+    // بالطولي: كرت لكل لاعب بينقذف من فوق ومن تحت — «استعدوا — الأسماء»
+    // تبع ملف التصميم الطولي.
+    if (isPortrait()) {
+        VersusCards(
+            playerA = playerA,
+            playerB = playerB,
+            teamAName = teamAName,
+            teamBName = teamBName,
+            t = t,
+            modifier = modifier
+        )
+        return
+    }
+
     // الهندسة بالتصميم يسار/يمين فيزيائي — منثبّت الاتجاه حتى تطابق.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -404,6 +421,175 @@ fun VersusScreen(
                     )
                 )
             }
+        }
+    }
+}
+
+/**
+ * «استعدوا — الأسماء»: كرت الفريق الأول بينزل من فوق وكرت التاني بيطلع
+ * من تحت، بيتصادموا، الكادر بيرجّ، وبتنط شارة «ضد» مع حلقة صدمة.
+ */
+@Composable
+private fun VersusCards(
+    playerA: String,
+    playerB: String,
+    teamAName: String,
+    teamBName: String,
+    t: Float,
+    modifier: Modifier = Modifier
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val w = maxWidth
+        val tall = maxHeight
+        val density = LocalDensity.current
+        SpinningRays(modifier = Modifier.fillMaxSize())
+
+        // رجّة الكادر بعد التصادم.
+        val shake = if (t in 0.7f..1.0f) {
+            val p = (t - 0.7f) / 0.3f
+            kotlin.math.sin(p * 18f) * (1f - p) * 7f
+        } else {
+            0f
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .offset(x = shake.dp, y = (-shake * 0.7f).dp)
+                .padding(horizontal = w * 0.068f, vertical = tall * 0.039f),
+            verticalArrangement = Arrangement.Center
+        ) {
+            VersusCard(
+                label = teamAName,
+                name = playerA,
+                color = FeudColors.team1,
+                ink = FeudColors.team1Ink,
+                nameColor = FeudColors.team1Ink,
+                fromY = -tall * 0.73f,
+                fromRotation = -8f,
+                t = t,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(bottom = tall * 0.022f)
+            )
+            VersusCard(
+                label = teamBName,
+                name = playerB,
+                color = FeudColors.team2,
+                ink = FeudColors.team2Ink,
+                nameColor = FeudColors.cream,
+                fromY = tall * 0.73f,
+                fromRotation = 8f,
+                t = t,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(top = tall * 0.022f)
+            )
+        }
+
+        // حلقة الصدمة.
+        val ring = shockRing(t, 0.76f)
+        if (ring.alpha > 0f) {
+            val ringSize = w * 0.52f
+            Canvas(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(ringSize * 2.2f)
+            ) {
+                val stroke = with(density) { (ring.width * (w.value / 385f)).dp.toPx() }
+                drawCircle(
+                    color = FeudColors.gold.copy(alpha = ring.alpha),
+                    radius = with(density) { ringSize.toPx() } / 2f * ring.scale,
+                    style = Stroke(width = stroke.coerceAtLeast(1f))
+                )
+            }
+        }
+
+        // شارة «ضد».
+        val badge = w * 0.24f
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(badge)
+                .scale(thump(t, 0.76f))
+                .clip(CircleShape)
+                .background(FeudColors.gold)
+                .padding(badge * 0.076f)
+                .clip(CircleShape)
+                .background(FeudColors.ink),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "ضد",
+                color = FeudColors.cream,
+                style = MaterialTheme.typography.displayLarge.copy(
+                    fontSize = with(density) { (badge * 0.37f).toSp() }
+                )
+            )
+        }
+    }
+}
+
+/** كرت لاعب بالمواجهة — بينقذف لمكانه بضربة مطاطية. */
+@Composable
+private fun VersusCard(
+    label: String,
+    name: String,
+    color: Color,
+    ink: Color,
+    nameColor: Color,
+    fromY: Dp,
+    fromRotation: Float,
+    t: Float,
+    modifier: Modifier = Modifier
+) {
+    val stops = listOf(0f to 1f, 0.54f to 0f, 1f to 0f)
+    val offsetY = fromY * keys(t, 0.2f, 0.7f, stops)
+    val rotation = fromRotation * keys(t, 0.2f, 0.7f, stops)
+    val scaleX = keys(
+        t, 0.2f, 0.7f,
+        listOf(0f to 0.7f, 0.54f to 0.86f, 0.7f to 1.08f, 0.86f to 0.97f, 1f to 1f)
+    )
+    val scaleY = keys(
+        t, 0.2f, 0.7f,
+        listOf(0f to 0.7f, 0.54f to 1.14f, 0.7f to 0.94f, 0.86f to 1.04f, 1f to 1f)
+    )
+    val fade = appear(t, 0.2f, 0.27f)
+
+    Box(
+        modifier = modifier
+            .offset(y = offsetY)
+            .graphicsLayer {
+                rotationZ = rotation
+                this.scaleX = scaleX
+                this.scaleY = scaleY
+                alpha = fade
+            }
+            .flatShadow(4.dp, FeudColors.ink, 18.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(color)
+            .padding(horizontal = 18.dp, vertical = 22.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                label,
+                color = ink.copy(alpha = 0.75f),
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                name,
+                color = nameColor,
+                style = MaterialTheme.typography.displaySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

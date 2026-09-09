@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -575,7 +577,14 @@ private fun SettingRow(
             corner = 14.dp,
             shadow = 4.dp
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // الزراير جوّا الإطار: منقصّها على نفس الاستدارة حتى ما تطلع
+            // من زواياه.
+            Row(
+                modifier = Modifier
+                    .padding(3.dp)
+                    .clip(RoundedCornerShape(11.dp)),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 StepKey("−", onMinus)
                 Text(
                     value,
