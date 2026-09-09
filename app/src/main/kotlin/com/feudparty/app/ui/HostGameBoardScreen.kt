@@ -1,5 +1,17 @@
 package com.feudparty.app.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import com.feudparty.app.ui.components.flatShadow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
@@ -83,95 +95,16 @@ fun HostGameBoardScreen(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 if (portrait) {
-                    // طولي: سطر معلومات فوق، السؤال تحته بعرض الشاشة،
-                    // اللوح عمودين، والحكم بشريط ملزوق تحت.
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        CategoryRoundBlocks(
-                            category = state.currentQuestion?.category,
-                            round = state.currentQuestionIndex + 1,
-                            totalRounds = state.questions.size,
-                            modifier = Modifier.weight(1f)
-                        )
-                        StrikeRow(
-                            strikes = state.strikes,
-                            total = state.strikesToSteal,
-                            size = 26.dp
-                        )
-                        if (seconds > 0) {
-                            Countdown(seconds = seconds, size = 44.dp)
-                        }
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    QuestionCard(
-                        round = state.currentQuestionIndex + 1,
-                        totalRounds = state.questions.size,
-                        category = state.currentQuestion?.category,
-                        question = state.currentQuestion?.text ?: "—",
-                        modifier = Modifier.fillMaxWidth()
+                    PortraitBoard(
+                        state = state,
+                        canJudge = canJudge,
+                        revealedAll = revealedAll,
+                        seconds = seconds,
+                        onCorrect = onCorrect,
+                        onWrong = onWrong,
+                        onNextRound = onNextRound,
+                        onChangeQuestion = onChangeQuestion
                     )
-
-                    Spacer(Modifier.height(10.dp))
-
-                    // بالطولي منعرض خانات السؤال بس — بدون خانات فاضية
-                    // بتاكل نص الشاشة.
-                    val answers = state.currentQuestion?.answers.orEmpty()
-                    AnswerBoardGrid(
-                        answers = answers,
-                        modifier = Modifier.weight(1f),
-                        columns = 2,
-                        slots = maxOf(answers.size + answers.size % 2, 2),
-                        revealHiddenText = true,
-                        enabledSlots = canJudge,
-                        onSlotClick = onCorrect
-                    )
-
-                    Spacer(Modifier.height(8.dp))
-                    TurnChip(state = state, modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        SecondaryButton(
-                            text = "غلط ✕",
-                            onClick = onWrong,
-                            enabled = canJudge,
-                            accent = FeudColors.strike,
-                            modifier = Modifier.weight(1f)
-                        )
-                        if (state.canChangeQuestion()) {
-                            if (state.faceOffFailed) {
-                                PrimaryButton(
-                                    text = "بدّل السؤال",
-                                    onClick = onChangeQuestion,
-                                    color = FeudColors.gold,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            } else {
-                                SecondaryButton(
-                                    text = "بدّل السؤال",
-                                    onClick = onChangeQuestion,
-                                    accent = FeudColors.teal,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                        if (state.phase == RoundPhase.ROUND_END) {
-                            PrimaryButton(
-                                text = if (revealedAll) state.nextButtonLabel() else "اكشف الباقي",
-                                onClick = onNextRound,
-                                enabled = revealedAll,
-                                modifier = Modifier.weight(1.2f)
-                            )
-                        }
-                    }
                 } else {
                     // أفقي: الوقت والأخطاء عاليمين، السؤال بالنص، والتصنيف عالشمال.
                     Row(
@@ -286,6 +219,273 @@ fun HostGameBoardScreen(
             }
         }
         StrikeFlash(strikes = state.strikes)
+    }
+}
+
+/**
+ * لوح المضيف بالوضع الطولي — نفس كرت التصميم: الوقت بالزاوية والأخطاء
+ * بالطرف التاني، السؤال بلوح كريمي، والأجوبة سطر ورا سطر بكل عرض
+ * الشاشة، وتحت زر الغلط.
+ */
+@Composable
+private fun ColumnScope.PortraitBoard(
+    state: GameState,
+    canJudge: Boolean,
+    revealedAll: Boolean,
+    seconds: Int,
+    onCorrect: (Int) -> Unit,
+    onWrong: () -> Unit,
+    onNextRound: () -> Unit,
+    onChangeQuestion: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // شريحة الوقت.
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .background(FeudColors.panelDark)
+                .border(3.dp, FeudColors.stageAlt, RoundedCornerShape(14.dp))
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                if (seconds > 0) seconds.ar() else "—",
+                color = FeudColors.gold,
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                "ثانية",
+                color = FeudColors.gold.copy(alpha = 0.8f),
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            repeat(state.strikesToSteal) { index ->
+                val lit = index < state.strikes
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .drawBehind {
+                            if (lit) {
+                                drawCircle(
+                                    color = FeudColors.strikeShadow,
+                                    radius = size.minDimension / 2f,
+                                    center = Offset(
+                                        size.width / 2f,
+                                        size.height / 2f + 3.dp.toPx()
+                                    )
+                                )
+                            }
+                        }
+                        .background(
+                            if (lit) FeudColors.pink else FeudColors.stageAlt,
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "✕",
+                        color = if (lit) Color.White else FeudColors.outlineSoft,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            }
+        }
+    }
+
+    Spacer(Modifier.height(10.dp))
+
+    // السؤال بلوح كريمي بظل مسطّح.
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .flatShadow(6.dp, FeudColors.creamShadow, 14.dp)
+            .background(FeudColors.cream, RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            state.currentQuestion?.text ?: "—",
+            color = FeudColors.ink,
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center
+        )
+    }
+
+    Spacer(Modifier.height(10.dp))
+
+    val answers = state.currentQuestion?.answers.orEmpty()
+    val slots = maxOf(answers.size + 1, 8)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        repeat(slots) { index ->
+            PortraitAnswerRow(
+                position = index + 1,
+                answer = answers.getOrNull(index),
+                enabled = canJudge,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                onClick = { onCorrect(index) }
+            )
+        }
+    }
+
+    Spacer(Modifier.height(10.dp))
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        if (state.phase == RoundPhase.ROUND_END) {
+            FlatButton(
+                text = if (revealedAll) state.nextButtonLabel() else "اكشف الباقي",
+                color = FeudColors.lime,
+                textColor = FeudColors.ink,
+                shadow = FeudColors.limeShadow,
+                enabled = revealedAll,
+                modifier = Modifier.weight(1f),
+                onClick = onNextRound
+            )
+        } else {
+            FlatButton(
+                text = "غلط ✕",
+                color = FeudColors.pink,
+                textColor = Color.White,
+                shadow = FeudColors.strikeShadow,
+                enabled = canJudge,
+                modifier = Modifier.weight(1f),
+                onClick = onWrong
+            )
+            if (state.canChangeQuestion()) {
+                FlatButton(
+                    text = if (state.faceOffFailed) "بدّل السؤال" else "بدّل",
+                    color = if (state.faceOffFailed) FeudColors.gold else FeudColors.teal,
+                    textColor = FeudColors.ink,
+                    shadow = FeudColors.ink,
+                    modifier = Modifier.weight(if (state.faceOffFailed) 1f else 0.5f),
+                    onClick = onChangeQuestion
+                )
+            }
+        }
+    }
+}
+
+/** سطر جواب بالوضع الطولي: رقم، نص، نقاط — بظل مسطّح زي التصميم. */
+@Composable
+private fun PortraitAnswerRow(
+    position: Int,
+    answer: Answer?,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val revealed = answer?.revealed == true
+    val shape = RoundedCornerShape(12.dp)
+
+    val base = when {
+        answer == null -> Modifier
+            .background(FeudColors.panelDark, shape)
+            .border(3.dp, FeudColors.stageAlt, shape)
+
+        revealed -> Modifier
+            .flatShadow(4.dp, FeudColors.team1Shadow, 12.dp)
+            .background(FeudColors.team1, shape)
+
+        else -> Modifier
+            .flatShadow(4.dp, FeudColors.creamShadow, 12.dp)
+            .background(FeudColors.cream, shape)
+            .border(3.dp, FeudColors.gold, shape)
+    }
+
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .then(base)
+            .then(
+                if (answer != null && !revealed && enabled) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
+                }
+            )
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(26.dp)
+                .background(
+                    if (answer == null) FeudColors.stageAlt else FeudColors.gold,
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                position.ar(),
+                color = if (answer == null) FeudColors.textFaint else FeudColors.ink,
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+        if (answer != null) {
+            Text(
+                answer.text,
+                color = if (revealed) FeudColors.team1Ink else FeudColors.ink,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                answer.points.ar(),
+                color = if (revealed) FeudColors.team1Ink else FeudColors.ink,
+                style = MaterialTheme.typography.titleMedium
+            )
+        } else {
+            Spacer(Modifier.weight(1f))
+        }
+    }
+}
+
+/** زر مسطّح بظل تحته — شكل أزرار التصميم بالوضع الطولي. */
+@Composable
+private fun FlatButton(
+    text: String,
+    color: Color,
+    textColor: Color,
+    shadow: Color,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = modifier
+            .flatShadow(6.dp, shadow, 14.dp)
+            .clip(shape)
+            .background(if (enabled) color else color.copy(alpha = 0.45f))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text,
+            color = if (enabled) textColor else textColor.copy(alpha = 0.6f),
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 1
+        )
     }
 }
 

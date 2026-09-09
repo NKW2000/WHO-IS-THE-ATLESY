@@ -43,6 +43,13 @@ object FeudColors {
     val textFaint = Color(0xFF8B76C4)
     val outlineSoft = Color(0xFF6E5A9C)
 
+    // ظلال مسطّحة (تحت العنصر مباشرة) — نفس ألوان كروت التصميم الطولي.
+    val creamShadow = Color(0xFFB9A88E)
+    val strikeShadow = Color(0xFFB02F45)
+    val team1Shadow = Color(0xFF16803C)
+    val limeShadow = Color(0xFF5F9E33)
+    val goldShadow = Color(0xFFB98A12)
+
     // أسماء قديمة بيستعملها باقي الكود.
     val deepNavy = canvas
     val strike = pink

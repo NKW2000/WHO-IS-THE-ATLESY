@@ -2,6 +2,11 @@ package com.feudparty.app.ui
 
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -84,6 +89,34 @@ fun HostSettingsScreen(
 
     val portrait = isPortrait()
 
+    // البنك بيحكم الفلتر: إذا تغيّر، منرجّع الأرقام والتصنيفات لحدوده.
+    LaunchedEffect(answerBounds, categories) {
+        val low = settings.minAnswers.coerceIn(answerBounds)
+        val high = settings.maxAnswers.coerceIn(low, answerBounds.last)
+        val picked = settings.categories.filterTo(mutableSetOf()) { it in categories }
+        if (low != settings.minAnswers ||
+            high != settings.maxAnswers ||
+            picked != settings.categories
+        ) {
+            onSettingsChange(
+                settings.copy(minAnswers = low, maxAnswers = high, categories = picked)
+            )
+        }
+    }
+
+    if (portrait) {
+        PortraitHostSettings(
+            settings = settings,
+            categories = categories,
+            answerBounds = answerBounds,
+            matchingQuestions = matchingQuestions,
+            onSettingsChange = onSettingsChange,
+            onBack = onBack,
+            onContinue = onContinue,
+            onRenameRoom = { renamingRoom = true },
+            onRenameTeam = { renaming = it }
+        )
+    } else {
     StageBackground(contentPadding = stagePadding()) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
@@ -96,69 +129,26 @@ fun HostSettingsScreen(
                     color = FeudColors.gold,
                     style = MaterialTheme.typography.headlineSmall
                 )
-                if (!portrait) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        SecondaryButton(
-                            text = "رجوع",
-                            onClick = onBack,
-                            accent = FeudColors.teal,
-                            modifier = Modifier.width(150.dp)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        PrimaryButton(
-                            text = "كمّل للوبي",
-                            onClick = onContinue,
-                            color = FeudColors.lime,
-                            modifier = Modifier.width(190.dp)
-                        )
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SecondaryButton(
+                        text = "رجوع",
+                        onClick = onBack,
+                        accent = FeudColors.teal,
+                        modifier = Modifier.width(150.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    PrimaryButton(
+                        text = "كمّل للوبي",
+                        onClick = onContinue,
+                        color = FeudColors.lime,
+                        modifier = Modifier.width(190.dp)
+                    )
                 }
             }
             Spacer(Modifier.height(8.dp))
             GoldDivider(Modifier.fillMaxWidth())
             Spacer(Modifier.height(12.dp))
 
-            if (portrait) {
-                // طولي: كرت ورا كرت بتمرير، والأزرار ملزوقة تحت.
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    RoomSection(settings) { renamingRoom = true }
-                    TeamsSection(settings) { renaming = it }
-                    RoundsSection(settings = settings, onChange = onSettingsChange)
-                    FilterSection(
-                        settings = settings,
-                        categories = categories,
-                        bounds = answerBounds,
-                        matching = matchingQuestions,
-                        onChange = onSettingsChange
-                    )
-                }
-                Spacer(Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    SecondaryButton(
-                        text = "رجوع",
-                        onClick = onBack,
-                        accent = FeudColors.teal,
-                        modifier = Modifier.weight(1f)
-                    )
-                    PrimaryButton(
-                        text = "كمّل للوبي",
-                        onClick = onContinue,
-                        color = FeudColors.lime,
-                        modifier = Modifier.weight(1.4f)
-                    )
-                }
-            } else {
-
-            // تلات أعمدة متساوية، وكل عمود بطاقاته بتملا نفس الارتفاع —
-            // فبتضل الرؤوس والحواف على خط واحد وما في تمرير.
             Row(
                 modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -198,8 +188,8 @@ fun HostSettingsScreen(
                     )
                 }
             }
-            }
         }
+    }
     }
 
     if (renamingRoom) {
@@ -228,6 +218,430 @@ fun HostSettingsScreen(
             },
             onDismiss = { renaming = null }
         )
+    }
+}
+
+/**
+ * إعدادات المضيف بالوضع الطولي — نفس كرت التصميم: شريط علوي فيه زر
+ * الرجوع والعنوان، جسم بيتمرّر بأقسام (الأسماء، الجولات، الوقت والأخطاء،
+ * تصفية الأسئلة)، وشريط سفلي فيه «كمّل للوبي».
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PortraitHostSettings(
+    settings: GameSettings,
+    categories: List<String>,
+    answerBounds: IntRange,
+    matchingQuestions: Int,
+    onSettingsChange: (GameSettings) -> Unit,
+    onBack: () -> Unit,
+    onContinue: () -> Unit,
+    onRenameRoom: () -> Unit,
+    onRenameTeam: (TeamId) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FeudColors.stage)
+    ) {
+        // شريط علوي.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .drawBehind {
+                    drawRect(
+                        color = FeudColors.ink,
+                        topLeft = Offset(0f, size.height - 4.dp.toPx()),
+                        size = androidx.compose.ui.geometry.Size(size.width, 4.dp.toPx())
+                    )
+                }
+                .padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CartoonSurface(
+                color = FeudColors.teal,
+                borderWidth = 3.dp,
+                corner = 12.dp,
+                shadow = 4.dp,
+                onClick = onBack
+            ) {
+                Box(modifier = Modifier.size(38.dp), contentAlignment = Alignment.Center) {
+                    Text("‹", color = FeudColors.ink, style = MaterialTheme.typography.titleLarge)
+                }
+            }
+            Text(
+                "إعدادات اللعبة",
+                color = FeudColors.gold,
+                style = MaterialTheme.typography.headlineSmall
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(22.dp)
+        ) {
+            // ---- الأسماء
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionLabel("الأسماء")
+                NameLine("الغرفة", settings.roomName, FeudColors.gold, FeudColors.ink, onRenameRoom)
+                TeamId.entries.forEachIndexed { index, teamId ->
+                    NameLine(
+                        label = "فريق ${(index + 1).ar()}",
+                        name = settings.teamName(teamId),
+                        color = teamId.color(),
+                        ink = teamId.inkColor(),
+                        onRename = { onRenameTeam(teamId) }
+                    )
+                }
+            }
+
+            // ---- الجولات
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SectionLabel("الجولات")
+                SettingRow(
+                    label = "عدد الجولات",
+                    value = settings.rounds.ar(),
+                    onMinus = {
+                        onSettingsChange(
+                            settings.copy(rounds = (settings.rounds - 1)
+                                .coerceAtLeast(GameSettings.MIN_ROUNDS))
+                        )
+                    },
+                    onPlus = {
+                        onSettingsChange(
+                            settings.copy(rounds = (settings.rounds + 1)
+                                .coerceAtMost(GameSettings.MAX_ROUNDS))
+                        )
+                    }
+                )
+                val perRound = settings.multipliersForRounds()
+                perRound.chunked(4).forEachIndexed { rowIndex, chunk ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        chunk.forEachIndexed { columnIndex, multiplier ->
+                            val index = rowIndex * 4 + columnIndex
+                            MultiplierTile(
+                                round = index + 1,
+                                multiplier = multiplier,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    val next = perRound.toMutableList()
+                                    next[index] = if (multiplier >= 4) 1 else multiplier + 1
+                                    onSettingsChange(settings.copy(multipliers = next))
+                                }
+                            )
+                        }
+                        repeat(4 - chunk.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+                Text(
+                    "دوس على الجولة تبدّل مضاعفها",
+                    color = FeudColors.textFaint,
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+
+            // ---- الوقت والأخطاء
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SectionLabel("الوقت والأخطاء")
+                SettingRow(
+                    label = "ثواني الجواب",
+                    value = settings.answerSeconds.ar(),
+                    onMinus = {
+                        onSettingsChange(
+                            settings.copy(answerSeconds = (settings.answerSeconds - 5)
+                                .coerceAtLeast(GameSettings.MIN_ANSWER_SECONDS))
+                        )
+                    },
+                    onPlus = {
+                        onSettingsChange(
+                            settings.copy(answerSeconds = (settings.answerSeconds + 5)
+                                .coerceAtMost(GameSettings.MAX_ANSWER_SECONDS))
+                        )
+                    }
+                )
+                SettingRow(
+                    label = "ثواني «العب أو تمرير»",
+                    value = settings.choiceSeconds.ar(),
+                    onMinus = {
+                        onSettingsChange(
+                            settings.copy(choiceSeconds = (settings.choiceSeconds - 1)
+                                .coerceAtLeast(GameSettings.MIN_CHOICE_SECONDS))
+                        )
+                    },
+                    onPlus = {
+                        onSettingsChange(
+                            settings.copy(choiceSeconds = (settings.choiceSeconds + 1)
+                                .coerceAtMost(GameSettings.MAX_CHOICE_SECONDS))
+                        )
+                    }
+                )
+                SettingRow(
+                    label = "أخطاء تفتح السرقة",
+                    value = settings.strikesToSteal.ar(),
+                    onMinus = {
+                        onSettingsChange(
+                            settings.copy(strikesToSteal = (settings.strikesToSteal - 1)
+                                .coerceAtLeast(GameSettings.MIN_STRIKES))
+                        )
+                    },
+                    onPlus = {
+                        onSettingsChange(
+                            settings.copy(strikesToSteal = (settings.strikesToSteal + 1)
+                                .coerceAtMost(GameSettings.MAX_STRIKES))
+                        )
+                    }
+                )
+            }
+
+            // ---- تصفية الأسئلة
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SectionLabel("تصفية الأسئلة", modifier = Modifier.weight(1f))
+                    Pill(
+                        text = "${matchingQuestions.ar()} سؤال مطابق",
+                        color = if (matchingQuestions >= settings.rounds) {
+                            FeudColors.lime
+                        } else {
+                            FeudColors.pink
+                        },
+                        textColor = if (matchingQuestions >= settings.rounds) {
+                            FeudColors.ink
+                        } else {
+                            FeudColors.cream
+                        }
+                    )
+                }
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CategoryChip(
+                        label = "الكل",
+                        selected = settings.categories.isEmpty(),
+                        onClick = { onSettingsChange(settings.copy(categories = emptySet())) }
+                    )
+                    categories.forEach { category ->
+                        val selected = category in settings.categories
+                        CategoryChip(
+                            label = category,
+                            selected = selected,
+                            onClick = {
+                                val next = if (selected) {
+                                    settings.categories - category
+                                } else {
+                                    settings.categories + category
+                                }
+                                onSettingsChange(settings.copy(categories = next))
+                            }
+                        )
+                    }
+                }
+                SettingRow(
+                    label = "عدد الأجوبة",
+                    value = "${settings.minAnswers.ar()} ‑ ${settings.maxAnswers.ar()}",
+                    valueWidth = 68.dp,
+                    onMinus = {
+                        onSettingsChange(
+                            settings.copy(
+                                minAnswers = (settings.minAnswers - 1)
+                                    .coerceAtLeast(answerBounds.first)
+                            )
+                        )
+                    },
+                    onPlus = {
+                        onSettingsChange(
+                            settings.copy(
+                                maxAnswers = (settings.maxAnswers + 1)
+                                    .coerceAtMost(answerBounds.last),
+                                minAnswers = if (settings.maxAnswers >= answerBounds.last) {
+                                    (settings.minAnswers + 1)
+                                        .coerceAtMost(settings.maxAnswers)
+                                } else {
+                                    settings.minAnswers
+                                }
+                            )
+                        )
+                    }
+                )
+            }
+        }
+
+        // شريط سفلي.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(FeudColors.panelDark)
+                .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 18.dp)
+        ) {
+            PrimaryButton(
+                text = "كمّل للوبي",
+                onClick = onContinue,
+                color = FeudColors.lime,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+/** عنوان قسم صغير بالذهبي. */
+@Composable
+private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        color = FeudColors.gold,
+        style = MaterialTheme.typography.labelLarge,
+        modifier = modifier
+    )
+}
+
+/** سطر اسم: تسمية صغيرة، الاسم بلون، وزر قلم. */
+@Composable
+private fun NameLine(
+    label: String,
+    name: String,
+    color: Color,
+    ink: Color,
+    onRename: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            label,
+            color = FeudColors.textMuted,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.width(44.dp)
+        )
+        CartoonSurface(
+            modifier = Modifier.weight(1f),
+            color = color,
+            borderWidth = 3.dp,
+            corner = 12.dp,
+            shadow = 4.dp,
+            onClick = onRename
+        ) {
+            Text(
+                name,
+                color = ink,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
+            )
+        }
+        CartoonSurface(
+            color = FeudColors.stageAlt,
+            borderWidth = 3.dp,
+            corner = 12.dp,
+            shadow = 0.dp,
+            onClick = onRename
+        ) {
+            Box(modifier = Modifier.size(38.dp), contentAlignment = Alignment.Center) {
+                Text("✎", color = FeudColors.cream, style = MaterialTheme.typography.titleSmall)
+            }
+        }
+    }
+}
+
+/** سطر إعداد: التسمية عاليمين وعدّاد − قيمة + عالشمال. */
+@Composable
+private fun SettingRow(
+    label: String,
+    value: String,
+    onMinus: () -> Unit,
+    onPlus: () -> Unit,
+    valueWidth: Dp = 52.dp
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            label,
+            color = FeudColors.cream,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+        CartoonSurface(
+            color = FeudColors.stageAlt,
+            borderWidth = 3.dp,
+            corner = 14.dp,
+            shadow = 4.dp
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StepKey("−", onMinus)
+                Text(
+                    value,
+                    color = FeudColors.gold,
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    modifier = Modifier.width(valueWidth)
+                )
+                StepKey("+", onPlus)
+            }
+        }
+    }
+}
+
+/** مربّع ذهبي بعلامة زائد أو ناقص. */
+@Composable
+private fun StepKey(symbol: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .background(FeudColors.gold)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(symbol, color = FeudColors.ink, style = MaterialTheme.typography.titleLarge)
+    }
+}
+
+/** مربّع مضاعف الجولة. */
+@Composable
+private fun MultiplierTile(
+    round: Int,
+    multiplier: Int,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val color = when (multiplier) {
+        1 -> FeudColors.stage
+        2 -> FeudColors.teal
+        3 -> FeudColors.lime
+        else -> FeudColors.gold
+    }
+    val ink = if (multiplier == 1) FeudColors.cream else FeudColors.ink
+    CartoonSurface(
+        modifier = modifier,
+        color = color,
+        borderWidth = 3.dp,
+        corner = 14.dp,
+        shadow = 4.dp,
+        onClick = onClick
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("×${multiplier.ar()}", color = ink, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "جولة ${round.ar()}",
+                color = ink.copy(alpha = 0.65f),
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
     }
 }
 

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,56 +63,202 @@ fun HomeScreen(
 
     val portrait = isPortrait()
 
+    if (portrait) {
+        // طولي: نفس كرت التصميم — شريط ألوان فوق، العلامة بالنص، وتحت
+        // زر الاستضافة الكبير وتحته زرّين نصّين.
+        PortraitHome(
+            onHostClick = onHostClick,
+            onJoinClick = onJoinClick,
+            onSettingsClick = onSettingsClick
+        )
+        return
+    }
+
     StageBackgroundHost {
-        if (portrait) {
-            // طولي: العلامة فوق، والأزرار تحتها بمتناول الإصبع.
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BrandPlate(
+                tilt = tilt,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            )
+
+            Spacer(Modifier.width(18.dp))
+
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)
+                    .width(320.dp)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                BrandPlate(
-                    tilt = tilt,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(shortSide() * 0.82f)
-                )
                 HomeActions(
                     onHostClick = onHostClick,
                     onJoinClick = onJoinClick,
                     onSettingsClick = onSettingsClick,
-                    itemModifier = Modifier.height(104.dp)
+                    itemModifier = Modifier.weight(1f)
                 )
             }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                BrandPlate(
-                    tilt = tilt,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
+        }
+    }
+}
+
+/** الرئيسية بالوضع الطولي — مطابقة لكرت التصميم. */
+@Composable
+private fun PortraitHome(
+    onHostClick: () -> Unit,
+    onJoinClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(FeudColors.stageAlt, FeudColors.stage, FeudColors.panelDark),
+                    radius = 900f
                 )
-
-                Spacer(Modifier.width(18.dp))
-
-                Column(
-                    modifier = Modifier
-                        .width(320.dp)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    HomeActions(
-                        onHostClick = onHostClick,
-                        onJoinClick = onJoinClick,
-                        onSettingsClick = onSettingsClick,
-                        itemModifier = Modifier.weight(1f)
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 22.dp, vertical = 26.dp)
+        ) {
+            // شريط الألوان فوق.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
+            ) {
+                listOf(FeudColors.gold, FeudColors.pink, FeudColors.teal).forEach { color ->
+                    Box(
+                        modifier = Modifier
+                            .width(46.dp)
+                            .height(8.dp)
+                            .background(color, RoundedCornerShape(999.dp))
                     )
                 }
             }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                BrandLogo(
+                    em = 46.dp,
+                    tagline = "لعبة عائلية · فريقين · جهاز لكل لاعب"
+                )
+            }
+
+            // زر الاستضافة الكبير.
+            CartoonSurface(
+                modifier = Modifier.fillMaxWidth(),
+                color = FeudColors.lime,
+                borderWidth = 5.dp,
+                corner = 24.dp,
+                shadow = 8.dp,
+                onClick = onHostClick
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 22.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "استضافة لعبة",
+                            color = FeudColors.ink,
+                            style = MaterialTheme.typography.headlineSmall,
+                            maxLines = 1
+                        )
+                        Text(
+                            "افتح غرفة وخلّي اللاعبين يفوتوا",
+                            color = FeudColors.ink.copy(alpha = 0.72f),
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .background(FeudColors.ink, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "‹",
+                            color = FeudColors.lime,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                SmallHomeCard(
+                    title = "انضمام كلاعب",
+                    subtitle = "اكتب اسمك واختار غرفة",
+                    color = FeudColors.teal,
+                    modifier = Modifier.weight(1f),
+                    onClick = onJoinClick
+                )
+                SmallHomeCard(
+                    title = "الإعدادات",
+                    subtitle = "استورد بنك أسئلتك",
+                    color = FeudColors.gold,
+                    modifier = Modifier.weight(1f),
+                    onClick = onSettingsClick
+                )
+            }
+        }
+    }
+}
+
+/** كرت صغير بعنوان وسطر — الاتنين تحت زر الاستضافة. */
+@Composable
+private fun SmallHomeCard(
+    title: String,
+    subtitle: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    CartoonSurface(
+        modifier = modifier,
+        color = color,
+        borderWidth = 5.dp,
+        corner = 22.dp,
+        shadow = 7.dp,
+        onClick = onClick
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                title,
+                color = FeudColors.ink,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                subtitle,
+                color = FeudColors.ink.copy(alpha = 0.72f),
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 2
+            )
         }
     }
 }

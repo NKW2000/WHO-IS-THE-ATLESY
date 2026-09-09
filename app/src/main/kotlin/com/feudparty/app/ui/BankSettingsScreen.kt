@@ -2,6 +2,7 @@ package com.feudparty.app.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -62,17 +63,49 @@ fun BankSettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "الإعدادات",
-                    color = FeudColors.gold,
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                SecondaryButton(
-                    text = "رجوع",
-                    onClick = onBack,
-                    accent = FeudColors.teal,
-                    modifier = Modifier.width(150.dp)
-                )
+                if (isPortrait()) {
+                    // طولي: زر رجوع مربّع جنب العنوان — زي التصميم.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CartoonSurface(
+                            color = FeudColors.teal,
+                            borderWidth = 3.dp,
+                            corner = 12.dp,
+                            shadow = 4.dp,
+                            onClick = onBack
+                        ) {
+                            Box(
+                                modifier = Modifier.size(38.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "‹",
+                                    color = FeudColors.ink,
+                                    style = MaterialTheme.typography.titleLarge
+                                )
+                            }
+                        }
+                        Text(
+                            "الإعدادات",
+                            color = FeudColors.gold,
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                    }
+                } else {
+                    Text(
+                        "الإعدادات",
+                        color = FeudColors.gold,
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    SecondaryButton(
+                        text = "رجوع",
+                        onClick = onBack,
+                        accent = FeudColors.teal,
+                        modifier = Modifier.width(150.dp)
+                    )
+                }
             }
             Spacer(Modifier.height(8.dp))
             GoldDivider(Modifier.fillMaxWidth())

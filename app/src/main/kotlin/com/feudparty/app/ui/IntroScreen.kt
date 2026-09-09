@@ -110,6 +110,13 @@ private class Spark(
 
 @Composable
 fun IntroScreen(onDone: () -> Unit) {
+    // بالوضع الطولي في مقدمة خاصة — نفس السيناريو بس بتصادم عمودي
+    // واسم بسطرين، زي ملف التصميم الطولي.
+    if (isPortrait()) {
+        IntroPortraitScreen(onDone = onDone)
+        return
+    }
+
     val finish by rememberUpdatedState(onDone)
     var t by remember { mutableFloatStateOf(0f) }
 

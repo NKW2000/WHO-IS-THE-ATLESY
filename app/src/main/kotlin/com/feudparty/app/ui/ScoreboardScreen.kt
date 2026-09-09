@@ -1,6 +1,7 @@
 package com.feudparty.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -137,7 +138,7 @@ fun ScoreboardScreen(
                             wide = true,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(150.dp)
+                                .weight(1f)
                         )
                     }
                 }
@@ -227,20 +228,37 @@ private fun TeamPanel(
         val basis = minOf(maxHeight, maxWidth)
 
         if (crowned) {
-            // تاج المتقدّم: شريط ذهبي بينط فوق اللوح.
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .height(12.dp)
-                    .graphicsLayer { scaleY = thump(t, CROWN_AT) }
-                    .background(FeudColors.gold)
-            )
+            if (wide) {
+                // بالطولي المتقدّم بيضوي بإطار ذهبي بينبض — زي التصميم.
+                val glow = ((t - CROWN_AT) * 1.4f).coerceAtLeast(0f)
+                val pulse = 0.6f + 0.4f * kotlin.math.sin(glow * 4.5f)
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .border(
+                            width = 5.dp,
+                            color = FeudColors.gold.copy(
+                                alpha = if (t > CROWN_AT) 0.55f + 0.45f * pulse else 0f
+                            ),
+                            shape = RoundedCornerShape(18.dp)
+                        )
+                )
+            } else {
+                // تاج المتقدّم: شريط ذهبي بينط فوق اللوح.
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .height(12.dp)
+                        .graphicsLayer { scaleY = thump(t, CROWN_AT) }
+                        .background(FeudColors.gold)
+                )
+            }
         }
 
         val scoreColor =
             if (teamId == TeamId.TEAM_1) teamId.inkColor() else FeudColors.cream
-        val scoreSize = if (wide) basis * 0.42f else basis * 0.34f
+        val scoreSize = if (wide) basis * 0.26f else basis * 0.34f
 
         Column(
             modifier = Modifier

@@ -58,6 +58,23 @@ fun StageBackground(
     }
 }
 
+/**
+ * ظل مسطّح تحت العنصر بالضبط (`box-shadow: 0 Ypx 0 color`) — هيك ظلال
+ * كروت التصميم بالوضع الطولي، مش الظل المزاح تبع الوضع الأفقي.
+ */
+fun Modifier.flatShadow(
+    offset: Dp,
+    color: Color,
+    corner: Dp
+): Modifier = drawBehind {
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(0f, offset.toPx()),
+        size = size,
+        cornerRadius = CornerRadius(corner.toPx())
+    )
+}
+
 /** نقط خفيفة عالخلفية — نفس تكستشر التصميم. */
 private fun Modifier.dotGrid(
     color: Color = Color.White.copy(alpha = 0.07f),

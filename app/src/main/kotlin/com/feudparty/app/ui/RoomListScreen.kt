@@ -18,9 +18,12 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +38,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.BrandBadge
 import com.feudparty.app.ui.components.CartoonSurface
+import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.Pill
 import com.feudparty.app.ui.components.GoldDivider
 import com.feudparty.app.ui.components.SecondaryButton
@@ -54,13 +58,18 @@ fun RoomListScreen(
     onPick: (PlayerViewModel.Room) -> Unit,
     onBack: () -> Unit
 ) {
+    if (isPortrait()) {
+        PortraitRoomList(playerName, rooms, onPick, onBack)
+        return
+    }
+
     StageBackground(contentPadding = PaddingValues(horizontal = 22.dp, vertical = 14.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (!isPortrait()) BrandBadge(em = 40.dp)
+                BrandBadge(em = 40.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -76,7 +85,6 @@ fun RoomListScreen(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                // عدّاد الغرف — بيضل يدوّر طول ما اللستة مفتوحة.
                 Pill(
                     text = if (rooms.isEmpty()) "عم ندوّر..." else "${rooms.size.ar()} غرفة قريبة",
                     color = if (rooms.isEmpty()) FeudColors.stageAlt else FeudColors.lime,
@@ -87,7 +95,7 @@ fun RoomListScreen(
                     text = "رجوع",
                     onClick = onBack,
                     accent = FeudColors.teal,
-                    modifier = Modifier.width(if (isPortrait()) 104.dp else 140.dp)
+                    modifier = Modifier.width(140.dp)
                 )
             }
 
@@ -98,9 +106,8 @@ fun RoomListScreen(
             if (rooms.isEmpty()) {
                 SearchingState(modifier = Modifier.fillMaxSize())
             } else {
-                // عمودين — أكتر غرف بتبان بدون تمرير.
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(if (isPortrait()) 1 else 2),
+                    columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -110,6 +117,75 @@ fun RoomListScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/** لستة الغرف بالوضع الطولي — نفس كرت التصميم. */
+@Composable
+private fun PortraitRoomList(
+    playerName: String,
+    rooms: List<PlayerViewModel.Room>,
+    onPick: (PlayerViewModel.Room) -> Unit,
+    onBack: () -> Unit
+) {
+    StageBackground(contentPadding = PaddingValues(horizontal = 22.dp, vertical = 18.dp)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "أي غرفة؟",
+                        color = FeudColors.gold,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Text(
+                        "أهلاً $playerName — اختار الغرفة اللي بدك تفوت فيها",
+                        color = FeudColors.textMuted,
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Pill(
+                    text = if (rooms.isEmpty()) "عم ندوّر" else "${rooms.size.ar()} غرف",
+                    color = if (rooms.isEmpty()) FeudColors.stageAlt else FeudColors.lime,
+                    textColor = if (rooms.isEmpty()) FeudColors.textMuted else FeudColors.ink
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(FeudColors.ink, RoundedCornerShape(2.dp))
+            )
+            Spacer(Modifier.height(12.dp))
+
+            if (rooms.isEmpty()) {
+                SearchingState(modifier = Modifier.weight(1f))
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(rooms, key = { it.endpointId }) { room ->
+                        RoomRow(room = room, onClick = { onPick(room) })
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            PrimaryButton(
+                text = "رجوع",
+                onClick = onBack,
+                color = FeudColors.teal,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

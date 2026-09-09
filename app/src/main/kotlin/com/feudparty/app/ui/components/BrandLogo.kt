@@ -158,7 +158,26 @@ fun BrandWordmark(em: Dp, modifier: Modifier = Modifier) {
     }
 }
 
-/** الشريط الذهبي تحت الاسم. */
+/** سطر من الاسم بالحبر والظل — بينستعمل بالمقدمة الطولية بسطرين. */
+@Composable
+fun BrandWordLine(text: String, em: Dp, modifier: Modifier = Modifier) {
+    Box(modifier = modifier) {
+        StrokedText(
+            text = text,
+            fontSize = em,
+            fill = FeudColors.ink,
+            strokeWidth = em * 0.145f,
+            modifier = Modifier.offset(x = -em * 0.062f, y = em * 0.088f)
+        )
+        StrokedText(
+            text = text,
+            fontSize = em,
+            fill = FeudColors.gold,
+            strokeWidth = em * 0.145f
+        )
+    }
+}
+
 @Composable
 fun BrandBar(em: Dp, modifier: Modifier = Modifier) {
     val shadowX = em * 0.058f
@@ -184,7 +203,7 @@ fun BrandBar(em: Dp, modifier: Modifier = Modifier) {
 
 /** نص محدود بحبر: منرسمه مرتين — مرة حدّ ومرة تعبئة. */
 @Composable
-private fun StrokedText(
+fun StrokedText(
     text: String,
     fontSize: Dp,
     fill: Color,

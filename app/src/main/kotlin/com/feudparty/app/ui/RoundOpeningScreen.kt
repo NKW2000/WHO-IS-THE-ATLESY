@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -125,16 +126,20 @@ fun RoundIntroScreen(round: Int, multiplier: Int, modifier: Modifier = Modifier)
     val t by rememberShowClock(key = round, cap = 6f)
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        // القياسات من أقصر بُعد — نفس الشكل بالأفقي وبالطولي.
-        val h = minOf(maxHeight, maxWidth)
+        val portrait = maxHeight > maxWidth
         val w = maxWidth
+        val tall = maxHeight
+        // بالطولي القياسات من العرض (زي كرت التصميم ٣٨٥×٧٧٠)، وبالأفقي
+        // من الارتفاع.
+        val h = if (portrait) w else minOf(maxHeight, maxWidth)
         SpinningRays(modifier = Modifier.fillMaxSize())
 
         // قرص بنفسجي بينط ورا الاسم.
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
-                .size(h * 1.28f)
+                .offset(y = if (portrait) -tall * 0.02f else 0.dp)
+                .size(if (portrait) w * 0.88f else h * 1.28f)
                 .scale(thump(t, 0f))
                 .clip(CircleShape)
                 .background(FeudColors.stageAlt)
@@ -143,7 +148,7 @@ fun RoundIntroScreen(round: Int, multiplier: Int, modifier: Modifier = Modifier)
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
-                .offset(y = -h * 0.055f),
+                .offset(y = if (portrait) -tall * 0.045f else -h * 0.055f),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -158,8 +163,12 @@ fun RoundIntroScreen(round: Int, multiplier: Int, modifier: Modifier = Modifier)
                 roundOrdinal(round),
                 color = FeudColors.gold,
                 style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = with(LocalDensity.current) { (h * 0.30f).toSp() },
-                    lineHeight = with(LocalDensity.current) { (h * 0.33f).toSp() }
+                    fontSize = with(LocalDensity.current) {
+                        (if (portrait) w * 0.22f else h * 0.30f).toSp()
+                    },
+                    lineHeight = with(LocalDensity.current) {
+                        (if (portrait) w * 0.24f else h * 0.33f).toSp()
+                    }
                 ),
                 maxLines = 1,
                 modifier = Modifier.graphicsLayer {
@@ -176,11 +185,11 @@ fun RoundIntroScreen(round: Int, multiplier: Int, modifier: Modifier = Modifier)
         GoldBanner(
             text = "${multiplierWord(multiplier)} ×${multiplier.ar()}",
             width = w,
-            height = h * 0.183f,
+            height = if (portrait) tall * 0.104f else h * 0.183f,
             offsetFraction = wipe(t, 0.70f),
             modifier = Modifier
-                .align(Alignment.Center)
-                .offset(y = h * 0.52f)
+                .align(Alignment.TopStart)
+                .offset(y = if (portrait) tall * 0.774f else (maxHeight - h * 0.183f) / 2f + h * 0.52f)
         )
     }
 }
@@ -199,8 +208,11 @@ fun VersusScreen(
     // الهندسة بالتصميم يسار/يمين فيزيائي — منثبّت الاتجاه حتى تطابق.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-            val h = minOf(maxHeight, maxWidth)
+            val portrait = maxHeight > maxWidth
             val w = maxWidth
+            val tall = maxHeight
+            // القياسات من العرض بالطولي ومن الارتفاع بالأفقي.
+            val basis = if (portrait) w else minOf(maxHeight, maxWidth)
             val density = LocalDensity.current
             SpinningRays(modifier = Modifier.fillMaxSize())
 
@@ -212,90 +224,157 @@ fun VersusScreen(
                 val width = size.width
                 val height = size.height
 
-                // النص الأيمن أخضر: (58% ,0) (100% ,0) (100% ,100%) (42% ,100%)
-                val right = Path().apply {
-                    moveTo(width * 0.58f, 0f)
-                    lineTo(width, 0f)
-                    lineTo(width, height)
-                    lineTo(width * 0.42f, height)
-                    close()
-                }
-                val left = Path().apply {
-                    moveTo(0f, 0f)
-                    lineTo(width * 0.58f, 0f)
-                    lineTo(width * 0.42f, height)
-                    lineTo(0f, height)
-                    close()
-                }
-                translate(width * slide, 0f) {
-                    drawPath(right, FeudColors.team1.copy(alpha = fade))
-                }
-                translate(-width * slide, 0f) {
-                    drawPath(left, FeudColors.team2.copy(alpha = fade))
-                }
-
-                // الخيط الأسود بين النصين — بيطلع بعد ما يستقروا، وميلانه
-                // محسوب من نفس القطع حتى يطابقه بأي نسبة شاشة.
-                if (seam > 0f) {
-                    val seamWidth = width * 0.018f
-                    val slant = Math.toDegrees(
-                        kotlin.math.atan2((0.16f * width).toDouble(), height.toDouble())
-                    ).toFloat()
-                    rotate(degrees = slant, pivot = center) {
-                        drawRect(
-                            color = FeudColors.ink,
-                            topLeft = Offset(
-                                center.x - seamWidth / 2f,
-                                center.y - height * 0.64f * seam
-                            ),
-                            size = androidx.compose.ui.geometry.Size(
-                                seamWidth,
-                                height * 1.28f * seam
+                if (portrait) {
+                    // فوق أخضر وتحت أزرق، والقطع مايل بالعرض.
+                    val top = Path().apply {
+                        moveTo(0f, 0f)
+                        lineTo(width, 0f)
+                        lineTo(width, height * 0.58f)
+                        lineTo(0f, height * 0.42f)
+                        close()
+                    }
+                    val bottom = Path().apply {
+                        moveTo(0f, height * 0.42f)
+                        lineTo(width, height * 0.58f)
+                        lineTo(width, height)
+                        lineTo(0f, height)
+                        close()
+                    }
+                    translate(0f, -height * slide) {
+                        drawPath(top, FeudColors.team1.copy(alpha = fade))
+                    }
+                    translate(0f, height * slide) {
+                        drawPath(bottom, FeudColors.team2.copy(alpha = fade))
+                    }
+                    if (seam > 0f) {
+                        val seamHeight = height * 0.021f
+                        val slant = Math.toDegrees(
+                            kotlin.math.atan2((0.16f * height).toDouble(), width.toDouble())
+                        ).toFloat()
+                        rotate(degrees = slant, pivot = center) {
+                            drawRect(
+                                color = FeudColors.ink,
+                                topLeft = Offset(
+                                    center.x - width * 0.64f * seam,
+                                    center.y - seamHeight / 2f
+                                ),
+                                size = androidx.compose.ui.geometry.Size(
+                                    width * 1.28f * seam,
+                                    seamHeight
+                                )
                             )
-                        )
+                        }
+                    }
+                } else {
+                    val right = Path().apply {
+                        moveTo(width * 0.58f, 0f)
+                        lineTo(width, 0f)
+                        lineTo(width, height)
+                        lineTo(width * 0.42f, height)
+                        close()
+                    }
+                    val left = Path().apply {
+                        moveTo(0f, 0f)
+                        lineTo(width * 0.58f, 0f)
+                        lineTo(width * 0.42f, height)
+                        lineTo(0f, height)
+                        close()
+                    }
+                    translate(width * slide, 0f) {
+                        drawPath(right, FeudColors.team1.copy(alpha = fade))
+                    }
+                    translate(-width * slide, 0f) {
+                        drawPath(left, FeudColors.team2.copy(alpha = fade))
+                    }
+                    if (seam > 0f) {
+                        val seamWidth = width * 0.018f
+                        val slant = Math.toDegrees(
+                            kotlin.math.atan2((0.16f * width).toDouble(), height.toDouble())
+                        ).toFloat()
+                        rotate(degrees = slant, pivot = center) {
+                            drawRect(
+                                color = FeudColors.ink,
+                                topLeft = Offset(
+                                    center.x - seamWidth / 2f,
+                                    center.y - height * 0.64f * seam
+                                ),
+                                size = androidx.compose.ui.geometry.Size(
+                                    seamWidth,
+                                    height * 1.28f * seam
+                                )
+                            )
+                        }
                     }
                 }
             }
 
-            // الأسماء: الأخضر عاليمين والأزرق عالشمال، وبينزلقوا مع نصّهم.
-            // نص الشاشة ناقص نصف الشارة — والخط بياخد قياسه من الاتنين.
-            val halfWidth = maxWidth * 0.5f - h * 0.2f
-            val nameBasis = minOf(h * 0.14f, halfWidth * 0.2f)
-            NameHalf(
-                label = teamAName,
-                name = playerA,
-                ink = FeudColors.team1Ink,
-                nameColor = FeudColors.team1Ink,
-                nameSize = nameBasis,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .width(halfWidth)
-                    .offset(x = w * slide)
-                    .graphicsLayer { alpha = fade }
-            )
-            NameHalf(
-                label = teamBName,
-                name = playerB,
-                ink = FeudColors.team2Ink,
-                nameColor = FeudColors.cream,
-                nameSize = nameBasis,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .width(halfWidth)
-                    .offset(x = -w * slide)
-                    .graphicsLayer { alpha = fade }
-            )
+            if (portrait) {
+                val blockHeight = tall * 0.5f - basis * 0.24f
+                NameHalf(
+                    label = teamAName,
+                    name = playerA,
+                    ink = FeudColors.team1Ink,
+                    nameColor = FeudColors.team1Ink,
+                    nameSize = basis * 0.14f,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .height(blockHeight)
+                        .offset(y = -tall * slide)
+                        .graphicsLayer { alpha = fade }
+                )
+                NameHalf(
+                    label = teamBName,
+                    name = playerB,
+                    ink = FeudColors.team2Ink,
+                    nameColor = FeudColors.cream,
+                    nameSize = basis * 0.14f,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(blockHeight)
+                        .offset(y = tall * slide)
+                        .graphicsLayer { alpha = fade }
+                )
+            } else {
+                val halfWidth = maxWidth * 0.5f - basis * 0.2f
+                val nameBasis = minOf(basis * 0.14f, halfWidth * 0.2f)
+                NameHalf(
+                    label = teamAName,
+                    name = playerA,
+                    ink = FeudColors.team1Ink,
+                    nameColor = FeudColors.team1Ink,
+                    nameSize = nameBasis,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .width(halfWidth)
+                        .offset(x = w * slide)
+                        .graphicsLayer { alpha = fade }
+                )
+                NameHalf(
+                    label = teamBName,
+                    name = playerB,
+                    ink = FeudColors.team2Ink,
+                    nameColor = FeudColors.cream,
+                    nameSize = nameBasis,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .width(halfWidth)
+                        .offset(x = -w * slide)
+                        .graphicsLayer { alpha = fade }
+                )
+            }
 
             // حلقة الصدمة ثم شارة «ضد».
             val ring = shockRing(t, 0.82f)
             if (ring.alpha > 0f) {
-                val ringSize = h * 0.494f
+                val ringSize = basis * 0.52f
                 Canvas(
                     modifier = Modifier
                         .align(Alignment.Center)
                         .size(ringSize * 2.2f)
                 ) {
-                    val stroke = with(density) { (ring.width * (h.value / 405f)).dp.toPx() }
+                    val stroke = with(density) { (ring.width * (basis.value / 385f)).dp.toPx() }
                     drawCircle(
                         color = FeudColors.gold.copy(alpha = ring.alpha),
                         radius = with(density) { ringSize.toPx() } / 2f * ring.scale,
@@ -304,7 +383,7 @@ fun VersusScreen(
                 }
             }
 
-            val badge = h * 0.36f
+            val badge = basis * 0.38f
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -342,7 +421,8 @@ private fun NameHalf(
     val density = LocalDensity.current
     Column(
         modifier = modifier.padding(horizontal = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             label,

@@ -54,6 +54,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -89,7 +90,7 @@ private val PassColor = Color(0xFFFF5D73)
 private val PlayColor = Color(0xFF2FBF71)
 private val PlayInk = Color(0xFF08322D)
 private val TimerColor = Color(0xFFFFC93C)
-private val TRACK_HEIGHT = 14.dp
+private val TRACK_HEIGHT = 16.dp
 private const val DOOR_MILLIS = 640
 private val DoorEasing = CubicBezierEasing(0.2f, 0.85f, 0.25f, 1f)
 
@@ -208,17 +209,40 @@ private fun PlayerLobbyScreen(
 
             Spacer(Modifier.height(14.dp))
 
-            // الفرق بأسماء المضيف: دوس على فريق حتى تفوت فيه.
-            Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                TeamId.entries.forEachIndexed { index, id ->
-                    if (index > 0) Spacer(Modifier.width(12.dp))
-                    TeamRoster(
-                        state = state,
-                        teamId = id,
-                        mine = id == teamId,
-                        onClick = { if (id != teamId) onChangeTeam(id) },
-                        modifier = Modifier.weight(1f)
-                    )
+            // الفرق بأسماء المضيف: دوس على فريق حتى تفوت فيه. بالطولي
+            // بيصيروا فوق بعض وأسماء اللاعبين بعمودين — زي التصميم.
+            if (isPortrait()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    TeamId.entries.forEach { id ->
+                        TeamRoster(
+                            state = state,
+                            teamId = id,
+                            mine = id == teamId,
+                            onClick = { if (id != teamId) onChangeTeam(id) },
+                            twoColumns = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        )
+                    }
+                }
+            } else {
+                Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    TeamId.entries.forEachIndexed { index, id ->
+                        if (index > 0) Spacer(Modifier.width(12.dp))
+                        TeamRoster(
+                            state = state,
+                            teamId = id,
+                            mine = id == teamId,
+                            onClick = { if (id != teamId) onChangeTeam(id) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -241,7 +265,8 @@ private fun TeamRoster(
     teamId: TeamId,
     mine: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    twoColumns: Boolean = false
 ) {
     val team = state.teams[teamId]
     CartoonSurface(
@@ -269,19 +294,32 @@ private fun TeamRoster(
                 }
             }
             Spacer(Modifier.height(8.dp))
-            state.playersOf(teamId).forEach { player ->
+            val roster = state.playersOf(teamId)
+            val rows = if (twoColumns) roster.chunked(2) else roster.map { listOf(it) }
+            rows.forEach { row ->
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 3.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    SeatBadge(seat = player.seat, size = 24.dp)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        player.name,
-                        color = if (mine) teamId.inkColor() else FeudColors.cream,
-                        style = MaterialTheme.typography.bodyLarge,
-                        maxLines = 1
-                    )
+                    row.forEach { player ->
+                        Row(
+                            modifier = if (twoColumns) Modifier.weight(1f) else Modifier,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SeatBadge(seat = player.seat, size = 24.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                player.name,
+                                color = if (mine) teamId.inkColor() else FeudColors.cream,
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    if (twoColumns && row.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
             if (state.playersOf(teamId).isEmpty()) {
@@ -519,17 +557,21 @@ private fun FullScreenBuzzer(
         // وما بيدخل بحساب حجمه.
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(contentAlignment = Alignment.Center) {
-                val ringSize = BUZZER_SIZE * 1.55f
+                // حلقتين بتتوسّعوا وراء بعض — نفس التصميم (١٤٠٠ms وفارق نصّها).
+                val buttonSize = if (isPortrait()) shortSide() * 0.70f else BUZZER_SIZE
+                val ringSize = buttonSize * 1.27f
                 Canvas(modifier = Modifier.size(ringSize)) {
-                    drawCircle(
-                        color = FeudColors.gold.copy(alpha = (1f - halo) * 0.35f),
-                        radius = (size.minDimension / 2f) * (0.62f + halo * 0.38f),
-                        style = Stroke(width = 8f)
-                    )
+                    listOf(halo, (halo + 0.5f) % 1f).forEach { phase ->
+                        drawCircle(
+                            color = FeudColors.gold.copy(alpha = (1f - phase) * 0.35f),
+                            radius = (size.minDimension / 2f) * (0.62f + phase * 0.38f),
+                            style = Stroke(width = 8.dp.toPx())
+                        )
+                    }
                 }
                 Box(
                     modifier = Modifier
-                        .size(BUZZER_SIZE)
+                        .size(buttonSize)
                         .scale(pulse)
                         .drawBehind {
                             // ظل صلب تحت الزر بالضبط، مش على جنب.
@@ -546,7 +588,7 @@ private fun FullScreenBuzzer(
                     Text(
                         "اضغط!",
                         color = FeudColors.ink,
-                        style = MaterialTheme.typography.displaySmall,
+                        style = MaterialTheme.typography.displayMedium,
                         textAlign = TextAlign.Center
                     )
                 }
