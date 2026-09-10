@@ -46,6 +46,7 @@ import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.components.color
 import com.feudparty.app.ui.components.inkColor
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
 import com.feudparty.core.game.Player
 import com.feudparty.core.game.TeamId
@@ -204,7 +205,7 @@ private fun TeamColumn(
     CartoonSurface(
         modifier = if (expand) modifier.fillMaxHeight() else modifier,
         color = if (joined > 0) color else FeudColors.ink.copy(alpha = 0.35f),
-        corner = 20.dp,
+        corner = FeudShape.block,
         shadow = 7.dp
     ) {
         Column(
@@ -299,7 +300,7 @@ private fun PlayerRow(player: Player, teamId: TeamId, onMove: () -> Unit) {
         CartoonSurface(
             color = FeudColors.gold,
             borderWidth = 3.dp,
-            corner = 10.dp,
+            corner = FeudShape.block,
             shadow = 3.dp,
             onClick = onMove
         ) {

@@ -11,7 +11,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
-import com.feudparty.app.ui.components.flatShadow
+import com.feudparty.app.ui.components.blockSkin
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +45,7 @@ import com.feudparty.app.ui.components.StrikeFlash
 import com.feudparty.app.ui.components.StrikeRow
 import com.feudparty.app.ui.components.color
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
 import com.feudparty.core.game.Answer
 import com.feudparty.core.game.BuzzState
@@ -127,32 +128,44 @@ private fun ColumnScope.DesignBoard(
     onNextRound: () -> Unit,
     onChangeQuestion: () -> Unit
 ) {
-    PortraitBoardHeader(
-        seconds = seconds,
-        strikes = state.strikes,
-        total = state.strikesToSteal
-    )
-
-    Spacer(Modifier.height(10.dp))
-
-    // السؤال بلوح كريمي بظل مسطّح.
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .flatShadow(6.dp, FeudColors.creamShadow, 14.dp)
-            .background(FeudColors.cream, RoundedCornerShape(14.dp))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            state.currentQuestion?.text ?: "—",
-            color = FeudColors.ink,
-            style = MaterialTheme.typography.titleLarge,
-            textAlign = TextAlign.Center
-        )
+    val questionCard: @Composable (Modifier) -> Unit = { cardModifier ->
+        Box(
+            modifier = cardModifier
+                .blockSkin(FeudColors.cream)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                state.currentQuestion?.text ?: "—",
+                color = FeudColors.ink,
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 
-    Spacer(Modifier.height(10.dp))
+    if (columns > 1) {
+        // بالعرضي السؤال بينحط بين الوقت والأخطاء — بيوفّر سطر كامل
+        // للأجوبة.
+        PortraitBoardHeader(
+            seconds = seconds,
+            strikes = state.strikes,
+            total = state.strikesToSteal,
+            middle = { questionCard(Modifier.fillMaxWidth()) }
+        )
+        Spacer(Modifier.height(10.dp))
+    } else {
+        PortraitBoardHeader(
+            seconds = seconds,
+            strikes = state.strikes,
+            total = state.strikesToSteal
+        )
+        Spacer(Modifier.height(10.dp))
+        questionCard(Modifier.fillMaxWidth())
+        Spacer(Modifier.height(10.dp))
+    }
 
     // ثمان خانات دايماً — أكتر عدد أجوبة بالسؤال ثمانية.
     val answers = state.currentQuestion?.answers.orEmpty()
@@ -240,17 +253,20 @@ fun PortraitBoardHeader(
     seconds: Int,
     strikes: Int,
     total: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // بالعرضي بينحط السؤال بين الوقت والأخطاء.
+    middle: (@Composable () -> Unit)? = null
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(FeudShape.block))
                 .background(FeudColors.panelDark)
-                .border(3.dp, FeudColors.stageAlt, RoundedCornerShape(14.dp))
+                .border(3.dp, FeudColors.stageAlt, RoundedCornerShape(FeudShape.block))
                 .padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -267,7 +283,11 @@ fun PortraitBoardHeader(
             )
         }
 
-        Spacer(Modifier.weight(1f))
+        if (middle != null) {
+            Box(modifier = Modifier.weight(1f)) { middle() }
+        } else {
+            Spacer(Modifier.weight(1f))
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             repeat(total) { index ->
@@ -316,7 +336,7 @@ fun PortraitAnswerRow(
     onClick: () -> Unit = {}
 ) {
     val revealed = answer?.revealed == true
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(FeudShape.block)
 
     val base = when {
         answer == null -> Modifier
@@ -324,15 +344,10 @@ fun PortraitAnswerRow(
             .border(3.dp, FeudColors.stageAlt, shape)
 
         revealed -> Modifier
-            .flatShadow(4.dp, FeudColors.team1Shadow, 12.dp)
-            .background(FeudColors.team1, shape)
+            .blockSkin(FeudColors.team1, border = 3.dp, shadow = 4.dp)
 
         else -> Modifier
-            .flatShadow(4.dp, FeudColors.creamShadow, 12.dp)
-            .background(FeudColors.cream, shape)
-            .then(
-                if (revealHiddenText) Modifier.border(3.dp, FeudColors.gold, shape) else Modifier
-            )
+            .blockSkin(FeudColors.cream, border = 3.dp, shadow = 4.dp)
     }
 
     Row(
@@ -403,12 +418,11 @@ private fun FlatButton(
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(FeudShape.block)
     Box(
         modifier = modifier
-            .flatShadow(6.dp, shadow, 14.dp)
+            .blockSkin(if (enabled) color else color.copy(alpha = 0.45f))
             .clip(shape)
-            .background(if (enabled) color else color.copy(alpha = 0.45f))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 14.dp),
         contentAlignment = Alignment.Center

@@ -44,6 +44,7 @@ import com.feudparty.app.ui.components.GoldDivider
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
 import com.feudparty.app.viewmodel.PlayerViewModel
 
@@ -196,7 +197,7 @@ private fun RoomRow(room: PlayerViewModel.Room, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         color = FeudColors.stageAlt,
         borderWidth = 3.dp,
-        corner = 16.dp,
+        corner = FeudShape.block,
         shadow = 5.dp,
         onClick = onClick
     ) {

@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.ar
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.core.game.GameState
 import com.feudparty.core.game.TeamId
 
@@ -71,7 +72,7 @@ fun StatusBanner(
         modifier = modifier.fillMaxWidth(),
         color = if (filled) accent else FeudColors.ink.copy(alpha = 0.45f),
         borderWidth = 4.dp,
-        corner = 16.dp,
+        corner = FeudShape.block,
         shadow = 5.dp
     ) {
         Text(
@@ -102,7 +103,7 @@ fun AwardBanner(state: GameState, modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth(),
             color = if (award.stolen) FeudColors.pink else FeudColors.gold,
             borderWidth = 4.dp,
-            corner = 16.dp,
+            corner = FeudShape.block,
             shadow = 5.dp
         ) {
             Row(

@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.ar
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 
 /** بلوك الجولة — نفس الشكل عند المضيف وعند اللاعب. */
 @Composable
@@ -50,7 +51,7 @@ fun InfoBlock(
         modifier = modifier,
         color = FeudColors.stageAlt,
         borderWidth = 3.dp,
-        corner = 12.dp,
+        corner = FeudShape.block,
         shadow = 4.dp
     ) {
         Column(

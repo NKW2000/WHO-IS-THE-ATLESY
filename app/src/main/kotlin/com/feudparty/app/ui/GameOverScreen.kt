@@ -49,6 +49,7 @@ import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.components.color
 import com.feudparty.app.ui.components.inkColor
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
 import com.feudparty.core.game.GameState
 import com.feudparty.core.game.Question
@@ -199,7 +200,7 @@ private fun Podium(
     CartoonSurface(
         modifier = modifier,
         color = teamId.color(),
-        corner = 20.dp,
+        corner = FeudShape.block,
         shadow = 8.dp
     ) {
         Column(

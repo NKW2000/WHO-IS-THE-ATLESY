@@ -32,6 +32,7 @@ import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.SettingsCard
 import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
 
 /**
@@ -72,7 +73,7 @@ fun BankSettingsScreen(
                         CartoonSurface(
                             color = FeudColors.teal,
                             borderWidth = 3.dp,
-                            corner = 12.dp,
+                            corner = FeudShape.block,
                             shadow = 4.dp,
                             onClick = onBack
                         ) {
@@ -150,7 +151,7 @@ fun BankSettingsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             color = if (bankMessageIsError) FeudColors.pink else FeudColors.lime,
                             borderWidth = 3.dp,
-                            corner = 12.dp,
+                            corner = FeudShape.block,
                             shadow = 4.dp
                         ) {
                             Text(

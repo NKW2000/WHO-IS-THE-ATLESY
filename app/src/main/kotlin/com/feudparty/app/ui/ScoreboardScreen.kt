@@ -40,6 +40,7 @@ import com.feudparty.app.ui.components.wipe
 import com.feudparty.app.ui.components.color
 import com.feudparty.app.ui.components.inkColor
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
 import com.feudparty.core.game.GameState
 import com.feudparty.core.game.Question
@@ -221,7 +222,7 @@ fun TeamPanel(
                 translationY = rise(t, delay) * size.height
                 alpha = appear(t, delay, 0.1f)
             }
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(FeudShape.block))
             .background(teamId.color())
     ) {
         // الرقم بياخد قياسه من أصغر بُعد باللوح — حتى ما ينفجر بالطولي.
@@ -240,7 +241,7 @@ fun TeamPanel(
                             color = FeudColors.gold.copy(
                                 alpha = if (t > CROWN_AT) 0.55f + 0.45f * pulse else 0f
                             ),
-                            shape = RoundedCornerShape(18.dp)
+                            shape = RoundedCornerShape(FeudShape.block)
                         )
                 )
             } else {

@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.ar
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 
 /** قطع شاشات الإعدادات: بطاقة، عدّاد زائد/ناقص، وشريحة مضاعف الجولة. */
 @Composable
@@ -31,7 +32,7 @@ fun SettingsCard(
     CartoonSurface(
         modifier = modifier.fillMaxWidth(),
         color = FeudColors.stageAlt,
-        corner = 18.dp,
+        corner = FeudShape.block,
         shadow = 6.dp
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -86,7 +87,7 @@ private fun StepperButton(text: String, enabled: Boolean, onClick: () -> Unit) {
     CartoonSurface(
         color = if (enabled) FeudColors.gold else FeudColors.panelDark,
         borderWidth = 3.dp,
-        corner = 12.dp,
+        corner = FeudShape.block,
         shadow = 4.dp,
         onClick = onClick,
         enabled = enabled
@@ -117,7 +118,7 @@ fun MultiplierChip(
             else -> FeudColors.pink
         },
         borderWidth = 3.dp,
-        corner = 12.dp,
+        corner = FeudShape.block,
         shadow = 4.dp,
         onClick = onClick
     ) {

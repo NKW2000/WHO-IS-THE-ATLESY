@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.ar
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
 import com.feudparty.core.game.Answer
 
@@ -177,7 +178,7 @@ private fun EmptySlot(modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth(),
         color = FeudColors.panelDark,
         borderWidth = 3.dp,
-        corner = 14.dp,
+        corner = FeudShape.block,
         shadow = 4.dp
     ) {
         Box(modifier = Modifier.fillMaxSize())
@@ -216,7 +217,7 @@ private fun AnswerSlot(
             },
         color = if (revealed) FeudColors.team1 else FeudColors.cream,
         borderWidth = 3.dp,
-        corner = 14.dp,
+        corner = FeudShape.block,
         shadow = 4.dp,
         onClick = if (enabled) onClick else null,
         enabled = enabled

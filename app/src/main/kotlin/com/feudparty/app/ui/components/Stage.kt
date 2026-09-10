@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.theme.FeudBrushes
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudColors
 
 /**
@@ -57,6 +58,27 @@ fun StageBackground(
         Box(modifier = Modifier.fillMaxSize().padding(contentPadding), content = content)
     }
 }
+
+/**
+ * جلد البلوك الموحّد: ظل حبري مزاح، خلفية، وحدّ حبر — نفس أسلوب
+ * [CartoonSurface] حتى يطلع كل شي بالتطبيق بنفس اللغة البصرية.
+ */
+fun Modifier.blockSkin(
+    color: Color,
+    border: Dp = 4.dp,
+    shadow: Dp = 6.dp,
+    corner: Dp = FeudShape.block
+): Modifier = this
+    .drawBehind {
+        drawRoundRect(
+            color = FeudColors.ink,
+            topLeft = Offset(-shadow.toPx(), shadow.toPx()),
+            size = size,
+            cornerRadius = CornerRadius(corner.toPx())
+        )
+    }
+    .background(color, RoundedCornerShape(corner))
+    .border(border, FeudColors.ink, RoundedCornerShape(corner))
 
 /**
  * ظل مسطّح تحت العنصر بالضبط (`box-shadow: 0 Ypx 0 color`) — هيك ظلال
@@ -101,7 +123,7 @@ fun CartoonSurface(
     modifier: Modifier = Modifier,
     color: Color = FeudColors.stageAlt,
     borderWidth: Dp = 5.dp,
-    corner: Dp = 20.dp,
+    corner: Dp = FeudShape.block,
     shadow: Dp = 6.dp,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,

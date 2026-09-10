@@ -7,7 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Spacer
-import com.feudparty.app.ui.components.flatShadow
+import com.feudparty.app.ui.components.blockSkin
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -60,6 +60,7 @@ import com.feudparty.app.ui.components.slamScale
 import com.feudparty.app.ui.components.thump
 import com.feudparty.app.ui.components.wipe
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
 
 /**
@@ -383,9 +384,8 @@ private fun VersusCard(
                 )
                 alpha = appear(time, CARD_AT, 0.12f)
             }
-            .flatShadow(4.dp, FeudColors.ink, 18.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(color),
+            .blockSkin(color)
+            .clip(RoundedCornerShape(FeudShape.block)),
         contentAlignment = Alignment.Center
     ) {
         Column(

@@ -52,6 +52,7 @@ import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
 import com.feudparty.core.game.TeamId
 
@@ -170,7 +171,7 @@ private fun DesignHostSettings(
             CartoonSurface(
                 color = FeudColors.teal,
                 borderWidth = 3.dp,
-                corner = 12.dp,
+                corner = FeudShape.block,
                 shadow = 4.dp,
                 onClick = onBack
             ) {
@@ -189,11 +190,11 @@ private fun DesignHostSettings(
         Column(
             modifier = Modifier
                 .weight(1f)
+                .align(Alignment.CenterHorizontally)
+                .widthIn(max = 680.dp)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .widthIn(max = 640.dp)
-                .align(Alignment.CenterHorizontally),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
             // ---- الأسماء
@@ -363,14 +364,15 @@ private fun DesignHostSettings(
                 .fillMaxWidth()
                 .background(FeudColors.panelDark)
                 .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 18.dp)
-                .widthIn(max = 640.dp)
-                .align(Alignment.CenterHorizontally)
         ) {
             PrimaryButton(
                 text = "كمّل للوبي",
                 onClick = onContinue,
                 color = FeudColors.lime,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .widthIn(max = 680.dp)
+                    .fillMaxWidth()
             )
         }
     }
@@ -410,7 +412,7 @@ private fun NameLine(
             modifier = Modifier.weight(1f),
             color = color,
             borderWidth = 3.dp,
-            corner = 12.dp,
+            corner = FeudShape.block,
             shadow = 4.dp,
             onClick = onRename
         ) {
@@ -428,7 +430,7 @@ private fun NameLine(
         CartoonSurface(
             color = FeudColors.stageAlt,
             borderWidth = 3.dp,
-            corner = 12.dp,
+            corner = FeudShape.block,
             shadow = 0.dp,
             onClick = onRename
         ) {
@@ -461,7 +463,7 @@ private fun SettingRow(
         CartoonSurface(
             color = FeudColors.stageAlt,
             borderWidth = 3.dp,
-            corner = 14.dp,
+            corner = FeudShape.block,
             shadow = 4.dp
         ) {
             // الزراير جوّا الإطار: منقصّها على نفس الاستدارة حتى ما تطلع
@@ -469,7 +471,7 @@ private fun SettingRow(
             Row(
                 modifier = Modifier
                     .padding(3.dp)
-                    .clip(RoundedCornerShape(11.dp)),
+                    .clip(RoundedCornerShape(FeudShape.block)),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 StepKey("−", onMinus)
@@ -520,7 +522,7 @@ private fun MultiplierTile(
         modifier = modifier,
         color = color,
         borderWidth = 3.dp,
-        corner = 14.dp,
+        corner = FeudShape.block,
         shadow = 4.dp,
         onClick = onClick
     ) {
@@ -554,7 +556,7 @@ private fun NameField(
             modifier = Modifier.weight(1f),
             color = color,
             borderWidth = 3.dp,
-            corner = 12.dp,
+            corner = FeudShape.block,
             shadow = 4.dp
         ) {
             Text(
@@ -572,7 +574,7 @@ private fun NameField(
         CartoonSurface(
             color = FeudColors.teal,
             borderWidth = 3.dp,
-            corner = 12.dp,
+            corner = FeudShape.block,
             shadow = 4.dp,
             onClick = onRename
         ) {

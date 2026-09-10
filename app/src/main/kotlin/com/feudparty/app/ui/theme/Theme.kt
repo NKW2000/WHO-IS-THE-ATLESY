@@ -8,6 +8,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -21,6 +22,15 @@ import com.feudparty.app.R
  * ألوان التصميم الكرتوني: حدود سودا سميكة، ظلال صلبة، وألوان مشبعة على
  * خلفية بنفسجية. [ink] هو لون الحد والظل بكل مكان.
  */
+/** قياسات الشكل: زاوية وحدة لكل البلوكات بالتطبيق. */
+object FeudShape {
+    /** زاوية كل بلوك — كرت، خانة جواب، زر، حقل. */
+    val block = 16.dp
+
+    /** الشرائح المدوّرة (Pill). */
+    val pill = 999.dp
+}
+
 object FeudColors {
     val ink = Color(0xFF140626)
     val canvas = Color(0xFF170A31)

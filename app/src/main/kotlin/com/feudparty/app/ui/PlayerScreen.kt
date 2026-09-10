@@ -71,6 +71,7 @@ import com.feudparty.app.ui.components.StrikeRow
 import com.feudparty.app.ui.components.color
 import com.feudparty.app.ui.components.inkColor
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
 import com.feudparty.app.viewmodel.PlayerViewModel.ConnectionStatus
 import com.feudparty.core.game.Answer
@@ -85,11 +86,11 @@ import com.feudparty.core.game.other
 import kotlinx.coroutines.delay
 
 /** ألوان شاشة «العب / تمرير» زي ما هي بملف التصميم. */
-private val PassPlayBase = Color(0xFF1D0F38)
-private val PassColor = Color(0xFFFF5D73)
-private val PlayColor = Color(0xFF2FBF71)
-private val PlayInk = Color(0xFF08322D)
-private val TimerColor = Color(0xFFFFC93C)
+private val PassPlayBase = FeudColors.canvas
+private val PassColor = FeudColors.pink
+private val PlayColor = FeudColors.team1
+private val PlayInk = FeudColors.team1Ink
+private val TimerColor = FeudColors.gold
 private val TRACK_HEIGHT = 16.dp
 private const val DOOR_MILLIS = 640
 private val DoorEasing = CubicBezierEasing(0.2f, 0.85f, 0.25f, 1f)
@@ -302,9 +303,10 @@ private fun TeamRoster(
     val team = state.teams[teamId]
     CartoonSurface(
         modifier = modifier,
-        // الفريقين بلونهم دايماً زي التصميم — «فريقك» هي اللي بتميّز.
-        color = if (mine) teamId.color() else teamId.color().copy(alpha = 0.75f),
-        corner = 18.dp,
+        // الفريقين بلون النظام بالضبط — «فريقك» والحدّ الذهبي هني اللي
+        // بيميّزوا فريقك، مش تخفيف اللون.
+        color = teamId.color(),
+        corner = FeudShape.block,
         shadow = 7.dp,
         onClick = onClick
     ) {
@@ -445,7 +447,7 @@ private fun PlayOrPassScreen(
 
         // شريط «تمرير» الأحمر فوق.
         Band(
-            label = "تمرير",
+            label = "مرّر",
             background = PassColor,
             labelColor = FeudColors.cream,
             height = bandHeight,
@@ -682,94 +684,52 @@ private fun PlayerBoard(
             val question = state?.currentQuestion
             val seconds = state?.let { maxOf(it.answerSecondsLeft, it.choiceSecondsLeft) } ?: 0
 
-            if (isPortrait()) {
-                // نفس لوح المضيف بالضبط — بس بدون السؤال وبدون زر الغلط.
-                PortraitBoardHeader(
-                    seconds = seconds,
-                    strikes = state?.strikes ?: 0,
-                    total = state?.strikesToSteal ?: 3
-                )
-                Spacer(Modifier.height(10.dp))
+            // نفس لوح المضيف بالضبط — بس بدون السؤال وبدون زر الغلط،
+            // وبالعرضي الأجوبة بتتوزّع على عمودين.
+            val columns = if (isPortrait()) 1 else 2
+            PortraitBoardHeader(
+                seconds = seconds,
+                strikes = state?.strikes ?: 0,
+                total = state?.strikesToSteal ?: 3
+            )
+            Spacer(Modifier.height(10.dp))
 
-                val answers = question?.answers.orEmpty()
-                val slots = maxOf(answers.size + 1, 8)
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    repeat(slots) { index ->
-                        PortraitAnswerRow(
-                            position = index + 1,
-                            answer = answers.getOrNull(index),
-                            enabled = false,
-                            revealHiddenText = false,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        )
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-            } else {
-                // فوق سطر واحد بيتقاسم: التصنيف والجولة عالشمال، الأخطاء
-                // بالنص، والوقت عاليمين.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    question?.let {
-                        RoundBlock(
-                            round = (state?.currentQuestionIndex ?: 0) + 1,
-                            totalRounds = state?.questions?.size ?: 1,
-                            modifier = Modifier
-                                .weight(1f)
-                                .widthIn(max = 200.dp)
-                        )
-                    }
-                    if (state != null &&
-                        (state.phase == RoundPhase.PLAY || state.phase == RoundPhase.STEAL)
-                    ) {
-                        StrikeRow(
-                            strikes = state.strikes,
-                            total = state.strikesToSteal,
-                            size = 26.dp
-                        )
-                    }
-                    if (seconds > 0) {
-                        Countdown(seconds = seconds, size = 40.dp)
-                    }
-                }
-
-                val questionText = question?.text.orEmpty()
-                if (questionText.isNotBlank()) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = questionText,
-                        color = onBackground,
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                if (question != null) {
-                    AnswerBoardGrid(
-                        answers = question.answers,
+            val answers = question?.answers.orEmpty()
+            val slots = maxOf(answers.size, 8)
+            val perColumn = (slots + columns - 1) / columns
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                repeat(columns) { column ->
+                    Column(
                         modifier = Modifier
                             .weight(1f)
-                            .padding(vertical = 6.dp),
-                        columns = 3,
-                        slots = 9,
-                        revealHiddenText = false,
-                        showHiddenPoints = false
-                    )
-                } else {
-                    Box(modifier = Modifier.weight(1f))
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        for (row in 0 until perColumn) {
+                            val index = column * perColumn + row
+                            if (index >= slots) {
+                                Spacer(Modifier.weight(1f))
+                                continue
+                            }
+                            PortraitAnswerRow(
+                                position = index + 1,
+                                answer = answers.getOrNull(index),
+                                enabled = false,
+                                revealHiddenText = false,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            )
+                        }
+                    }
                 }
             }
+            Spacer(Modifier.height(10.dp))
 
             // تحت: بلوك واحد بيقول مين عم يلعب برقمه، وشو المطلوب منّك.
             // نقاط الفرق مش هون — بتبيّن بشاشة النتيجة بين الجولات.
@@ -802,7 +762,7 @@ private fun TurnBlock(
         modifier = Modifier.fillMaxWidth(),
         color = color,
         borderWidth = 3.dp,
-        corner = 14.dp,
+        corner = FeudShape.block,
         shadow = 5.dp
     ) {
         Row(
@@ -854,8 +814,8 @@ private fun statusLine(
 
     return when (mark) {
         PlayerMark.ARMED -> when (state.phase) {
-            RoundPhase.STEAL -> "دورك — جواب واحد بس، دوس لما تجاوب"
-            else -> "دورك — جاوب، ودوس عالشاشة"
+            RoundPhase.STEAL -> "دوس عالشاشة لتجاوب — عندك جواب واحد بس"
+            else -> "دورك — دوس عالشاشة لتجاوب"
         }
 
         PlayerMark.BUZZED -> "ضغطت! المضيف عم يسمع جوابك"

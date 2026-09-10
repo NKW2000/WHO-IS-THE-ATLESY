@@ -33,8 +33,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.StageBackground
-import com.feudparty.app.ui.components.flatShadow
+import com.feudparty.app.ui.components.blockSkin
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
 
 /** أطول اسم مسموح — حتى يضل يبيّن كامل بلستة اللاعبين. */
@@ -77,8 +78,7 @@ fun PlayerJoinScreen(onJoinConfirmed: (String) -> Unit) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .flatShadow(7.dp, FeudColors.creamShadow, 18.dp)
-                        .background(FeudColors.cream, RoundedCornerShape(18.dp))
+                        .blockSkin(FeudColors.cream)
                         .padding(horizontal = 20.dp, vertical = 18.dp)
                 ) {
                     BasicTextField(
@@ -127,9 +127,7 @@ fun PlayerJoinScreen(onJoinConfirmed: (String) -> Unit) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .flatShadow(7.dp, FeudColors.canvas, 18.dp)
-                        .background(FeudColors.panelDark, RoundedCornerShape(18.dp))
-                        .border(3.dp, FeudColors.stageAlt, RoundedCornerShape(18.dp))
+                        .blockSkin(FeudColors.panelDark, border = 3.dp)
                         .padding(vertical = 18.dp),
                     contentAlignment = Alignment.Center
                 ) {

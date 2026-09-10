@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.BrandLogo
 import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
 
 /** قياس واحد لكل أزرار الرئيسية — نفس الارتفاع والحدّ والزوايا والظل. */
@@ -212,29 +213,28 @@ private fun PortraitHome(
 
             Spacer(Modifier.height(CARD_GAP))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(CARD_GAP)
-            ) {
-                SmallHomeCard(
-                    title = "انضمام كلاعب",
-                    subtitle = "اكتب اسمك واختار غرفة",
-                    color = FeudColors.teal,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(CARD_HEIGHT),
-                    onClick = onJoinClick
-                )
-                SmallHomeCard(
-                    title = "الإعدادات",
-                    subtitle = "استورد بنك أسئلتك",
-                    color = FeudColors.gold,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(CARD_HEIGHT),
-                    onClick = onSettingsClick
-                )
-            }
+            // كل زر بسطر لحاله بكل العرض.
+            SmallHomeCard(
+                title = "انضمام كلاعب",
+                subtitle = "اكتب اسمك واختار غرفة",
+                color = FeudColors.teal,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(CARD_HEIGHT),
+                onClick = onJoinClick
+            )
+
+            Spacer(Modifier.height(CARD_GAP))
+
+            SmallHomeCard(
+                title = "الإعدادات",
+                subtitle = "استورد بنك أسئلتك",
+                color = FeudColors.gold,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(CARD_HEIGHT),
+                onClick = onSettingsClick
+            )
         }
     }
 }
@@ -288,7 +288,7 @@ private fun BrandPlate(tilt: Float, modifier: Modifier = Modifier) {
         modifier = modifier.rotate(tilt * 0.35f),
         color = FeudColors.canvas,
         borderWidth = 5.dp,
-        corner = 26.dp,
+        corner = FeudShape.block,
         shadow = 9.dp
     ) {
         Column(

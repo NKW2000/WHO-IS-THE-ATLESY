@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.app.ui.theme.FeudShape
 
 /**
  * كتابة اسم قصير بكيبورد الجهاز — خانة كريمية وزرّين تحتها. ما عاد في
@@ -70,7 +71,7 @@ fun NamePromptDialog(
             modifier = Modifier.fillMaxWidth(),
             color = FeudColors.stage,
             borderWidth = 4.dp,
-            corner = 22.dp,
+            corner = FeudShape.block,
             shadow = 8.dp
         ) {
             Column(modifier = Modifier.padding(18.dp)) {
@@ -80,8 +81,7 @@ fun NamePromptDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .flatShadow(6.dp, FeudColors.creamShadow, 14.dp)
-                        .background(FeudColors.cream, RoundedCornerShape(14.dp))
+                        .blockSkin(FeudColors.cream)
                         .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
                     BasicTextField(
