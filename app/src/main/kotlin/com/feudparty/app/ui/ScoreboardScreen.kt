@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.SpinningRays
 import com.feudparty.app.ui.components.appear
+import com.feudparty.app.ui.components.blockSkin
 import com.feudparty.app.ui.components.drop
 import com.feudparty.app.ui.components.rememberShowClock
 import com.feudparty.app.ui.components.rise
@@ -344,7 +345,7 @@ fun LeadBanner(
             .fillMaxWidth()
             .height(height)
             .offset(x = width * offsetFraction)
-            .background(FeudColors.gold),
+            .blockSkin(FeudColors.gold),
         contentAlignment = Alignment.Center
     ) {
         Text(

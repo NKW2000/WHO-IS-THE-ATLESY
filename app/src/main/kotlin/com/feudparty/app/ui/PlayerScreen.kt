@@ -150,8 +150,6 @@ fun PlayerScreen(
     if (faceOffBuzzer) {
         val me = state?.player(playerId)
         FullScreenBuzzer(
-            seat = me?.seat,
-            opponent = me?.let { state.opponentOf(it)?.name },
             onBuzz = onBuzz
         )
     } else {
@@ -550,8 +548,6 @@ private fun Band(
  */
 @Composable
 private fun FullScreenBuzzer(
-    seat: Int?,
-    opponent: String?,
     onBuzz: () -> Unit
 ) {
     val haptics = LocalHapticFeedback.current
@@ -628,17 +624,6 @@ private fun FullScreenBuzzer(
                     )
                 }
             }
-            Spacer(Modifier.height(14.dp))
-            Text(
-                when {
-                    seat != null && opponent != null -> "رقم ${seat.ar()} — وش لوش مع $opponent"
-                    seat != null -> "رقم ${seat.ar()}"
-                    else -> "الشاشة كلها زر"
-                },
-                color = FeudColors.textSoft,
-                style = MaterialTheme.typography.titleSmall,
-                textAlign = TextAlign.Center
-            )
         }
     }
 }

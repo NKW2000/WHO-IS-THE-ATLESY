@@ -140,9 +140,9 @@ fun RoundIntroScreen(round: Int, multiplier: Int, modifier: Modifier = Modifier)
         val portrait = maxHeight > maxWidth
         val w = maxWidth
         val tall = maxHeight
-        // بالطولي القياسات من العرض (زي كرت التصميم ٣٨٥×٧٧٠)، وبالأفقي
-        // من الارتفاع.
-        val h = if (portrait) w else minOf(maxHeight, maxWidth)
+        // القياس الأساسي من أقصر بُعد — هيك القرص بيضل دايرة كاملة جوّا
+        // الكادر بالوضعين، وما بينقص منه ولا بيطلع بيضوي.
+        val h = minOf(maxHeight, maxWidth)
         SpinningRays(modifier = Modifier.fillMaxSize())
 
         // قرص بنفسجي بينط ورا الاسم.
@@ -150,7 +150,7 @@ fun RoundIntroScreen(round: Int, multiplier: Int, modifier: Modifier = Modifier)
             modifier = Modifier
                 .align(Alignment.Center)
                 .offset(y = if (portrait) -tall * 0.02f else 0.dp)
-                .size(if (portrait) w * 0.88f else h * 1.28f)
+                .size(if (portrait) w * 0.88f else h * 0.82f)
                 .scale(thump(t, 0f))
                 .clip(CircleShape)
                 .background(FeudColors.stageAlt)
@@ -175,10 +175,10 @@ fun RoundIntroScreen(round: Int, multiplier: Int, modifier: Modifier = Modifier)
                 color = FeudColors.gold,
                 style = MaterialTheme.typography.displayLarge.copy(
                     fontSize = with(LocalDensity.current) {
-                        (if (portrait) w * 0.22f else h * 0.30f).toSp()
+                        (if (portrait) w * 0.22f else h * 0.20f).toSp()
                     },
                     lineHeight = with(LocalDensity.current) {
-                        (if (portrait) w * 0.24f else h * 0.33f).toSp()
+                        (if (portrait) w * 0.24f else h * 0.22f).toSp()
                     }
                 ),
                 maxLines = 1,
@@ -196,11 +196,11 @@ fun RoundIntroScreen(round: Int, multiplier: Int, modifier: Modifier = Modifier)
         GoldBanner(
             text = "${multiplierWord(multiplier)} ×${multiplier.ar()}",
             width = w,
-            height = if (portrait) tall * 0.104f else h * 0.183f,
+            height = if (portrait) tall * 0.104f else h * 0.16f,
             offsetFraction = wipe(t, 0.70f),
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .offset(y = if (portrait) tall * 0.774f else (maxHeight - h * 0.183f) / 2f + h * 0.52f)
+                .offset(y = if (portrait) tall * 0.774f else tall * 0.76f)
         )
     }
 }
@@ -429,7 +429,8 @@ fun GoldBanner(
             .width(width)
             .height(height)
             .offset(x = width * offsetFraction)
-            .background(FeudColors.gold),
+            .padding(horizontal = 12.dp)
+            .blockSkin(FeudColors.gold),
         contentAlignment = Alignment.Center
     ) {
         Text(
