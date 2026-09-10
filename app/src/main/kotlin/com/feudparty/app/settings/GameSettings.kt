@@ -69,7 +69,9 @@ data class GameSettings(
 
         /** نفس حدود بنك الأسئلة — والحدود الفعلية بتجي من البنك نفسه. */
         const val MIN_ANSWERS = 2
-        const val MAX_ANSWERS = 9
+
+        /** ثمانية — نفس عدد خانات اللوح. */
+        const val MAX_ANSWERS = 8
         const val DEFAULT_MIN_ANSWERS = 5
         val DEFAULT_TEAM_NAMES = mapOf(
             TeamId.TEAM_1 to "الفريق الأخضر",

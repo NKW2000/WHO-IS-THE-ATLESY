@@ -69,8 +69,10 @@ class SettingsRepository(context: Context) {
     /** حدود عدد الأجوبة الموجودة فعلياً بالبنك — منها بتتبنى خطوات الفلتر. */
     fun answerBounds(): IntRange {
         val sizes = questions().map { it.answers.size }
-        val low = sizes.minOrNull() ?: GameSettings.MIN_ANSWERS
-        val high = sizes.maxOrNull() ?: GameSettings.MAX_ANSWERS
+        val low = (sizes.minOrNull() ?: GameSettings.MIN_ANSWERS)
+            .coerceIn(GameSettings.MIN_ANSWERS, GameSettings.MAX_ANSWERS)
+        val high = (sizes.maxOrNull() ?: GameSettings.MAX_ANSWERS)
+            .coerceIn(low, GameSettings.MAX_ANSWERS)
         return low..high
     }
 

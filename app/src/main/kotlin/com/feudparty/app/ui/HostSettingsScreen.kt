@@ -328,10 +328,10 @@ private fun DesignHostSettings(
                         }
                     )
                 }
+                // إعدادين مستقلّين: كل واحد بيتحرّك لحاله وبيوقف عند التاني.
                 SettingRow(
-                    label = "عدد الأجوبة",
-                    value = "${settings.minAnswers.ar()} ‑ ${settings.maxAnswers.ar()}",
-                    valueWidth = 68.dp,
+                    label = "أقل عدد أجوبة",
+                    value = settings.minAnswers.ar(),
                     onMinus = {
                         onSettingsChange(
                             settings.copy(
@@ -343,14 +343,28 @@ private fun DesignHostSettings(
                     onPlus = {
                         onSettingsChange(
                             settings.copy(
+                                minAnswers = (settings.minAnswers + 1)
+                                    .coerceAtMost(settings.maxAnswers)
+                            )
+                        )
+                    }
+                )
+                SettingRow(
+                    label = "أكثر عدد أجوبة",
+                    value = settings.maxAnswers.ar(),
+                    onMinus = {
+                        onSettingsChange(
+                            settings.copy(
+                                maxAnswers = (settings.maxAnswers - 1)
+                                    .coerceAtLeast(settings.minAnswers)
+                            )
+                        )
+                    },
+                    onPlus = {
+                        onSettingsChange(
+                            settings.copy(
                                 maxAnswers = (settings.maxAnswers + 1)
-                                    .coerceAtMost(answerBounds.last),
-                                minAnswers = if (settings.maxAnswers >= answerBounds.last) {
-                                    (settings.minAnswers + 1)
-                                        .coerceAtMost(settings.maxAnswers)
-                                } else {
-                                    settings.minAnswers
-                                }
+                                    .coerceAtMost(answerBounds.last)
                             )
                         )
                     }
