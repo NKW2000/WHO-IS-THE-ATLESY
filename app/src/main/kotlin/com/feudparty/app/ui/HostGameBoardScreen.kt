@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -64,8 +65,8 @@ import com.feudparty.core.game.buzzedTeam
  * «صح»: المضيف بيدوس على خانة الجواب نفسها فبتنقلب خضرا. النقاط ما
  * بتبيّن هون — بتبيّن بشاشة النتيجة بين الجولات.
  */
-/** عرض الزاوية اللي فيها الوقت — ونفسه بالطرف التاني حتى يتوسّط السؤال. */
-private val SIDE_SLOT = 210.dp
+/** عدد خانات اللوح — أكتر عدد أجوبة بالسؤال. */
+private const val BOARD_SLOTS = 8
 
 /** تبديل السؤال مسموح قبل ما تبلّش الجولة فعلياً — يعني بالمواجهة وبدون كشف. */
 private fun GameState.canChangeQuestion(): Boolean =
@@ -87,133 +88,22 @@ fun HostGameBoardScreen(
 
     Box {
         StageBackground(
-            contentPadding = if (portrait) {
-                PaddingValues(horizontal = 12.dp, vertical = 10.dp)
-            } else {
-                PaddingValues(horizontal = 14.dp, vertical = 10.dp)
-            }
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                if (portrait) {
-                    PortraitBoard(
-                        state = state,
-                        canJudge = canJudge,
-                        revealedAll = revealedAll,
-                        seconds = seconds,
-                        onCorrect = onCorrect,
-                        onWrong = onWrong,
-                        onNextRound = onNextRound,
-                        onChangeQuestion = onChangeQuestion
-                    )
-                } else {
-                    // أفقي: الوقت والأخطاء عاليمين، السؤال بالنص، والتصنيف عالشمال.
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            modifier = Modifier.width(SIDE_SLOT),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            if (seconds > 0) {
-                                Countdown(seconds = seconds, size = 44.dp)
-                            } else {
-                                Spacer(Modifier.width(44.dp))
-                            }
-                            StrikeRow(
-                                strikes = state.strikes,
-                                total = state.strikesToSteal,
-                                size = 30.dp
-                            )
-                        }
-
-                        // بطاقة السؤال جوّا Box: هي بتستعمل AnimatedVisibility
-                        // اللي بتاكل الـ weight وبتاخد كل العرض إذا حطيناه عليها.
-                        Box(
-                            modifier = Modifier.weight(1f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            QuestionCard(
-                                round = state.currentQuestionIndex + 1,
-                                totalRounds = state.questions.size,
-                                question = state.currentQuestion?.text ?: "—",
-                                modifier = Modifier.widthIn(max = 560.dp)
-                            )
-                        }
-
-                        // التصنيف والجولة عالشمال — بلوكين جنب بعض بنفس القياس.
-                        RoundBlock(
-                            round = state.currentQuestionIndex + 1,
-                            totalRounds = state.questions.size,
-                            modifier = Modifier.width(SIDE_SLOT)
-                        )
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-
-                    AnswerBoardGrid(
-                        answers = state.currentQuestion?.answers.orEmpty(),
-                        modifier = Modifier.weight(1f),
-                        revealHiddenText = true,
-                        enabledSlots = canJudge,
-                        onSlotClick = onCorrect
-                    )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    // تحت: زر الغلط بالنص، والدور عالجنب، وتبديل السؤال أو
-                    // الجولة الجاية عالطرف التاني.
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        TurnChip(
-                            state = state,
-                            modifier = Modifier
-                                .align(Alignment.CenterStart)
-                                .width(300.dp)
-                        )
-                        SecondaryButton(
-                            text = "غلط ✕",
-                            onClick = onWrong,
-                            enabled = canJudge,
-                            accent = FeudColors.strike,
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .width(200.dp)
-                        )
-                        if (state.canChangeQuestion()) {
-                            if (state.faceOffFailed) {
-                                // الاتنين غلطوا: السؤال محروق، فالزر بيصير أساسي.
-                                PrimaryButton(
-                                    text = "الاتنين غلطوا — بدّل السؤال",
-                                    onClick = onChangeQuestion,
-                                    color = FeudColors.gold,
-                                    modifier = Modifier
-                                        .align(Alignment.CenterEnd)
-                                        .width(300.dp)
-                                )
-                            } else {
-                                SecondaryButton(
-                                    text = "بدّل السؤال",
-                                    onClick = onChangeQuestion,
-                                    accent = FeudColors.teal,
-                                    modifier = Modifier
-                                        .align(Alignment.CenterEnd)
-                                        .width(200.dp)
-                                )
-                            }
-                        }
-                        if (state.phase == RoundPhase.ROUND_END) {
-                            PrimaryButton(
-                                text = if (revealedAll) state.nextButtonLabel() else "اكشف الباقي",
-                                onClick = onNextRound,
-                                enabled = revealedAll,
-                                modifier = Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .width(240.dp)
-                            )
-                        }
-                    }
-                }
+                // نفس التصميم بالوضعين: الفرق الوحيد إنه بالعرضي الأجوبة
+                // بتتوزّع على عمودين لأن العرض بيسمح.
+                DesignBoard(
+                    state = state,
+                    canJudge = canJudge,
+                    revealedAll = revealedAll,
+                    seconds = seconds,
+                    columns = if (portrait) 1 else 2,
+                    onCorrect = onCorrect,
+                    onWrong = onWrong,
+                    onNextRound = onNextRound,
+                    onChangeQuestion = onChangeQuestion
+                )
             }
         }
         StrikeFlash(strikes = state.strikes)
@@ -221,16 +111,17 @@ fun HostGameBoardScreen(
 }
 
 /**
- * لوح المضيف بالوضع الطولي — نفس كرت التصميم: الوقت بالزاوية والأخطاء
- * بالطرف التاني، السؤال بلوح كريمي، والأجوبة سطر ورا سطر بكل عرض
- * الشاشة، وتحت زر الغلط.
+ * لوح المضيف — نفس كرت التصميم بالوضعين: الوقت بالزاوية والأخطاء بالطرف
+ * التاني، السؤال بلوح كريمي، والأجوبة سطر ورا سطر (عمود بالطولي وعمودين
+ * بالعرضي)، وتحت زر الغلط اللي بينقلب «بدّل السؤال» إذا الاتنين غلطوا.
  */
 @Composable
-private fun ColumnScope.PortraitBoard(
+private fun ColumnScope.DesignBoard(
     state: GameState,
     canJudge: Boolean,
     revealedAll: Boolean,
     seconds: Int,
+    columns: Int,
     onCorrect: (Int) -> Unit,
     onWrong: () -> Unit,
     onNextRound: () -> Unit,
@@ -263,24 +154,40 @@ private fun ColumnScope.PortraitBoard(
 
     Spacer(Modifier.height(10.dp))
 
+    // ثمان خانات دايماً — أكتر عدد أجوبة بالسؤال ثمانية.
     val answers = state.currentQuestion?.answers.orEmpty()
-    val slots = maxOf(answers.size + 1, 8)
-    Column(
+    val slots = maxOf(answers.size, BOARD_SLOTS)
+    val perColumn = (slots + columns - 1) / columns
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .weight(1f),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        repeat(slots) { index ->
-            PortraitAnswerRow(
-                position = index + 1,
-                answer = answers.getOrNull(index),
-                enabled = canJudge,
+        repeat(columns) { column ->
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                onClick = { onCorrect(index) }
-            )
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                for (row in 0 until perColumn) {
+                    val index = column * perColumn + row
+                    if (index >= slots) {
+                        Spacer(Modifier.weight(1f))
+                        continue
+                    }
+                    PortraitAnswerRow(
+                        position = index + 1,
+                        answer = answers.getOrNull(index),
+                        enabled = canJudge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        onClick = { onCorrect(index) }
+                    )
+                }
+            }
         }
     }
 
@@ -300,6 +207,16 @@ private fun ColumnScope.PortraitBoard(
                 modifier = Modifier.weight(1f),
                 onClick = onNextRound
             )
+        } else if (state.faceOffFailed && state.canChangeQuestion()) {
+            // الاتنين غلطوا: نفس الزر بمكانه بينقلب «بدّل السؤال».
+            FlatButton(
+                text = "بدّل السؤال ⟳",
+                color = FeudColors.gold,
+                textColor = FeudColors.ink,
+                shadow = FeudColors.goldShadow,
+                modifier = Modifier.weight(1f),
+                onClick = onChangeQuestion
+            )
         } else {
             FlatButton(
                 text = "غلط ✕",
@@ -310,16 +227,6 @@ private fun ColumnScope.PortraitBoard(
                 modifier = Modifier.weight(1f),
                 onClick = onWrong
             )
-            if (state.canChangeQuestion()) {
-                FlatButton(
-                    text = if (state.faceOffFailed) "بدّل السؤال" else "بدّل",
-                    color = if (state.faceOffFailed) FeudColors.gold else FeudColors.teal,
-                    textColor = FeudColors.ink,
-                    shadow = FeudColors.ink,
-                    modifier = Modifier.weight(if (state.faceOffFailed) 1f else 0.5f),
-                    onClick = onChangeQuestion
-                )
-            }
         }
     }
 }

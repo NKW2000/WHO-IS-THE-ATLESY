@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
@@ -67,8 +68,14 @@ import com.feudparty.app.ui.theme.FeudPartyTheme
  * اللي عالمنصة بقطع مايل و«ضد» بالنص). بتنعرض عند المضيف بس — هو الشاشة
  * الكبيرة اللي بتشوفها الغرفة. أي لمسة بتخطّيها.
  */
-private const val INTRO_SECONDS = 2.2f
-private const val VERSUS_SECONDS = 2.6f
+private const val INTRO_SECONDS = 1.9f
+private const val VERSUS_SECONDS = 2.0f
+
+/** توقيت «استعدوا»: الكروت، الرجّة، وشارة «ضد». */
+private const val CARD_AT = 0.06f
+private const val CARD_TIME = 0.44f
+private const val SHAKE_AT = 0.44f
+private const val BADGE_AT = 0.5f
 
 private val ORDINALS = listOf(
     "الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة",
@@ -197,7 +204,10 @@ fun RoundIntroScreen(round: Int, multiplier: Int, modifier: Modifier = Modifier)
     }
 }
 
-/** «استعدوا»: نصفين بقطع مايل، وبينهم «ضد» مع حلقة صدمة. */
+/**
+ * «استعدوا» — نفس شاشة التصميم بالوضعين: كرت لكل لاعب بينقذف لمكانه
+ * وبينهم «ضد» مع حلقة صدمة.
+ */
 @Composable
 fun VersusScreen(
     playerA: String,
@@ -206,228 +216,23 @@ fun VersusScreen(
     teamBName: String,
     modifier: Modifier = Modifier
 ) {
-    val t by rememberShowClock(key = playerA + playerB, cap = 6f)
-
-    // بالطولي: كرت لكل لاعب بينقذف من فوق ومن تحت — «استعدوا — الأسماء»
-    // تبع ملف التصميم الطولي.
-    if (isPortrait()) {
-        VersusCards(
-            playerA = playerA,
-            playerB = playerB,
-            teamAName = teamAName,
-            teamBName = teamBName,
-            t = t,
-            modifier = modifier
-        )
-        return
-    }
-
-    // الهندسة بالتصميم يسار/يمين فيزيائي — منثبّت الاتجاه حتى تطابق.
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-            val portrait = maxHeight > maxWidth
-            val w = maxWidth
-            val tall = maxHeight
-            // القياسات من العرض بالطولي ومن الارتفاع بالأفقي.
-            val basis = if (portrait) w else minOf(maxHeight, maxWidth)
-            val density = LocalDensity.current
-            SpinningRays(modifier = Modifier.fillMaxSize())
-
-            val slide = keys(t, 0.12f, 0.64f, listOf(0f to 0.58f, 1f to 0f))
-            val fade = appear(t, 0.12f, 0.2f)
-            val seam = keys(t, 0.64f, 0.52f, listOf(0f to 0f, 0.7f to 1.06f, 1f to 1f))
-
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val width = size.width
-                val height = size.height
-
-                if (portrait) {
-                    // فوق أخضر وتحت أزرق، والقطع مايل بالعرض.
-                    val top = Path().apply {
-                        moveTo(0f, 0f)
-                        lineTo(width, 0f)
-                        lineTo(width, height * 0.58f)
-                        lineTo(0f, height * 0.42f)
-                        close()
-                    }
-                    val bottom = Path().apply {
-                        moveTo(0f, height * 0.42f)
-                        lineTo(width, height * 0.58f)
-                        lineTo(width, height)
-                        lineTo(0f, height)
-                        close()
-                    }
-                    translate(0f, -height * slide) {
-                        drawPath(top, FeudColors.team1.copy(alpha = fade))
-                    }
-                    translate(0f, height * slide) {
-                        drawPath(bottom, FeudColors.team2.copy(alpha = fade))
-                    }
-                    if (seam > 0f) {
-                        val seamHeight = height * 0.021f
-                        val slant = Math.toDegrees(
-                            kotlin.math.atan2((0.16f * height).toDouble(), width.toDouble())
-                        ).toFloat()
-                        rotate(degrees = slant, pivot = center) {
-                            drawRect(
-                                color = FeudColors.ink,
-                                topLeft = Offset(
-                                    center.x - width * 0.64f * seam,
-                                    center.y - seamHeight / 2f
-                                ),
-                                size = androidx.compose.ui.geometry.Size(
-                                    width * 1.28f * seam,
-                                    seamHeight
-                                )
-                            )
-                        }
-                    }
-                } else {
-                    val right = Path().apply {
-                        moveTo(width * 0.58f, 0f)
-                        lineTo(width, 0f)
-                        lineTo(width, height)
-                        lineTo(width * 0.42f, height)
-                        close()
-                    }
-                    val left = Path().apply {
-                        moveTo(0f, 0f)
-                        lineTo(width * 0.58f, 0f)
-                        lineTo(width * 0.42f, height)
-                        lineTo(0f, height)
-                        close()
-                    }
-                    translate(width * slide, 0f) {
-                        drawPath(right, FeudColors.team1.copy(alpha = fade))
-                    }
-                    translate(-width * slide, 0f) {
-                        drawPath(left, FeudColors.team2.copy(alpha = fade))
-                    }
-                    if (seam > 0f) {
-                        val seamWidth = width * 0.018f
-                        val slant = Math.toDegrees(
-                            kotlin.math.atan2((0.16f * width).toDouble(), height.toDouble())
-                        ).toFloat()
-                        rotate(degrees = slant, pivot = center) {
-                            drawRect(
-                                color = FeudColors.ink,
-                                topLeft = Offset(
-                                    center.x - seamWidth / 2f,
-                                    center.y - height * 0.64f * seam
-                                ),
-                                size = androidx.compose.ui.geometry.Size(
-                                    seamWidth,
-                                    height * 1.28f * seam
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (portrait) {
-                val blockHeight = tall * 0.5f - basis * 0.24f
-                NameHalf(
-                    label = teamAName,
-                    name = playerA,
-                    ink = FeudColors.team1Ink,
-                    nameColor = FeudColors.team1Ink,
-                    nameSize = basis * 0.14f,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth()
-                        .height(blockHeight)
-                        .offset(y = -tall * slide)
-                        .graphicsLayer { alpha = fade }
-                )
-                NameHalf(
-                    label = teamBName,
-                    name = playerB,
-                    ink = FeudColors.team2Ink,
-                    nameColor = FeudColors.cream,
-                    nameSize = basis * 0.14f,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .height(blockHeight)
-                        .offset(y = tall * slide)
-                        .graphicsLayer { alpha = fade }
-                )
-            } else {
-                val halfWidth = maxWidth * 0.5f - basis * 0.2f
-                val nameBasis = minOf(basis * 0.14f, halfWidth * 0.2f)
-                NameHalf(
-                    label = teamAName,
-                    name = playerA,
-                    ink = FeudColors.team1Ink,
-                    nameColor = FeudColors.team1Ink,
-                    nameSize = nameBasis,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .width(halfWidth)
-                        .offset(x = w * slide)
-                        .graphicsLayer { alpha = fade }
-                )
-                NameHalf(
-                    label = teamBName,
-                    name = playerB,
-                    ink = FeudColors.team2Ink,
-                    nameColor = FeudColors.cream,
-                    nameSize = nameBasis,
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .width(halfWidth)
-                        .offset(x = -w * slide)
-                        .graphicsLayer { alpha = fade }
-                )
-            }
-
-            // حلقة الصدمة ثم شارة «ضد».
-            val ring = shockRing(t, 0.82f)
-            if (ring.alpha > 0f) {
-                val ringSize = basis * 0.52f
-                Canvas(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(ringSize * 2.2f)
-                ) {
-                    val stroke = with(density) { (ring.width * (basis.value / 385f)).dp.toPx() }
-                    drawCircle(
-                        color = FeudColors.gold.copy(alpha = ring.alpha),
-                        radius = with(density) { ringSize.toPx() } / 2f * ring.scale,
-                        style = Stroke(width = stroke.coerceAtLeast(1f))
-                    )
-                }
-            }
-
-            val badge = basis * 0.38f
-            Box(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(badge)
-                    .scale(thump(t, 0.82f))
-                    .clip(CircleShape)
-                    .background(FeudColors.gold)
-                    .padding(badge * 0.06f)
-                    .clip(CircleShape)
-                    .background(FeudColors.ink),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "ضد",
-                    color = FeudColors.cream,
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = with(density) { (badge * 0.36f).toSp() }
-                    )
-                )
-            }
-        }
-    }
+    val clock = rememberShowClock(key = playerA + playerB, cap = 4f)
+    VersusCards(
+        playerA = playerA,
+        playerB = playerB,
+        teamAName = teamAName,
+        teamBName = teamBName,
+        clock = clock,
+        modifier = modifier
+    )
 }
 
 /**
- * «استعدوا — الأسماء»: كرت الفريق الأول بينزل من فوق وكرت التاني بيطلع
- * من تحت، بيتصادموا، الكادر بيرجّ، وبتنط شارة «ضد» مع حلقة صدمة.
+ * «استعدوا — الأسماء» — كرت لكل لاعب بينقذف من فوق ومن تحت، رجّة كادر،
+ * حلقة صدمة، وشارة «ضد» بتنط بالنص.
+ *
+ * الوقت بينقرأ جوّا `graphicsLayer` و`Canvas` بس — يعني كل فريم بيعيد
+ * الرسم لحاله بدون ما يعيد تركيب الشاشة، فالحركة بتطلع ناعمة.
  */
 @Composable
 private fun VersusCards(
@@ -435,28 +240,32 @@ private fun VersusCards(
     playerB: String,
     teamAName: String,
     teamBName: String,
-    t: Float,
+    clock: State<Float>,
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val w = maxWidth
         val tall = maxHeight
         val density = LocalDensity.current
+        val span = minOf(w, tall * 0.62f)
         SpinningRays(modifier = Modifier.fillMaxSize())
-
-        // رجّة الكادر بعد التصادم.
-        val shake = if (t in 0.7f..1.0f) {
-            val p = (t - 0.7f) / 0.3f
-            kotlin.math.sin(p * 18f) * (1f - p) * 7f
-        } else {
-            0f
-        }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .offset(x = shake.dp, y = (-shake * 0.7f).dp)
-                .padding(horizontal = w * 0.068f, vertical = tall * 0.039f),
+                .graphicsLayer {
+                    // رجّة الكادر بعد التصادم.
+                    val time = clock.value
+                    val shake = if (time in SHAKE_AT..(SHAKE_AT + 0.24f)) {
+                        val p = (time - SHAKE_AT) / 0.24f
+                        kotlin.math.sin(p * 20f) * (1f - p) * 8f
+                    } else {
+                        0f
+                    }
+                    translationX = shake
+                    translationY = -shake * 0.7f
+                }
+                .padding(horizontal = w * 0.068f, vertical = tall * 0.035f),
             verticalArrangement = Arrangement.Center
         ) {
             VersusCard(
@@ -465,13 +274,14 @@ private fun VersusCards(
                 color = FeudColors.team1,
                 ink = FeudColors.team1Ink,
                 nameColor = FeudColors.team1Ink,
-                fromY = -tall * 0.73f,
+                fromY = -tall * 0.8f,
                 fromRotation = -8f,
-                t = t,
+                nameSize = span * 0.17f,
+                clock = clock,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(bottom = tall * 0.022f)
+                    .padding(bottom = tall * 0.02f)
             )
             VersusCard(
                 label = teamBName,
@@ -479,41 +289,45 @@ private fun VersusCards(
                 color = FeudColors.team2,
                 ink = FeudColors.team2Ink,
                 nameColor = FeudColors.cream,
-                fromY = tall * 0.73f,
+                fromY = tall * 0.8f,
                 fromRotation = 8f,
-                t = t,
+                nameSize = span * 0.17f,
+                clock = clock,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(top = tall * 0.022f)
+                    .padding(top = tall * 0.02f)
             )
         }
 
-        // حلقة الصدمة.
-        val ring = shockRing(t, 0.76f)
-        if (ring.alpha > 0f) {
-            val ringSize = w * 0.52f
-            Canvas(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(ringSize * 2.2f)
-            ) {
-                val stroke = with(density) { (ring.width * (w.value / 385f)).dp.toPx() }
-                drawCircle(
-                    color = FeudColors.gold.copy(alpha = ring.alpha),
-                    radius = with(density) { ringSize.toPx() } / 2f * ring.scale,
-                    style = Stroke(width = stroke.coerceAtLeast(1f))
-                )
-            }
+        // حلقة الصدمة — بترسم لحالها كل فريم.
+        val ringSize = span * 0.5f
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(ringSize * 2.2f)
+        ) {
+            val ring = shockRing(clock.value, BADGE_AT, 0.6f)
+            if (ring.alpha <= 0f) return@Canvas
+            val stroke = with(density) { (ring.width * (span.value / 385f)).dp.toPx() }
+            drawCircle(
+                color = FeudColors.gold.copy(alpha = ring.alpha),
+                radius = with(density) { ringSize.toPx() } / 2f * ring.scale,
+                style = Stroke(width = stroke.coerceAtLeast(1f))
+            )
         }
 
         // شارة «ضد».
-        val badge = w * 0.24f
+        val badge = span * 0.24f
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
                 .size(badge)
-                .scale(thump(t, 0.76f))
+                .graphicsLayer {
+                    val pop = thump(clock.value, BADGE_AT, 0.36f)
+                    scaleX = pop
+                    scaleY = pop
+                }
                 .clip(CircleShape)
                 .background(FeudColors.gold)
                 .padding(badge * 0.076f)
@@ -542,93 +356,61 @@ private fun VersusCard(
     nameColor: Color,
     fromY: Dp,
     fromRotation: Float,
-    t: Float,
+    nameSize: Dp,
+    clock: State<Float>,
     modifier: Modifier = Modifier
 ) {
-    val stops = listOf(0f to 1f, 0.54f to 0f, 1f to 0f)
-    val offsetY = fromY * keys(t, 0.2f, 0.7f, stops)
-    val rotation = fromRotation * keys(t, 0.2f, 0.7f, stops)
-    val scaleX = keys(
-        t, 0.2f, 0.7f,
-        listOf(0f to 0.7f, 0.54f to 0.86f, 0.7f to 1.08f, 0.86f to 0.97f, 1f to 1f)
-    )
-    val scaleY = keys(
-        t, 0.2f, 0.7f,
-        listOf(0f to 0.7f, 0.54f to 1.14f, 0.7f to 0.94f, 0.86f to 1.04f, 1f to 1f)
-    )
-    val fade = appear(t, 0.2f, 0.27f)
+    val density = LocalDensity.current
+    val fromYPx = with(density) { fromY.toPx() }
 
     Box(
         modifier = modifier
-            .offset(y = offsetY)
             .graphicsLayer {
-                rotationZ = rotation
-                this.scaleX = scaleX
-                this.scaleY = scaleY
-                alpha = fade
+                val time = clock.value
+                val away = keys(
+                    time, CARD_AT, CARD_TIME,
+                    listOf(0f to 1f, 0.54f to 0f, 1f to 0f)
+                )
+                translationY = fromYPx * away
+                rotationZ = fromRotation * away
+                scaleX = keys(
+                    time, CARD_AT, CARD_TIME,
+                    listOf(0f to 0.7f, 0.54f to 0.86f, 0.7f to 1.08f, 0.86f to 0.97f, 1f to 1f)
+                )
+                scaleY = keys(
+                    time, CARD_AT, CARD_TIME,
+                    listOf(0f to 0.7f, 0.54f to 1.14f, 0.7f to 0.94f, 0.86f to 1.04f, 1f to 1f)
+                )
+                alpha = appear(time, CARD_AT, 0.12f)
             }
             .flatShadow(4.dp, FeudColors.ink, 18.dp)
             .clip(RoundedCornerShape(18.dp))
-            .background(color)
-            .padding(horizontal = 18.dp, vertical = 22.dp),
+            .background(color),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
                 label,
                 color = ink.copy(alpha = 0.75f),
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(Modifier.height(6.dp))
             Text(
                 name,
                 color = nameColor,
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.displayLarge.copy(
+                    fontSize = with(density) { nameSize.toSp() },
+                    lineHeight = with(density) { (nameSize * 1.1f).toSp() }
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center
             )
         }
-    }
-}
-
-/** نص نصف الشاشة: اسم الفريق فوق واسم اللاعب كبير تحته. */
-@Composable
-private fun NameHalf(
-    label: String,
-    name: String,
-    ink: Color,
-    nameColor: Color,
-    nameSize: Dp,
-    modifier: Modifier = Modifier
-) {
-    val density = LocalDensity.current
-    Column(
-        modifier = modifier.padding(horizontal = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            label,
-            color = ink,
-            style = MaterialTheme.typography.labelLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            name,
-            color = nameColor,
-            style = MaterialTheme.typography.displayLarge.copy(
-                fontSize = with(density) { nameSize.toSp() },
-                lineHeight = with(density) { (nameSize * 1.14f).toSp() }
-            ),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center
-        )
     }
 }
 
