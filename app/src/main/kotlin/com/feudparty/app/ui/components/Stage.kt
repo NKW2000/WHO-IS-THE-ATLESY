@@ -36,6 +36,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.feudparty.app.feedback.Cue
+import com.feudparty.app.feedback.LocalGameFeedback
 import com.feudparty.app.ui.theme.FeudBrushes
 import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudColors
@@ -192,12 +194,16 @@ fun PrimaryButton(
     enabled: Boolean = true,
     color: Color = FeudColors.gold
 ) {
+    val feedback = LocalGameFeedback.current
     CartoonSurface(
         modifier = modifier,
         color = if (enabled) color else FeudColors.panelDark,
         corner = 18.dp,
         shadow = 6.dp,
-        onClick = onClick,
+        onClick = {
+            feedback?.play(Cue.TAP)
+            onClick()
+        },
         enabled = enabled
     ) {
         Text(

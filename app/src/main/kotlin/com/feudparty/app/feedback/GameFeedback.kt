@@ -18,7 +18,11 @@ import com.feudparty.app.R
  * نوع التنبيه — كل واحد له صوت ونمط اهتزاز.
  * الستريكات تلاتة، وكل وحدة إلها صوتها زي البرنامج.
  */
-enum class Cue { REVEAL, STRIKE_1, STRIKE_2, STRIKE_3, WRONG, WIN, BUZZ, CLOCK }
+enum class Cue {
+    REVEAL, STRIKE_1, STRIKE_2, STRIKE_3, WRONG, WIN, BUZZ, CLOCK,
+    // أصوات المشاهد — المقدمة، افتتاحية الجولة، «استعدوا»، والنتائج.
+    INTRO, ROUND_START, VERSUS, COUNT, CROWN, FANFARE, FIREWORK, JOIN, TAP
+}
 
 /**
  * الصوت والاهتزاز مع بعض. لعبة بتنلعب بغرفة فيها ناس، فالتنبيه لازم
@@ -29,7 +33,7 @@ class GameFeedback(context: Context) {
     private val appContext = context.applicationContext
 
     private val soundPool = SoundPool.Builder()
-        .setMaxStreams(4)
+        .setMaxStreams(6)
         .setAudioAttributes(
             AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_GAME)
@@ -46,7 +50,16 @@ class GameFeedback(context: Context) {
         Cue.WRONG to soundPool.load(appContext, R.raw.sfx_wrong, 1),
         Cue.WIN to soundPool.load(appContext, R.raw.sfx_win, 1),
         Cue.BUZZ to soundPool.load(appContext, R.raw.sfx_press, 1),
-        Cue.CLOCK to soundPool.load(appContext, R.raw.sfx_clock, 1)
+        Cue.CLOCK to soundPool.load(appContext, R.raw.sfx_clock, 1),
+        Cue.INTRO to soundPool.load(appContext, R.raw.sfx_intro, 1),
+        Cue.ROUND_START to soundPool.load(appContext, R.raw.sfx_round_start, 1),
+        Cue.VERSUS to soundPool.load(appContext, R.raw.sfx_versus, 1),
+        Cue.COUNT to soundPool.load(appContext, R.raw.sfx_count, 1),
+        Cue.CROWN to soundPool.load(appContext, R.raw.sfx_crown, 1),
+        Cue.FANFARE to soundPool.load(appContext, R.raw.sfx_fanfare, 1),
+        Cue.FIREWORK to soundPool.load(appContext, R.raw.sfx_firework, 1),
+        Cue.JOIN to soundPool.load(appContext, R.raw.sfx_join, 1),
+        Cue.TAP to soundPool.load(appContext, R.raw.sfx_tap, 1)
     )
 
     /** صوت الخطأ حسب رقمه: الأول، التاني، التالت. */
@@ -93,6 +106,16 @@ class GameFeedback(context: Context) {
             Cue.STRIKE_3 -> longArrayOf(0, 70, 70, 70, 70, 140)
             Cue.WRONG -> longArrayOf(0, 130)
             Cue.WIN -> longArrayOf(0, 45, 60, 45, 60, 110)
+            // مشاهد بتتفرّج عليها الغرفة — الاهتزاز خفيف أو مقطوع حتى ما
+            // يزنّ الجهاز طول الموسيقى.
+            Cue.INTRO, Cue.COUNT -> longArrayOf(0, 0)
+            Cue.ROUND_START -> longArrayOf(0, 55)
+            Cue.VERSUS -> longArrayOf(0, 40, 70, 70)
+            Cue.CROWN -> longArrayOf(0, 30, 55, 30)
+            Cue.FANFARE -> longArrayOf(0, 60, 70, 60, 70, 130)
+            Cue.FIREWORK -> longArrayOf(0, 22)
+            Cue.JOIN -> longArrayOf(0, 25)
+            Cue.TAP -> longArrayOf(0, 12)
         }
         val amplitudes = timings.mapIndexed { index, _ ->
             if (index % 2 == 0) 0 else VibrationEffect.DEFAULT_AMPLITUDE

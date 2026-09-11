@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.feudparty.core.game.GameState
 import com.feudparty.core.game.PlayerMark
+import kotlinx.coroutines.delay
 
 /**
  * بيراقب حالة اللعبة وبيشغّل الصوت/الاهتزاز عند كل حدث: كشف جواب، خطأ،
@@ -89,3 +90,47 @@ fun PlayerMarkCues(mark: PlayerMark, faceOff: Boolean) {
 
 private fun GameState?.revealedCount(): Int =
     this?.currentQuestion?.answers?.count { it.revealed } ?: 0
+
+/**
+ * صوت مشهد — بيشتغل مرة وحدة لما يفوت المشهد. [at] بتأخّره حتى يوقع على
+ * نفس لحظة الحركة بالشاشة (مثلاً ضربة الاسم مش أول ما تبلّش الافتتاحية).
+ */
+@Composable
+fun SceneCue(cue: Cue, key: Any? = Unit, at: Float = 0f) {
+    val feedback = LocalGameFeedback.current ?: return
+    LaunchedEffect(key, cue) {
+        if (at > 0f) delay((at * 1000).toLong())
+        feedback.play(cue)
+    }
+}
+
+/**
+ * طقّات الألعاب النارية بشاشة النتيجة — بتبلّش بعد ما تخلص الفانفير حتى
+ * ما تتخانق معها، وبتوقف لحالها لما تختفي الشاشة.
+ */
+@Composable
+fun FireworkCues(key: Any? = Unit, start: Float = 1.9f, every: Float = 0.68f, count: Int = 4) {
+    val feedback = LocalGameFeedback.current ?: return
+    LaunchedEffect(key) {
+        delay((start * 1000).toLong())
+        repeat(count) {
+            feedback.play(Cue.FIREWORK)
+            delay((every * 1000).toLong())
+        }
+    }
+}
+
+/**
+ * لاعب جديد وصل عالغرفة — نغمة قصيرة حتى يعرف المضيف بدون ما يضل
+ * متطلّع عالشاشة. ما بتشتغل لأول رسم، بس لما يزيد العدد.
+ */
+@Composable
+fun JoinCues(joined: Int) {
+    val feedback = LocalGameFeedback.current ?: return
+    var last by remember { mutableIntStateOf(joined) }
+
+    LaunchedEffect(joined) {
+        if (joined > last) feedback.play(Cue.JOIN)
+        last = joined
+    }
+}

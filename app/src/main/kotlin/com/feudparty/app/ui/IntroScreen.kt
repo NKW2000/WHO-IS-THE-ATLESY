@@ -47,6 +47,8 @@ import com.feudparty.app.ui.components.BrandBar
 import com.feudparty.app.ui.components.BrandWordmark
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudPartyTheme
+import com.feudparty.app.feedback.Cue
+import com.feudparty.app.feedback.SceneCue
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -110,6 +112,9 @@ private class Spark(
 
 @Composable
 fun IntroScreen(onDone: () -> Unit) {
+    // موسيقى المقدمة — موقّتة على نفس ضربات المشهد: وميض، تصادم، بناء، فوز.
+    SceneCue(Cue.INTRO)
+
     // بالوضع الطولي في مقدمة خاصة — نفس السيناريو بس بتصادم عمودي
     // واسم بسطرين، زي ملف التصميم الطولي.
     if (isPortrait()) {

@@ -52,6 +52,7 @@ import com.feudparty.core.game.Player
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.game.other
 import com.feudparty.core.game.TeamState
+import com.feudparty.app.feedback.JoinCues
 
 /**
  * لوبي المضيف. كل إشي بيدخل بشاشة وحدة بدون تمرير: عمودين للفريقين،
@@ -201,6 +202,7 @@ private fun TeamColumn(
 ) {
     val color = teamId.color()
     val joined = players.count { it.connected }
+    JoinCues(joined)
 
     CartoonSurface(
         modifier = if (expand) modifier.fillMaxHeight() else modifier,
