@@ -70,7 +70,9 @@ import com.feudparty.core.game.TeamId
  * افتتاحية الجولة — نفس مشهدَي التصميم بملف `مين الأطليسي - Play & Pass`:
  * أول شي «بداية الجولة» (اسم الجولة والمضاعف)، وبعدها «استعدوا» (اللاعبين
  * اللي عالمنصة بقطع مايل و«ضد» بالنص). بتنعرض عند المضيف وعند كل لاعب.
- * أي لمسة بتخطّيها عالجهاز نفسه بس.
+ *
+ * ما بتنتخطّى: اللمسة بتنبلع وما بتوصل لشي تحتها — وإلا اللاعب بيتخطّاها
+ * وبيضغط الزر قبل ما يخلص المشهد عند الباقيين.
  */
 private const val INTRO_SECONDS = 1.9f
 private const val VERSUS_SECONDS = 2.0f
@@ -139,10 +141,11 @@ fun RoundOpening(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            // بتاكل اللمسة بدون ما تعمل شي — حاجز، مش زر تخطّي.
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
-            ) { finish() }
+            ) {}
     ) {
         if (stage == 0) {
             RoundIntroScreen(round = round, multiplier = multiplier)
