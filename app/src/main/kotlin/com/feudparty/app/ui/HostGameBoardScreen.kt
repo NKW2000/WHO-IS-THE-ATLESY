@@ -29,8 +29,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -44,6 +46,10 @@ import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.components.StrikeFlash
 import com.feudparty.app.ui.components.StrikeRow
 import com.feudparty.app.ui.components.color
+import com.feudparty.app.ui.components.keys
+import com.feudparty.app.ui.components.rememberRevealDelays
+import com.feudparty.app.ui.components.rememberShowClock
+import com.feudparty.app.ui.components.thump
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
@@ -171,6 +177,8 @@ private fun ColumnScope.DesignBoard(
     val answers = state.currentQuestion?.answers.orEmpty()
     val slots = maxOf(answers.size, BOARD_SLOTS)
     val perColumn = (slots + columns - 1) / columns
+    // «اكشف الباقي» بيكشف كذا خانة مرة وحدة — بتتقلب وحدة ورا التانية.
+    val revealDelays = rememberRevealDelays(answers)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -194,6 +202,7 @@ private fun ColumnScope.DesignBoard(
                         position = index + 1,
                         answer = answers.getOrNull(index),
                         enabled = canJudge,
+                        revealDelay = revealDelays[index] ?: 0f,
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
@@ -324,7 +333,25 @@ fun PortraitBoardHeader(
     }
 }
 
-/** سطر جواب بالوضع الطولي: رقم، نص، نقاط — بظل مسطّح زي التصميم. */
+/** زمن انقلاب الخانة لما تنكشف. */
+private const val FLIP_TIME = 0.5f
+
+/** الهزّة لما يحطّ الوجه الأخضر، ونطّة النقاط بعدها بشوي. */
+private const val LAND_AT = FLIP_TIME * 0.35f
+private const val POINTS_AT = FLIP_TIME * 0.45f
+
+/** وقت «خلصت الحركة» للخانة اللي بتبيّن مكشوفة بدون ما تتحرّك. */
+private const val SETTLED = 1e6f
+
+/**
+ * سطر جواب: رقم، نص، نقاط — بظل مسطّح زي التصميم. نفس السطر عند المضيف
+ * وعند اللاعب، فالكشف بيتحرّك عند الاتنين متل بعض: الخانة بتنقلب على
+ * محورها الأفقي من الكريمي للأخضر، بتهتز لما تحطّ، والنقاط بتنط بعدها.
+ * [revealDelay] بيأخّر الانقلاب لما تنكشف كذا خانة بنفس اللحظة.
+ *
+ * الوجهين مرسومين فوق بعض والوقت بينقرأ جوّا `graphicsLayer` بس — كل
+ * فريم بيعيد الرسم بدون ما يعيد تركيب السطر.
+ */
 @Composable
 fun PortraitAnswerRow(
     position: Int,
@@ -333,72 +360,167 @@ fun PortraitAnswerRow(
     modifier: Modifier = Modifier,
     // اللاعب ما بيشوف نص الجواب ولا نقاطه قبل ما يكشفه المضيف.
     revealHiddenText: Boolean = true,
+    revealDelay: Float = 0f,
     onClick: () -> Unit = {}
 ) {
-    val revealed = answer?.revealed == true
     val shape = RoundedCornerShape(FeudShape.block)
 
-    val base = when {
-        answer == null -> Modifier
-            .background(FeudColors.panelDark, shape)
-            .border(3.dp, FeudColors.stageAlt, shape)
-
-        revealed -> Modifier
-            .blockSkin(FeudColors.team1, border = 3.dp, shadow = 4.dp)
-
-        else -> Modifier
-            .blockSkin(FeudColors.cream, border = 3.dp, shadow = 4.dp)
+    if (answer == null) {
+        SlotFace(
+            position = position,
+            text = null,
+            textColor = FeudColors.textFaint,
+            points = null,
+            pointsColor = FeudColors.textFaint,
+            numberColor = FeudColors.stageAlt,
+            numberInk = FeudColors.textFaint,
+            modifier = modifier
+                .clip(shape)
+                .background(FeudColors.panelDark, shape)
+                .border(3.dp, FeudColors.stageAlt, shape)
+        )
+        return
     }
 
-    Row(
-        modifier = modifier
-            .clip(shape)
-            .then(base)
-            .then(
-                if (answer != null && !revealed && enabled) {
-                    Modifier.clickable(onClick = onClick)
-                } else {
-                    Modifier
+    val revealed = answer.revealed
+    // بنحرّك بس الكشف اللي صار قدّامنا: خانة أول ما شفناها كانت مكشوفة
+    // (لاعب انضم بنص الجولة) بتبيّن خضرا فوراً.
+    val gate = remember { RevealGate(seenHidden = !revealed) }
+    if (!revealed) gate.seenHidden = true
+    val animate = revealed && gate.seenHidden
+    val clock = rememberShowClock(
+        key = animate,
+        cap = if (animate) revealDelay + FLIP_TIME + 0.6f else 0f
+    )
+    val now: () -> Float = {
+        when {
+            animate -> clock.value
+            revealed -> SETTLED
+            else -> 0f
+        }
+    }
+    val showText = revealed || revealHiddenText
+
+    Box(modifier = modifier) {
+        // الوجه الأخضر — بيجي من الحرف لمكانه بعد ما يختفي الكريمي.
+        SlotFace(
+            position = position,
+            text = answer.text,
+            textColor = FeudColors.team1Ink,
+            points = answer.points.ar(),
+            pointsColor = FeudColors.team1Ink,
+            numberColor = FeudColors.gold,
+            numberInk = FeudColors.ink,
+            modifier = Modifier
+                .matchParentSize()
+                .graphicsLayer {
+                    val t = now()
+                    val angle = flipAngle(t, revealDelay)
+                    alpha = if (angle < 90f) 0f else 1f
+                    rotationX = angle - 180f
+                    cameraDistance = 12f * density
+                    val land = keys(
+                        t, revealDelay + LAND_AT, 0.4f,
+                        listOf(0f to 1f, 0.45f to 1.06f, 0.75f to 0.98f, 1f to 1f)
+                    )
+                    scaleX = land
+                    scaleY = land
                 }
-            )
-            .padding(horizontal = 12.dp),
+                .clip(shape)
+                .blockSkin(FeudColors.team1, border = 3.dp, shadow = 4.dp),
+            pointsModifier = Modifier.graphicsLayer {
+                val pop = thump(now(), revealDelay + POINTS_AT, 0.4f)
+                scaleX = pop
+                scaleY = pop
+            }
+        )
+
+        // الوجه الكريمي — فوق، لأنه هو اللي بينضغط عند المضيف.
+        SlotFace(
+            position = position,
+            text = if (showText) answer.text else "؟ ؟ ؟",
+            textColor = if (showText) FeudColors.ink else FeudColors.ink.copy(alpha = 0.35f),
+            points = if (showText) answer.points.ar() else null,
+            pointsColor = FeudColors.ink,
+            numberColor = FeudColors.gold,
+            numberInk = FeudColors.ink,
+            modifier = Modifier
+                .matchParentSize()
+                .graphicsLayer {
+                    val angle = flipAngle(now(), revealDelay)
+                    alpha = if (angle < 90f) 1f else 0f
+                    rotationX = angle
+                    cameraDistance = 12f * density
+                }
+                .clip(shape)
+                .blockSkin(FeudColors.cream, border = 3.dp, shadow = 4.dp)
+                .then(
+                    if (!revealed && enabled) {
+                        Modifier.clickable(onClick = onClick)
+                    } else {
+                        Modifier
+                    }
+                )
+        )
+    }
+}
+
+/** بيتذكّر إذا شفنا الخانة مخفية قبل — بس هيك الكشف بيتحرّك. */
+private class RevealGate(var seenHidden: Boolean)
+
+/**
+ * زاوية الانقلاب من ٠ لـ ١٨٠: النص الأول بيلف الوجه الكريمي لحد ما يصير
+ * عالحرف، والتاني بيجيب الأخضر من الحرف لمكانه — بمنحنى `bang` نفسه،
+ * فالكريمي بيختفي بسرعة والأخضر بيهدى وهو نازل.
+ */
+private fun flipAngle(t: Float, delay: Float): Float =
+    180f * keys(t, delay, FLIP_TIME, listOf(0f to 0f, 1f to 1f))
+
+/** وجه واحد من الخانة: رقم، نص، ونقاط. [text] = null يعني خانة فاضية. */
+@Composable
+private fun SlotFace(
+    position: Int,
+    text: String?,
+    textColor: Color,
+    points: String?,
+    pointsColor: Color,
+    numberColor: Color,
+    numberInk: Color,
+    modifier: Modifier,
+    pointsModifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Box(
             modifier = Modifier
                 .size(26.dp)
-                .background(
-                    if (answer == null) FeudColors.stageAlt else FeudColors.gold,
-                    CircleShape
-                ),
+                .background(numberColor, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 position.ar(),
-                color = if (answer == null) FeudColors.textFaint else FeudColors.ink,
+                color = numberInk,
                 style = MaterialTheme.typography.labelLarge
             )
         }
-        if (answer != null) {
-            val showText = revealed || revealHiddenText
+        if (text != null) {
             Text(
-                if (showText) answer.text else "؟ ؟ ؟",
-                color = when {
-                    revealed -> FeudColors.team1Ink
-                    showText -> FeudColors.ink
-                    else -> FeudColors.ink.copy(alpha = 0.35f)
-                },
+                text,
+                color = textColor,
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
-            if (showText) {
+            if (points != null) {
                 Text(
-                    answer.points.ar(),
-                    color = if (revealed) FeudColors.team1Ink else FeudColors.ink,
-                    style = MaterialTheme.typography.titleMedium
+                    points,
+                    color = pointsColor,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = pointsModifier
                 )
             }
         } else {

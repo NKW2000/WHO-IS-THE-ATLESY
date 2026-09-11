@@ -64,6 +64,7 @@ import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.RoundBlock
 import com.feudparty.app.ui.components.Countdown
 import com.feudparty.app.ui.components.Pill
+import com.feudparty.app.ui.components.rememberRevealDelays
 import com.feudparty.app.ui.components.PrimaryButton
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StrikeFlash
@@ -682,6 +683,7 @@ private fun PlayerBoard(
             val answers = question?.answers.orEmpty()
             val slots = maxOf(answers.size, 8)
             val perColumn = (slots + columns - 1) / columns
+            val revealDelays = rememberRevealDelays(answers)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -706,6 +708,7 @@ private fun PlayerBoard(
                                 answer = answers.getOrNull(index),
                                 enabled = false,
                                 revealHiddenText = false,
+                                revealDelay = revealDelays[index] ?: 0f,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f)

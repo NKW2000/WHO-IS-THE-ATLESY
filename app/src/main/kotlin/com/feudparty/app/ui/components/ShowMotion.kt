@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
 import com.feudparty.app.ui.theme.FeudColors
+import com.feudparty.core.game.Answer
 
 /**
  * أدوات حركة مشاهد البرنامج — نفس منحنيات ملف التصميم
@@ -126,6 +127,36 @@ fun shockRing(t: Float, delay: Float, duration: Float = 0.76f): ShockRing {
     )
     val width = keys(t, delay, duration, listOf(0f to 28f, 1f to 2f))
     return ShockRing(scale, alpha, width)
+}
+
+/**
+ * تأخير كشف كل خانة انكشفت بهالتحديث: لما تنكشف كذا خانة بنفس اللحظة
+ * («اكشف الباقي») بتتقلب وحدة ورا التانية بترتيب اللوح، كل [step] ثانية.
+ * الخانة اللي انكشفت لحالها ما بتستنى. [previous] = null يعني أول لوح
+ * منشوفه (لاعب انضم بنص الجولة) — ما في طابور، كل شي بيبيّن فوراً.
+ */
+fun revealDelays(previous: Set<Int>?, current: Set<Int>, step: Float = 0.12f): Map<Int, Float> {
+    if (previous == null) return emptyMap()
+    return (current - previous).sorted()
+        .mapIndexed { order, index -> index to order * step }
+        .toMap()
+}
+
+/** بيتذكّر آخر مجموعة مكشوفة وبيرجّع تأخير كل خانة انكشفت بآخر تحديث. */
+@Composable
+fun rememberRevealDelays(answers: List<Answer>, step: Float = 0.12f): Map<Int, Float> {
+    val revealed = answers.withIndex().filter { it.value.revealed }.map { it.index }.toSet()
+    val memory = remember { RevealMemory() }
+    if (revealed != memory.revealed) {
+        memory.delays = revealDelays(memory.revealed, revealed, step)
+        memory.revealed = revealed
+    }
+    return memory.delays
+}
+
+private class RevealMemory {
+    var revealed: Set<Int>? = null
+    var delays: Map<Int, Float> = emptyMap()
 }
 
 /** خلفية الأشعة الدوّارة — نفس `repeating-conic-gradient` تبع التصميم. */

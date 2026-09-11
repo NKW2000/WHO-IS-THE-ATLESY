@@ -62,12 +62,15 @@ import com.feudparty.app.ui.components.wipe
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
+import com.feudparty.core.game.GameState
+import com.feudparty.core.game.RoundPhase
+import com.feudparty.core.game.TeamId
 
 /**
  * افتتاحية الجولة — نفس مشهدَي التصميم بملف `مين الأطليسي - Play & Pass`:
  * أول شي «بداية الجولة» (اسم الجولة والمضاعف)، وبعدها «استعدوا» (اللاعبين
- * اللي عالمنصة بقطع مايل و«ضد» بالنص). بتنعرض عند المضيف بس — هو الشاشة
- * الكبيرة اللي بتشوفها الغرفة. أي لمسة بتخطّيها.
+ * اللي عالمنصة بقطع مايل و«ضد» بالنص). بتنعرض عند المضيف وعند كل لاعب.
+ * أي لمسة بتخطّيها عالجهاز نفسه بس.
  */
 private const val INTRO_SECONDS = 1.9f
 private const val VERSUS_SECONDS = 2.0f
@@ -88,6 +91,29 @@ fun roundOrdinal(round: Int): String = ORDINALS.getOrElse(round - 1) { round.ar(
 
 fun multiplierWord(multiplier: Int): String =
     MULTIPLIER_WORDS.getOrElse(multiplier - 1) { "×${multiplier.ar()}" }
+
+/**
+ * الافتتاحية فوق اللوح — نفس الحالة بتوصل للمضيف وللاعبين، فكل جهاز
+ * بيشغّل المشهد لحاله أول ما تبلّش جولة جديدة بالمواجهة، فبيطلعوا مع
+ * بعض بفرق الشبكة بس. بتنعرض مرة وحدة لكل جولة على كل جهاز.
+ */
+@Composable
+fun RoundOpeningOverlay(state: GameState?) {
+    var openedRound by remember { mutableIntStateOf(-1) }
+    if (state == null || !state.matchStarted || state.gameOver) return
+    val roundIndex = state.currentQuestionIndex
+    if (state.phase != RoundPhase.FACE_OFF || openedRound == roundIndex) return
+
+    RoundOpening(
+        round = roundIndex + 1,
+        multiplier = state.multiplier,
+        playerA = state.podiumPlayer(TeamId.TEAM_1)?.name,
+        playerB = state.podiumPlayer(TeamId.TEAM_2)?.name,
+        teamAName = state.teams[TeamId.TEAM_1]?.name.orEmpty(),
+        teamBName = state.teams[TeamId.TEAM_2]?.name.orEmpty(),
+        onDone = { openedRound = roundIndex }
+    )
+}
 
 @Composable
 fun RoundOpening(
