@@ -84,6 +84,7 @@ import com.feudparty.core.game.RoundPhase
 import com.feudparty.core.game.TeamId
 import com.feudparty.core.game.TeamState
 import com.feudparty.core.game.other
+import kotlin.math.abs
 import kotlinx.coroutines.delay
 
 /** ألوان شاشة «العب / تمرير» زي ما هي بملف التصميم. */
@@ -462,15 +463,22 @@ private fun PlayOrPassScreen(
             }
         )
 
-        // شريط الوقت ملزوق بالأحمر: بينزل ناعم بدون وقفات — كل ما توصل
-        // ثانية جديدة منكمّل النزول للثانية اللي بعدها بنفس السرعة.
+        // شريط الوقت ملزوق بالأحمر: بينفضى بسرعة ثابتة من الوقت نفسه، مش من
+        // دقّات المضيف — الدقّة اللي بتوصل عالشبكة متأخرة أو بدري ما بتوقّفه
+        // ولا بتنطّطه، بس إذا بعد كتير عن وقت المضيف منرجّعه على وقته.
         val progress = remember { Animatable(1f) }
         LaunchedEffect(state.choiceSecondsLeft, total) {
-            val now = (state.choiceSecondsLeft.toFloat() / total).coerceIn(0f, 1f)
-            // رجع الوقت لفوق؟ يعني عدّاد جديد — منقفز بدل ما نطلع ببطء.
-            if (now > progress.value + 0.02f) progress.snapTo(now)
-            val next = ((state.choiceSecondsLeft - 1).coerceAtLeast(0)).toFloat() / total
-            progress.animateTo(next, tween(durationMillis = 1000, easing = LinearEasing))
+            val hostAt = (state.choiceSecondsLeft.toFloat() / total).coerceIn(0f, 1f)
+            val drift = abs(progress.value - hostAt) * total
+            // عدّاد جديد (رجع الوقت لفوق) أو فرق أكتر من ثانية ونص: منقفز لوقت المضيف.
+            if (hostAt > progress.value + 0.02f || drift > 1.5f) progress.snapTo(hostAt)
+            if (state.choiceSecondsLeft <= 0) {
+                progress.snapTo(0f)
+                return@LaunchedEffect
+            }
+            // من وين ما كنا لصفر، بسرعة (١ / الوقت الكلي) بالثانية — بدون وقفات.
+            val remainingMillis = (progress.value * total * 1000).toInt().coerceAtLeast(1)
+            progress.animateTo(0f, tween(durationMillis = remainingMillis, easing = LinearEasing))
         }
         Box(
             modifier = Modifier
