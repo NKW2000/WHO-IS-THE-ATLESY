@@ -15,6 +15,9 @@ import com.feudparty.app.ui.components.SpinningRays
 import com.feudparty.app.ui.components.appear
 import com.feudparty.app.ui.components.drop
 import com.feudparty.app.ui.components.rememberShowClock
+import com.feudparty.app.feedback.Cue
+import com.feudparty.app.feedback.FireworkCues
+import com.feudparty.app.feedback.SceneCue
 import com.feudparty.app.ui.components.wipe
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
@@ -72,6 +75,10 @@ fun GameOverScreen(
     val scores = TeamId.entries.associateWith { state.teams[it]?.score ?: 0 }
     val top = scores.values.maxOrNull()?.coerceAtLeast(1) ?: 1
     val t by rememberShowClock(key = "final", cap = 4f)
+    // هون الفانفير لحالها بتحمل المشهد — ما منحط دقّات العدّ فوقها حتى
+    // ما يتوسّخ الصوت. الطقّات بتجي بعد ما تخلص.
+    SceneCue(Cue.FANFARE, key = "final")
+    FireworkCues(key = "final")
     val counted = ((t - 0.5f) / 0.9f).coerceIn(0f, 1f)
     val portrait = isPortrait()
     val short = shortSide()

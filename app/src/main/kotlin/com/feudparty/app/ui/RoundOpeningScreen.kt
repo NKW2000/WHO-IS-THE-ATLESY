@@ -62,6 +62,8 @@ import com.feudparty.app.ui.components.wipe
 import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.app.ui.theme.FeudPartyTheme
+import com.feudparty.app.feedback.Cue
+import com.feudparty.app.feedback.SceneCue
 
 /**
  * افتتاحية الجولة — نفس مشهدَي التصميم بملف `مين الأطليسي - Play & Pass`:
@@ -135,6 +137,8 @@ fun RoundOpening(
 @Composable
 fun RoundIntroScreen(round: Int, multiplier: Int, modifier: Modifier = Modifier) {
     val t by rememberShowClock(key = round, cap = 6f)
+    // الضربة بتوقع مع هبوط اسم الجولة، مش مع أول ما يبان القرص.
+    SceneCue(Cue.ROUND_START, key = round)
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val portrait = maxHeight > maxWidth
@@ -218,6 +222,7 @@ fun VersusScreen(
     modifier: Modifier = Modifier
 ) {
     val clock = rememberShowClock(key = playerA + playerB, cap = 4f)
+    SceneCue(Cue.VERSUS, key = playerA + playerB)
     VersusCards(
         playerA = playerA,
         playerB = playerB,

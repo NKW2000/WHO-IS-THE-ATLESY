@@ -35,6 +35,8 @@ import com.feudparty.app.ui.components.appear
 import com.feudparty.app.ui.components.blockSkin
 import com.feudparty.app.ui.components.drop
 import com.feudparty.app.ui.components.rememberShowClock
+import com.feudparty.app.feedback.Cue
+import com.feudparty.app.feedback.SceneCue
 import com.feudparty.app.ui.components.rise
 import com.feudparty.app.ui.components.thump
 import com.feudparty.app.ui.components.wipe
@@ -67,6 +69,9 @@ fun ScoreboardScreen(
     val roundNumber = state.currentQuestionIndex + 1
     val award = state.lastAward
     val t by rememberShowClock(key = roundNumber, cap = 4f)
+    // الدقّات بتمشي مع عدّ الأرقام، والأجراس مع التاج واللافتة.
+    SceneCue(Cue.COUNT, key = roundNumber, at = COUNT_START)
+    SceneCue(Cue.CROWN, key = roundNumber, at = CROWN_AT)
     val counted = ((t - COUNT_START) / COUNT_TIME).coerceIn(0f, 1f)
     val scores = TeamId.entries.associateWith { state.teams[it]?.score ?: 0 }
     val top = scores.values.maxOrNull()?.coerceAtLeast(1) ?: 1

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "game-audio": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/creative-design/game-development/game-audio/SKILL.md",
+      "computedHash": "23731bda31412739267aabbecaba9bf13492393007f1952bd0d559451c6c808c"
+    }
+  }
+}
