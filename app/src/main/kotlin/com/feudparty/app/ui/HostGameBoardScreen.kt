@@ -40,7 +40,6 @@ import com.feudparty.app.ui.components.AnswerBoardGrid
 import com.feudparty.app.ui.components.RoundBlock
 import com.feudparty.app.ui.components.Countdown
 import com.feudparty.app.ui.components.PrimaryButton
-import com.feudparty.app.ui.components.QuestionCard
 import com.feudparty.app.ui.components.SecondaryButton
 import com.feudparty.app.ui.components.StageBackground
 import com.feudparty.app.ui.components.StrikeFlash
@@ -224,7 +223,6 @@ private fun ColumnScope.DesignBoard(
                 text = if (revealedAll) state.nextButtonLabel() else "اكشف الباقي",
                 color = FeudColors.lime,
                 textColor = FeudColors.ink,
-                shadow = FeudColors.limeShadow,
                 enabled = revealedAll,
                 modifier = Modifier.weight(1f),
                 onClick = onNextRound
@@ -235,7 +233,6 @@ private fun ColumnScope.DesignBoard(
                 text = "بدّل السؤال ⟳",
                 color = FeudColors.gold,
                 textColor = FeudColors.ink,
-                shadow = FeudColors.goldShadow,
                 modifier = Modifier.weight(1f),
                 onClick = onChangeQuestion
             )
@@ -244,7 +241,6 @@ private fun ColumnScope.DesignBoard(
                 text = "غلط ✕",
                 color = FeudColors.pink,
                 textColor = Color.White,
-                shadow = FeudColors.strikeShadow,
                 enabled = canJudge,
                 modifier = Modifier.weight(1f),
                 onClick = onWrong
@@ -535,7 +531,6 @@ private fun FlatButton(
     text: String,
     color: Color,
     textColor: Color,
-    shadow: Color,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     onClick: () -> Unit

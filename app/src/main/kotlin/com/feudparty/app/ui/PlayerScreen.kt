@@ -49,7 +49,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -150,7 +149,6 @@ fun PlayerScreen(
         state?.phase == RoundPhase.FACE_OFF
 
     if (faceOffBuzzer) {
-        val me = state?.player(playerId)
         FullScreenBuzzer(
             onBuzz = onBuzz
         )
@@ -654,7 +652,6 @@ private fun PlayerBoard(
         else -> FeudColors.stage
     }
     val background by animateColorAsState(target, tween(220), label = "boardColor")
-    val onBackground = if (background.luminance() > 0.45f) FeudColors.ink else FeudColors.cream
 
     // بمرحلة اللعب دورك بينبّه: أي لمسة بتقول للمضيف إنك عم تجاوب.
     val canSignal = mark == PlayerMark.ARMED

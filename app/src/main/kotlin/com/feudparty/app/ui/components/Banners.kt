@@ -5,11 +5,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,39 +23,6 @@ import com.feudparty.app.ui.theme.FeudColors
 import com.feudparty.app.ui.theme.FeudShape
 import com.feudparty.core.game.GameState
 import com.feudparty.core.game.TeamId
-
-/**
- * بطاقة السؤال — لوح كريمي زي شاشة البرنامج. عرضها بقد نصّها (مع سقف
- * حتى ما تتمدّد على كل الشاشة بالأسئلة الطويلة)، فبتنتوسّط تماماً جوّا
- * المساحة اللي بتنعطى لها.
- */
-@Composable
-fun QuestionCard(
-    round: Int,
-    totalRounds: Int,
-    question: String,
-    modifier: Modifier = Modifier
-) {
-    AnimatedVisibility(
-        visible = true,
-        enter = slideInHorizontally(tween(320)) { it / 4 } + fadeIn(tween(260))
-    ) {
-        GoldPanel(modifier = modifier) {
-            Column(
-                modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    question,
-                    color = FeudColors.ink,
-                    style = MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2
-                )
-            }
-        }
-    }
-}
 
 /** شريط الحالة تحت السؤال — بياخد لون الفريق اللي عليه الدور. */
 @Composable

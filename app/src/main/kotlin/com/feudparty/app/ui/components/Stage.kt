@@ -166,14 +166,6 @@ fun CartoonSurface(
     )
 }
 
-/** لوح كريمي — بيستعمل للسؤال وللبطاقات الفاتحة. */
-@Composable
-fun GoldPanel(
-    modifier: Modifier = Modifier,
-    accent: Color = FeudColors.cream,
-    content: @Composable BoxScope.() -> Unit
-) = CartoonSurface(modifier = modifier, color = accent, corner = 22.dp, shadow = 8.dp, content = content)
-
 @Composable
 fun GoldDivider(modifier: Modifier = Modifier) {
     Box(

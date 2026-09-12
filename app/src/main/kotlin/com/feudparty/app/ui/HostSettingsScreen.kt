@@ -43,7 +43,6 @@ import com.feudparty.app.ui.components.CartoonSurface
 import com.feudparty.app.ui.components.SettingsCard
 import com.feudparty.app.ui.components.Stepper
 import com.feudparty.app.ui.components.MultiplierChip
-import com.feudparty.app.ui.components.GoldDivider
 import com.feudparty.app.ui.components.NamePromptDialog
 import com.feudparty.app.ui.components.color
 import com.feudparty.app.ui.components.inkColor
